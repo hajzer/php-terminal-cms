@@ -1,0 +1,80 @@
+#!/usr/bin/env php
+<?php
+/**
+ * Builds the release archives into dist/.
+ *
+ *   dist/php-terminal-cms-<version>.tar.gz
+ *   dist/php-terminal-cms-<version>.zip
+ *
+ * Both contain the same tree, which is also the repository layout — so the
+ * archive can seed a fresh GitHub repo unchanged. bin/manifest.php is the list
+ * of what goes in, and bin/test checks that nothing tracked has fallen off it.
+ * Runs bin/build and bin/test first; a failing test stops the release.
+ */
+declare(strict_types=1);
+
+$root    = dirname(__DIR__);
+$version = trim((string) file_get_contents($root . '/VERSION'));
+$name    = "php-terminal-cms-$version";
+$dist    = $root . '/dist';
+
+echo "php-terminal-cms $version\n\nbuild\n";
+passthru(PHP_BINARY . ' ' . escapeshellarg($root . '/bin/build'), $rc);
+if ($rc !== 0) { exit(1); }
+
+echo "\ntest\n";
+/* no pipe: a pipeline's status is the last command's, so `| tail` would report
+   success for a suite that failed. The tail is done here instead. */
+$out = [];
+exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($root . '/bin/test') . ' 2>&1', $out, $rc);
+echo implode("\n", array_slice($out, -2)) . "\n";
+if ($rc !== 0) {
+    fwrite(STDERR, "\ntests failed — not packaging\n");
+    exit(1);
+}
+
+$manifest = require $root . '/bin/manifest.php';
+$include  = $manifest['include'];
+$exclude  = $manifest['exclude'];
+
+@mkdir($dist, 0755, true);
+$stage = $dist . '/' . $name;
+passthru('rm -rf ' . escapeshellarg($stage));
+@mkdir($stage, 0755, true);
+
+$copied = 0;
+foreach ($include as $rel) {
+    $src = $root . '/' . $rel;
+    if (!file_exists($src)) {
+        fwrite(STDERR, "  missing: $rel\n");
+        continue;
+    }
+    $dst = $stage . '/' . $rel;
+    @mkdir(dirname($dst), 0755, true);
+    if (is_dir($src)) {
+        passthru('cp -r ' . escapeshellarg($src) . ' ' . escapeshellarg(dirname($dst)));
+    } else {
+        copy($src, $dst);
+    }
+    $copied++;
+}
+foreach ($exclude as $rel) {
+    passthru('rm -rf ' . escapeshellarg($stage . '/' . $rel));
+}
+
+echo "\narchives\n";
+chdir($dist);
+passthru('tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner -czf '
+       . escapeshellarg("$name.tar.gz") . ' ' . escapeshellarg($name));
+if (trim((string) shell_exec('command -v zip'))) {
+    passthru('rm -f ' . escapeshellarg("$name.zip"));
+    passthru('zip -qr ' . escapeshellarg("$name.zip") . ' ' . escapeshellarg($name));
+} else {
+    echo "  (zip not installed — tar.gz only)\n";
+}
+passthru('rm -rf ' . escapeshellarg($name));
+
+foreach (glob("$name.*") ?: [] as $f) {
+    printf("  %-32s %8.1f kB\n", basename($f), filesize($f) / 1024);
+}
+echo "\npackaged $copied path(s) into dist/\n";

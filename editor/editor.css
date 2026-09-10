@@ -1,0 +1,293 @@
+/* Editor chrome only. Everything about how a document *reads* is in theme.css.
+   --doc-scale is set from ui.js by + and -: chrome keeps its size, the document
+   in both panes grows and shrinks. Every rule that sizes document text does it
+   in em, so one variable is enough. */
+
+html, body { height: 100%; }
+body { overflow: hidden; font: 14px/1.6 var(--mono); }
+
+.app { height: 100vh; height: 100dvh; display: grid; grid-template-rows: auto auto 1fr auto auto auto; }
+
+/* ---------------------------------------------------------------- topbar */
+.topbar {
+  display: flex; align-items: center;
+  border-bottom: 1px solid var(--border); background: var(--bg);
+  padding: 0 14px; height: 30px; font-size: 12px;
+}
+.topbar .brand { color: var(--fg-strong); font-weight: 600; padding-right: 18px; }
+.topbar .brand span { color: var(--accent); }
+.topbar .brand .ver {
+  font-style: normal; font-weight: 400; font-size: 11px;
+  color: var(--faint); padding-left: 7px;
+}
+.topbar .grow { flex: 1; }
+
+/* what the editor can do to the document as a whole */
+.topbar .acts { display: flex; align-items: stretch; height: 100%; }
+.topbar .acts button {
+  all: unset; cursor: pointer; display: flex; align-items: center; padding: 0 12px;
+  color: var(--secondary); white-space: nowrap;
+}
+.topbar .acts button:hover { color: var(--accent); background: var(--block-bg); }
+.topbar .acts button[disabled] { color: var(--faint); cursor: default; }
+.topbar .acts button[disabled]:hover { background: transparent; color: var(--faint); }
+.topbar .acts .bar { width: 1px; background: var(--border); margin: 5px 8px; }
+
+/* ------------------------------------------------------------------ tabs */
+.tabs {
+  display: flex; align-items: stretch; height: 26px; font-size: 12px;
+  border-bottom: 1px solid var(--border); background: var(--block-bg);
+}
+.tabs button {
+  all: unset; cursor: pointer; padding: 0 16px; display: flex; align-items: center;
+  color: var(--secondary); border-right: 1px solid var(--border);
+}
+.tabs button:hover { color: var(--fg-strong); }
+/* the pane a tab opens is below it, so the mark that says which one is open
+   goes along the bottom edge, against the pane */
+.tabs button.on { background: var(--bg); color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+.tabs .grow { flex: 1; }
+.tabs .doc {
+  display: flex; align-items: center; padding: 0 12px;
+  font-size: 11px; white-space: nowrap; overflow: hidden;
+}
+.tabs .doc b {
+  color: var(--secondary); font-weight: 400; cursor: text;
+  border-bottom: 1px dotted var(--border); padding: 0 1px;
+}
+.tabs .doc b:hover { color: var(--accent); border-bottom-color: var(--accent); }
+.tabs .doc b[contenteditable] {
+  outline: none; color: var(--fg-strong); background: var(--code-bg);
+  box-shadow: 0 0 0 1px var(--accent); border-bottom-color: transparent;
+}
+.tabs .icon { padding: 0 10px; border-right: 1px solid var(--border); }
+.tabs .zoom { display: flex; align-items: stretch; border-left: 1px solid var(--border); }
+.tabs .zoom button {
+  all: unset; cursor: pointer; display: flex; align-items: center; padding: 0 9px;
+  color: var(--secondary); font-size: 11px;
+}
+.tabs .zoom button:hover { color: var(--accent); }
+.tabs .zoom #zoomPct { color: var(--faint); min-width: 34px; justify-content: center; }
+
+/* ----------------------------------------------------------------- panes */
+.panes { display: grid; min-height: 0; overflow: hidden; }
+.panes .pane { overflow: auto; min-height: 0; min-width: 0; display: none; }
+
+.panes[data-mode="write"] .pane.write,
+.panes[data-mode="read"]  .pane.readwrap { display: block; }
+
+/* split: two live panes, either way round */
+.panes[data-mode="split"] { grid-template-columns: 1fr 1fr; }
+.panes[data-mode="split"] .pane { display: block; }
+.panes[data-mode="split"] .pane.write { border-right: 1px solid var(--border); }
+.panes[data-mode="split"][data-swap="yes"] .pane.write  { order: 2; border-right: 0;
+  border-left: 1px solid var(--border); }
+.panes[data-mode="split"][data-swap="yes"] .pane.readwrap { order: 1; }
+.panes[data-mode="split"] .sheet { max-width: none; padding: 20px 12px 40vh; }
+.panes[data-mode="split"] .readwrap .reader-page { padding: 20px 16px 40vh; }
+
+@media (max-width: 900px) {
+  .panes[data-mode="split"] { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+  .panes[data-mode="split"] .pane.write { border-right: 0; border-bottom: 1px solid var(--border); }
+}
+
+/* --------------------------------------------------------- write surface */
+.sheet { max-width: 80ch; margin: 0 auto; padding: 30px 0 40vh;
+  font-size: calc(14px * var(--doc-scale)); }
+.ln {
+  display: grid; grid-template-columns: 50px 1fr; align-items: start;
+  position: relative; padding: 0 20px 0 0;
+}
+.ln .gut {
+  color: transparent; font-size: 10px; text-align: right; padding: 6px 12px 0 0;
+  white-space: nowrap; user-select: none; line-height: 1.6;
+}
+.ln:hover .gut, .ln.cur .gut { color: var(--faint); }
+.ln .gut .sg { color: var(--secondary); }
+.ln.cur .gut .sg { color: var(--accent); }
+.ln .grip { position: absolute; left: 0; top: 6px; color: transparent; cursor: grab; font-size: 11px; }
+.ln:hover .grip { color: var(--faint); }
+.ln .txt { padding: 1px 4px; white-space: pre-wrap; word-break: break-word; }
+.ln.cur { background: var(--block-bg); }
+.ln.cur::before {
+  content: ""; position: absolute; left: 42px; top: 1px; bottom: 1px;
+  border-left: 2px solid var(--accent);
+}
+.ln.dragging { opacity: .4; }
+.ln.over .txt { box-shadow: 0 -2px 0 var(--accent); }
+.ln .txt[contenteditable] { outline: none; box-shadow: 0 0 0 1px var(--accent); background: var(--code-bg); }
+.ln .ph { color: var(--faint); font-style: normal; }
+
+/* each line already wears its own style — the sheet is the preview */
+.ln.h1 .txt { font-size: 1.9em; font-weight: 600; color: var(--fg-strong);
+  letter-spacing: -.02em; line-height: 1.25; padding-top: 14px; }
+.ln.h2 .txt { font-size: 1.25em; font-weight: 600; color: var(--fg-strong); padding-top: 16px; }
+.ln.h3 .txt { font-size: 1.05em; font-weight: 600; color: var(--secondary); padding-top: 10px; }
+.ln.list .txt { padding-left: 22px; position: relative; }
+.ln.list .txt::before { content: "-"; position: absolute; left: 6px; color: var(--secondary); }
+.ln.quote .txt { font-style: italic; color: var(--secondary);
+  border-left: 1px solid var(--border); padding-left: 14px; }
+.ln.note .txt { background: var(--block-bg); border-left: 2px solid var(--accent); padding: 4px 12px; }
+.ln.rule .txt { border-bottom: 1px dashed var(--border); height: 0; overflow: hidden; margin: 14px 0; }
+.ln.meta .txt { color: var(--faint); font-size: .86em; }
+.ln.img .txt { border: 1px solid var(--border); background: var(--block-bg);
+  color: var(--faint); text-align: center; padding: 24px; font-size: .86em; }
+
+/* a run of code / CLI / table lines is one visual block */
+.run { margin: 16px 0; border: 1px solid var(--border); }
+.run .runbar {
+  display: flex; align-items: center; gap: 8px; padding: 2px 8px 2px 12px;
+  background: var(--block-bg); border-bottom: 1px solid var(--border);
+}
+.run .runbar .lang { flex: 1; color: var(--faint); font-size: 10px;
+  letter-spacing: .14em; text-transform: uppercase; }
+.run .runbar button { all: unset; cursor: pointer; color: var(--secondary);
+  font: 11px/1 var(--mono); padding: 3px 8px; }
+.run .runbar button:hover { color: var(--fg-strong); }
+.run .runbar button.done { color: var(--tk-str); }
+.run .ln { padding-right: 8px; }
+.run .ln .txt { font-size: .93em; line-height: 1.5; white-space: pre; overflow-x: auto; }
+.run .ln .gut { padding-top: 3px; }
+.run.cli .pr { color: var(--accent); user-select: none; }
+.run.table .ln .txt { white-space: pre; font-size: .93em; }
+.run.table .ln:first-of-type .txt { color: var(--fg-strong); font-weight: 600; }
+
+.foldrow {
+  display: grid; grid-template-columns: 50px 1fr; cursor: pointer;
+  border-top: 1px dashed var(--border);
+}
+.foldrow .gut { color: var(--faint); font-size: 10px; text-align: right; padding: 4px 12px 0 0; }
+.foldrow .lbl { padding: 3px 4px; color: var(--secondary); font-size: 11px; }
+.foldrow:hover .lbl { color: var(--fg-strong); }
+.foldrow .lbl i { font-style: normal; color: var(--faint); }
+.run .ln.out { border-top: 1px dashed var(--border); }
+.run .ln.out .txt { color: var(--secondary); font-size: .93em; }
+
+/* ------------------------------------------------------------ read pane */
+.readwrap .reader-page {
+  padding: 32px 24px 80px;
+  font-size: calc(var(--global-font-size) * var(--doc-scale));
+}
+
+/* -------------------------------------------------------------- legend */
+.legend {
+  display: flex; flex-wrap: wrap; padding: 3px 10px; font-size: 11px;
+  border-top: 1px solid var(--border); color: var(--faint);
+}
+.legend b { font-weight: 400; padding: 1px 7px; cursor: pointer; }
+.legend b:hover { color: var(--fg); }
+.legend b.on { background: var(--accent); color: var(--bg); }
+.legend b i { font-style: normal; color: var(--secondary); margin-left: 5px; }
+/* the writing loop as buttons — the same actions the keys have */
+.legend b.do { color: var(--secondary); }
+.legend b.do:hover { color: var(--fg-strong); background: var(--block-bg); }
+.legend b.on i { color: var(--bg); opacity: .7; }
+.legend .sep { flex: 1; }
+.legend .act { color: var(--secondary); }
+.legend .act kbd { font: inherit; color: var(--fg); }
+
+/* ------------------------------------------------- command line + status */
+.cmd { display: flex; align-items: center; padding: 2px 12px; min-height: 20px; font-size: 13px; }
+.cmd.hidden { display: none; }
+.cmd input { all: unset; flex: 1; color: var(--fg-strong); font: 13px/1 var(--mono); }
+.compl { display: flex; flex-wrap: wrap; align-items: center; padding: 0 12px 3px 22px; }
+.compl.hidden { display: none; }
+.compl b { font-weight: 400; padding: 0 7px; font-size: 11px; color: var(--faint); cursor: pointer; }
+.compl b:hover { color: var(--fg-strong); }
+.compl b.on { background: var(--accent); color: var(--bg); }
+.compl i { font-style: normal; padding: 0 7px; font-size: 11px; color: var(--faint); opacity: .7; }
+
+.status {
+  display: flex; align-items: center; background: var(--block-bg);
+  color: var(--secondary); font-size: 11px; height: 22px; border-top: 1px solid var(--border);
+}
+.status .sess {
+  background: var(--accent); color: var(--bg); padding: 0 10px; height: 100%;
+  display: flex; align-items: center; font-weight: 600;
+}
+.status .w { padding: 0 10px; cursor: pointer; }
+.status .w.on { color: var(--accent); background: var(--code-bg); }
+.status .grow { flex: 1; }
+.status .msg { color: var(--tk-str); padding-right: 12px; }
+.status .right { padding: 0 10px; }
+
+/* ------------------------------------------------------------ overlays */
+.ov { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; z-index: 60; place-items: center; }
+.ov.on { display: grid; }
+.ov .card {
+  background: var(--bg); border: 1px solid var(--accent);
+  width: min(760px, 92vw); max-height: 84vh; display: flex; flex-direction: column;
+}
+.ov .card h4 {
+  margin: 0; padding: 12px 18px; font-size: 11px; color: var(--accent);
+  letter-spacing: .16em; text-transform: uppercase;
+  border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px;
+}
+.ov .card h4 .grow { flex: 1; }
+.ov .card h4 button {
+  all: unset; cursor: pointer; color: var(--secondary); font-size: 11px;
+  letter-spacing: .06em; padding: 3px 9px; border: 1px solid var(--border);
+}
+.ov .card h4 button:hover { color: var(--fg-strong); border-color: var(--accent); }
+.ov .body { overflow: auto; padding: 16px 18px; font-size: 13px; }
+.ov .row { display: grid; grid-template-columns: 150px 1fr; padding: 2px 0; color: var(--secondary); }
+.ov .row kbd { font: inherit; color: var(--fg-strong); }
+.ov .row .subs { color: var(--faint); font-size: 12px; word-spacing: .3em; }
+/* the command table is generated from the commands themselves — see ui.js */
+.ov .cmds .row { grid-template-columns: 215px 1fr; }
+.ov .cmds .row kbd { color: var(--tk-kw); }
+.ov h5 { margin: 16px 0 6px; font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--faint); font-weight: 400; }
+.ov pre { margin: 0; padding: 12px 14px; background: var(--code-bg);
+  border: 1px solid var(--border); overflow: auto; font-size: 12px; line-height: 1.5; color: var(--fg); }
+.ov .path { color: var(--tk-str); font-size: 12px; margin-bottom: 10px; }
+.ov .path b { color: var(--fg-strong); font-weight: 400; }
+
+.prefix {
+  position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  background: var(--accent); color: var(--bg); padding: 10px 18px; font-size: 13px;
+  display: none; z-index: 70; letter-spacing: .1em;
+}
+.prefix.on { display: block; }
+
+/* drop a .md anywhere to open it */
+body.dropping::after {
+  content: "drop a .md file to edit it";
+  position: fixed; inset: 8px; z-index: 80; pointer-events: none;
+  border: 2px dashed var(--accent); color: var(--accent);
+  display: grid; place-items: center; font-size: 14px;
+  background: rgba(0,0,0,.35);
+}
+
+/* ------------------------------------------------------------------ touch
+   A tablet in landscape is 1024px wide and has no cursor: the legend along the
+   bottom is the writing loop when there is no keyboard to run it from, so it
+   has to be hittable at any width. Sizes only — the layout is below. */
+@media (pointer: coarse) {
+  .topbar { height: auto; }
+  .topbar .acts { overflow-x: auto; }
+  .topbar .acts button { padding: 10px 12px; }
+  .tabs { height: auto; }
+  .tabs button { padding: 10px 16px; }
+  .ln .txt { padding: 5px 4px; }
+  .ln .grip { display: none; }        /* dragging is a mouse; J and K are not */
+  .foldrow .lbl { padding: 10px 4px; }
+  .run .runbar button { padding: 9px 10px; }
+  .legend { padding: 4px 6px; }
+  .legend b { padding: 9px 10px; }
+  .legend .act { display: none; }     /* keys nobody can press on a screen */
+  .status .w { padding: 0 14px; }
+  .ov .card h4 button { padding: 9px 12px; }
+}
+
+/* -------------------------------------------------------- small screens */
+@media (max-width: 900px) {
+  .tabs { flex-wrap: wrap; }
+  .tabs .doc { flex: 1 0 100%; border-top: 1px solid var(--border); padding: 6px 12px; }
+  .sheet { padding: 14px 0 45vh; }
+  .ln { grid-template-columns: 34px 1fr; padding-right: 10px; }
+  .ln.cur::before { left: 26px; }
+  .foldrow { grid-template-columns: 34px 1fr; }
+  .readwrap .reader-page { padding: 18px 14px 60px; }
+  .legend .sep { flex-basis: 100%; height: 0; }
+}

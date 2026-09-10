@@ -1,0 +1,209 @@
+/* php-terminal-cms — reader theme. Single source: copied to editor/ and site/public/
+   by bin/build. Derived from terminal.css (panr.github.io/terminal-css): the
+   same structural rules, recoloured for long reading.
+
+   Exactly two modes, normal and dark:
+     :root                                   normal
+     @media (prefers-color-scheme: dark)     dark, when the visitor has not chosen
+     [data-theme="dark"] / ="normal"         an explicit choice always wins        */
+
+:root {
+  --global-font-size: 15px;
+  --global-line-height: 1.5em;
+  --global-space: 10px;
+  --page-width: 62em;
+  --doc-scale: 1;         /* + / - in the editor and on the page; see Page.php */
+  --mono: ui-monospace, SFMono-Regular, "JetBrains Mono", "Fira Code", Menlo, Monaco, Consolas, monospace;
+
+  --bg:        #fbf9f5;   /* warm paper, never #fff */
+  --block-bg:  #f3efe7;
+  --code-bg:   #efeae0;
+  --fg:        #33312c;   /* soft ink, never #000 */
+  --fg-strong: #191813;
+  --secondary: #8a8377;
+  --faint:     #b6afa2;
+  --border:    #ddd6c9;
+  --primary:   #2f6f9f;
+  --accent:    #9a5b2b;
+  --invert-fg: #fbf9f5;
+
+  --tk-kw:  #7d4f9e;
+  --tk-str: #4a7a3c;
+  --tk-num: #96601f;
+  --tk-com: #9a9386;
+  --tk-bi:  #2f6f9f;
+  --tk-var: #a34a3c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="normal"]) {
+    --bg:        #191c1e;
+    --block-bg:  #1e2225;
+    --code-bg:   #21262a;
+    --fg:        #cbd0d1;
+    --fg-strong: #e8ecec;
+    --secondary: #7c8486;
+    --faint:     #5a6265;
+    --border:    #2d3336;
+    --primary:   #7fb2d9;
+    --accent:    #d9a05f;
+    --invert-fg: #191c1e;
+
+    --tk-kw:  #c39ac9;
+    --tk-str: #a3c98f;
+    --tk-num: #d9b06a;
+    --tk-com: #6d7679;
+    --tk-bi:  #7fb2d9;
+    --tk-var: #e0a49a;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg:        #191c1e;
+  --block-bg:  #1e2225;
+  --code-bg:   #21262a;
+  --fg:        #cbd0d1;
+  --fg-strong: #e8ecec;
+  --secondary: #7c8486;
+  --faint:     #5a6265;
+  --border:    #2d3336;
+  --primary:   #7fb2d9;
+  --accent:    #d9a05f;
+  --invert-fg: #191c1e;
+
+  --tk-kw:  #c39ac9;
+  --tk-str: #a3c98f;
+  --tk-num: #d9b06a;
+  --tk-com: #6d7679;
+  --tk-bi:  #7fb2d9;
+  --tk-var: #e0a49a;
+}
+
+* { box-sizing: border-box; }
+
+body.reader {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: var(--global-font-size)/var(--global-line-height) var(--mono);
+  -webkit-font-smoothing: antialiased;
+}
+
+.reader-page {
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: calc(var(--global-space) * 3) calc(var(--global-space) * 2);
+}
+
+/* ---------- document ---------- */
+/* the document's own meta, printed under its title */
+.reader .doc-meta {
+  color: var(--secondary); font-size: .87em;
+  padding-bottom: var(--global-space);
+  margin: calc(var(--global-space) * -1) 0 calc(var(--global-space) * 3);
+  border-bottom: 1px dashed var(--border);
+}
+.reader h1, .reader h2, .reader h3 {
+  font-weight: 600; color: var(--fg-strong); line-height: 1.25;
+  margin: calc(var(--global-space) * 3) 0 var(--global-line-height);
+}
+.reader h1 { font-size: 1.9em; margin-top: 0; letter-spacing: -.02em; }
+.reader h2 { font-size: 1.25em; }
+.reader h3 { font-size: 1.05em; color: var(--secondary); }
+.reader h2::before { content: "## "; color: var(--faint); font-weight: 400; }
+.reader h3::before { content: "### "; color: var(--faint); font-weight: 400; }
+
+.reader p { margin: 0 0 calc(var(--global-space) * 2); }
+.reader strong { color: var(--fg-strong); font-weight: 600; }
+.reader em { color: var(--accent); font-style: italic; }
+.reader a { color: var(--primary); text-decoration: none; border-bottom: 1px solid currentColor; }
+.reader a:hover { background: var(--primary); color: var(--invert-fg); border-color: transparent; }
+
+.reader ul { list-style: none; margin: 0 0 calc(var(--global-space) * 2); padding: 0; }
+.reader li { padding-left: calc(var(--global-space) * 2); position: relative; }
+.reader li::before { content: "-"; position: absolute; left: var(--global-space); color: var(--secondary); }
+
+.reader blockquote {
+  margin: calc(var(--global-space) * 2) 0; padding-left: 2ch;
+  color: var(--secondary); font-style: italic; border-left: 1px solid var(--border);
+}
+.reader blockquote::before { content: "> "; color: var(--faint); font-style: normal; }
+
+.reader hr { border: 0; border-bottom: 1px dashed var(--border); margin: calc(var(--global-space) * 4) 0; }
+
+.reader .note {
+  margin: calc(var(--global-space) * 2) 0;
+  padding: var(--global-space) calc(var(--global-space) * 1.5);
+  background: var(--block-bg); border-left: 2px solid var(--accent); color: var(--fg);
+}
+.reader .note-tag {
+  display: block; color: var(--accent); font-size: 11px;
+  letter-spacing: .12em; text-transform: uppercase; margin-bottom: 3px;
+}
+
+/* ---------- table ---------- */
+.reader .tablewrap { overflow-x: auto; margin: calc(var(--global-space) * 2) 0; }
+.reader table { border-collapse: collapse; width: 100%; font-size: .93em; }
+.reader th, .reader td {
+  border: 1px solid var(--border); padding: 4px 10px; text-align: left; vertical-align: top;
+}
+.reader th { background: var(--block-bg); color: var(--fg-strong); font-weight: 600; }
+.reader tbody tr:hover { background: var(--block-bg); }
+
+/* ---------- code, CLI, output ---------- */
+.reader .block { position: relative; margin: calc(var(--global-space) * 2) 0; }
+.reader .block-bar {
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid var(--border); border-bottom: 0;
+  background: var(--block-bg); padding: 2px 8px 2px 10px;
+}
+.reader .block-bar .lang {
+  flex: 1; color: var(--faint); font-size: 10px;
+  letter-spacing: .14em; text-transform: uppercase;
+}
+.reader .block-bar .copy {
+  all: unset; cursor: pointer; color: var(--secondary); font: 11px/1 var(--mono);
+  padding: 3px 8px; border: 1px solid transparent;
+}
+.reader .block-bar .copy:hover { color: var(--fg-strong); border-color: var(--border); }
+
+.reader pre {
+  margin: 0; padding: var(--global-space) calc(var(--global-space) * 1.5);
+  border: 1px solid var(--border); background: var(--code-bg);
+  overflow-x: auto; line-height: 1.45;
+}
+.reader pre.cli { background: var(--block-bg); }
+.reader pre.cli .pr { color: var(--accent); user-select: none; }
+.reader code { background: var(--code-bg); color: var(--fg-strong); padding: 0 4px; }
+.reader p code::before, .reader p code::after,
+.reader li code::before, .reader li code::after { content: "`"; color: var(--faint); }
+.reader td code::before, .reader td code::after { content: ""; }
+
+.reader .outsec { border: 1px solid var(--border); border-top: 0; background: var(--block-bg); }
+.reader .outsec > summary {
+  cursor: pointer; list-style: none; padding: 3px 10px;
+  color: var(--secondary); font-size: 11px; display: flex; align-items: center; gap: 6px;
+}
+.reader .outsec > summary::-webkit-details-marker { display: none; }
+.reader .outsec > summary::before { content: "▸"; color: var(--faint); }
+.reader .outsec[open] > summary::before { content: "▾"; }
+.reader .outsec > summary:hover { color: var(--fg-strong); }
+.reader .outsec > summary i { font-style: normal; color: var(--faint); }
+.reader .outsec .outp {
+  margin: 0; border: 0; border-top: 1px dashed var(--border);
+  background: transparent; color: var(--secondary); font-size: .87em;
+  padding: var(--global-space) calc(var(--global-space) * 1.5); overflow-x: auto;
+}
+
+/* ---------- figures ---------- */
+.reader figure { margin: calc(var(--global-space) * 2) 0; }
+.reader figure img { max-width: 100%; display: block; border: 1px solid var(--border); }
+.reader figcaption { color: var(--secondary); font-size: .8em; margin-top: 5px; }
+
+/* ---------- syntax tokens ---------- */
+.tk-kw  { color: var(--tk-kw); }
+.tk-str { color: var(--tk-str); }
+.tk-num { color: var(--tk-num); }
+.tk-com { color: var(--tk-com); font-style: italic; }
+.tk-bi  { color: var(--tk-bi); }
+.tk-var { color: var(--tk-var); }

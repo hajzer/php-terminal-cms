@@ -1,0 +1,62 @@
+#!/usr/bin/env php
+<?php
+/**
+ * Rewrites content files into canonical form — exactly what the editor emits.
+ *
+ * Useful after hand-editing a document, and as a check that a file the editor
+ * has never seen can still be read back losslessly. Pass --check to report
+ * without writing (bin/test relies on the content being canonical).
+ */
+declare(strict_types=1);
+
+use TerminalCms\Markdown;
+
+$root = dirname(__DIR__);
+require $root . '/site/src/bootstrap.php';
+
+$check   = in_array('--check', $argv, true);
+$targets = array_values(array_filter(array_slice($argv, 1), static fn ($a) => $a[0] !== '-'));
+if ($targets === []) {
+    $targets = [$root . '/site/content'];
+}
+
+$files = [];
+foreach ($targets as $t) {
+    if (is_dir($t)) {
+        $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($t));
+        foreach ($it as $f) {
+            if ($f->isFile() && $f->getExtension() === 'md') {
+                $files[] = $f->getPathname();
+            }
+        }
+    } elseif (is_file($t)) {
+        $files[] = $t;
+    }
+}
+sort($files);
+
+$changed = 0;
+foreach ($files as $file) {
+    $src = (string) file_get_contents($file);
+    [, $lines] = Markdown::parse($src);
+    $out = Markdown::toMarkdown($lines);
+    $rel = str_replace($root . '/', '', $file);
+
+    if ($out === $src) {
+        echo "  ok      $rel\n";
+        continue;
+    }
+    $changed++;
+    if ($check) {
+        echo "  DIFFERS $rel\n";
+    } else {
+        file_put_contents($file, $out);
+        echo "  wrote   $rel\n";
+    }
+}
+
+if ($check && $changed > 0) {
+    echo "\n$changed file(s) not in canonical form — run bin/fmt\n";
+    exit(1);
+}
+echo "\n" . count($files) . " file(s), $changed changed\n";

@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>php-terminal-cms — editor</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="editor.css">
+</head>
+<body class="reader">
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand">php-terminal<span>-cms</span><i class="ver">0.1.7</i></div>
+    <div class="acts">
+      <button type="button" id="actOpen" title="open a markdown file (or drop one anywhere)">Open .md</button>
+      <button type="button" id="actNew" title="start a new document (N)">New .md</button>
+      <button type="button" id="actClear" title="empty this document">Clear</button>
+      <span class="bar"></span>
+      <button type="button" id="actUndo" title="undo (Ctrl+Z)">↶ undo</button>
+      <button type="button" id="actRedo" title="redo (Ctrl+Shift+Z)">↷ redo</button>
+    </div>
+    <div class="grow"></div>
+  </div>
+
+  <div class="tabs">
+    <button data-tab="write" class="on">write</button>
+    <button data-tab="read">read</button>
+    <button data-tab="split">split</button>
+    <button class="icon" type="button" id="swap" title="swap the two panes (B)">⇄</button>
+    <div class="grow"></div>
+    <div class="zoom">
+      <button type="button" id="zoomOut" title="smaller content (-)">A−</button>
+      <button type="button" id="zoomPct" title="back to 100% (0)">100%</button>
+      <button type="button" id="zoomIn" title="bigger content (+)">A+</button>
+    </div>
+    <div class="doc" title="the file this document becomes — click it to change it (R)">
+      <b id="docname" tabindex="0"></b>
+    </div>
+  </div>
+
+  <div class="panes" id="panes" data-mode="write" data-swap="no">
+    <div class="pane write" id="tab-write"><div class="sheet" id="sheet"></div></div>
+    <div class="pane readwrap" id="tab-read">
+      <div class="reader-page" id="read"></div>
+    </div>
+  </div>
+
+  <div class="legend" id="legend"></div>
+
+  <div class="cmd hidden" id="cmd">:<input id="cmdInput" spellcheck="false" autocomplete="off"></div>
+  <div class="compl hidden" id="compl"></div>
+
+  <div class="status">
+    <div class="sess">php-terminal-cms</div>
+    <div class="w on" data-tab="write">1:write</div>
+    <div class="w" data-tab="read">2:read</div>
+    <div class="w" data-tab="split">3:split</div>
+    <div class="grow"></div>
+    <div class="msg" id="msg"></div>
+    <div class="right" id="right"></div>
+  </div>
+</div>
+
+<input type="file" id="openFile" accept=".md,text/markdown,text/plain" hidden>
+<div class="prefix" id="prefix">^B — 1 write · 2 read · 3 split</div>
+
+<div class="ov" id="help"><div class="card">
+  <h4>keys and commands<span class="grow"></span><button data-close>esc</button></h4>
+  <div class="body">
+    <h5>move</h5>
+    <div class="row"><kbd>j k · ↓ ↑</kbd><span>cursor — skips folded output</span></div>
+    <div class="row"><kbd>g G</kbd><span>first / last line</span></div>
+    <div class="row"><kbd>J K</kbd><span>move the LINE up / down</span></div>
+    <div class="row"><kbd>drag ⠿</kbd><span>reorder with the mouse</span></div>
+    <h5>write</h5>
+    <div class="row"><kbd>i · Enter</kbd><span>edit in place — Enter commits and opens the next line</span></div>
+    <div class="row"><kbd>o · O</kbd><span>new line below / above, straight into editing</span></div>
+    <div class="row"><kbd>D · x</kbd><span>remove the line</span></div>
+    <div class="row"><kbd>y</kbd><span>duplicate the line</span></div>
+    <div class="row"><kbd>Esc</kbd><span>stop editing</span></div>
+    <div class="row"><kbd>^Z · ^⇧Z</kbd><span>undo / redo — everything that changes the document</span></div>
+    <h5>styles — one key each</h5>
+    <div class="row"><kbd>1 2 3</kbd><span>H1 · H2 · H3</span></div>
+    <div class="row"><kbd>p · l · q · n</kbd><span>paragraph · list · quote · note</span></div>
+    <div class="row"><kbd>t</kbd><span>table row — a run of them is one table</span></div>
+    <div class="row"><kbd>c · s · u</kbd><span>code · CLI · output</span></div>
+    <div class="row"><kbd>r · f · m</kbd><span>rule · figure · meta</span></div>
+    <div class="row"><kbd>Tab ⇧Tab</kbd><span>cycle the dialect of a code or CLI line</span></div>
+    <div class="row"><kbd>:lang &lt;name&gt;</kbd><span>pick a dialect by name instead of cycling to it</span></div>
+    <div class="row"><kbd>code</kbd><span class="subs" id="helpCode"></span></div>
+    <div class="row"><kbd>CLI</kbd><span class="subs" id="helpCli"></span></div>
+    <h5>blocks</h5>
+    <div class="row"><kbd>z</kbd><span>fold / unfold this block's output</span></div>
+    <div class="row"><kbd>C</kbd><span>copy this code or CLI block</span></div>
+    <h5>document</h5>
+    <div class="row"><kbd>Open .md</kbd><span>open a file — or drop one anywhere on the page</span></div>
+    <div class="row"><kbd>New .md · N</kbd><span>start a new document, keeping the category</span></div>
+    <div class="row"><kbd>Clear</kbd><span>empty this one — ^Z brings it back</span></div>
+    <div class="row"><kbd>R</kbd><span>name the file — or click the name in the tab bar</span></div>
+    <div class="row"><kbd>E</kbd><span>export markdown</span></div>
+    <h5>screen</h5>
+    <div class="row"><kbd>e · v · b</kbd><span>write · read · split screen (^B 1 · 2 · 3)</span></div>
+    <div class="row"><kbd>B</kbd><span>swap the panes — editor left or editor right</span></div>
+    <div class="row"><kbd>+ − 0</kbd><span>content bigger · smaller · back to 100%</span></div>
+    <div class="row"><kbd>T</kbd><span>theme normal ⇄ dark</span></div>
+    <div class="row"><kbd>?</kbd><span>this help</span></div>
+    <h5>command line — <kbd>:</kbd> opens it, Tab completes, Enter runs, Esc cancels</h5>
+    <div class="cmds" id="cmdlist"></div>
+  </div>
+</div></div>
+
+<div class="ov" id="exp"><div class="card">
+  <h4>export — standard markdown<span class="grow"></span>
+    <button id="expCopy">copy</button><button id="expDl">download .md</button>
+    <button data-close>esc</button></h4>
+  <div class="body">
+    <div class="path">→ <b id="expPath"></b></div>
+    <pre id="expMd"></pre>
+    <h5>then move it — the editor never touches the server</h5>
+    <pre id="expShip"></pre>
+  </div>
+</div></div>
+
+<script type="text/markdown" id="starter">---
+title: untitled
+category: guides
+date: 2026-09-09
+---
+
+# Start typing
+
+Press **i** to edit this line, **Enter** to commit it and open the next one, **Esc** to stop. That loop is the whole editor.
+
+## Three things to know
+
+- Every line has one type, and one key sets it — **1 2 3** headings, **p** paragraph, **l** list, **c** code, **s** CLI, **t** table row, **m** meta
+- **o** opens a new line below, **D** removes one, **J** and **K** move the line itself
+- **^Z** undoes anything, **:** opens the command line, **?** lists every key and command
+
+## Where this file goes
+
+The name in the tab bar is what the file will be called. Click it to change it, or type `:name my-post.md`. A `category:` meta line decides which directory it belongs in.
+
+```console
+$ mv ~/Downloads/my-post.md content/guides/my-post.md
+```
+
+```output
+the editor writes a file; moving it is your job
+```
+
+Press **E** when you are done — you get the markdown, the path it belongs at, and a download button. Then **New .md**, and write the next one.
+</script>
+
+<script>
+window.STARTER = document.getElementById('starter').textContent;
+</script>
+<script src="langs.js"></script>
+<script src="editor.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>

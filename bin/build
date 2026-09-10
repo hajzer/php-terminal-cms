@@ -1,0 +1,56 @@
+#!/usr/bin/env php
+<?php
+/**
+ * Regenerates every derived file from its single source.
+ *
+ *   shared/langs.json -> editor/langs.js        (editor must work from file://,
+ *                                                where fetch() is blocked)
+ *                     -> site/shared/langs.json (the site reads it directly)
+ *   shared/theme.css  -> editor/theme.css
+ *                     -> site/public/theme.css
+ *   editor/index.html -> tests/editor-probe.html  (the same page, with its
+ *                                                  assets repathed and the
+ *                                                  probe script appended)
+ *
+ * bin/test fails if any copy has drifted from its source.
+ */
+declare(strict_types=1);
+
+$root = dirname(__DIR__);
+
+$json = file_get_contents($root . '/shared/langs.json');
+if ($json === false || json_decode($json, true) === null) {
+    fwrite(STDERR, "shared/langs.json missing or invalid\n");
+    exit(1);
+}
+
+/* The browser probe is the editor's own page, so it cannot drift from it. */
+$page = (string) file_get_contents($root . '/editor/index.html');
+$probe = str_replace(
+    ['<title>php-terminal-cms — editor</title>',
+     'href="theme.css"', 'href="editor.css"',
+     'src="langs.js"', 'src="editor.js"', 'src="ui.js"',
+     '</body>'],
+    ['<title>php-terminal-cms — editor probe</title>',
+     'href="../editor/theme.css"', 'href="../editor/editor.css"',
+     'src="../editor/langs.js"', 'src="../editor/editor.js"', 'src="../editor/ui.js"',
+     '<script src="editor-probe.js"></script>' . "\n" . '</body>'],
+    $page
+);
+
+$targets = [
+    '/editor/langs.js' => "/* GENERATED from shared/langs.json by bin/build — do not edit. */\n"
+                        . 'window.LANGS = ' . rtrim($json) . ";\n",
+    '/site/shared/langs.json' => $json,
+    '/editor/theme.css'       => file_get_contents($root . '/shared/theme.css'),
+    '/site/public/theme.css'  => file_get_contents($root . '/shared/theme.css'),
+    '/tests/editor-probe.html' => $probe,
+];
+
+foreach ($targets as $rel => $content) {
+    $path = $root . $rel;
+    @mkdir(dirname($path), 0755, true);
+    file_put_contents($path, $content);
+    printf("  %-28s %6d bytes\n", ltrim($rel, '/'), strlen((string) $content));
+}
+echo "build ok\n";

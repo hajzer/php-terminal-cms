@@ -1,0 +1,119 @@
+/* Site chrome only — everything about reading a document lives in theme.css. */
+
+/* the document scales with A- / A+ ; the chrome around it does not */
+main.reader-page { font-size: calc(var(--global-font-size) * var(--doc-scale)); }
+
+.topbar {
+  display: flex; align-items: center;
+  border-bottom: 1px solid var(--border); background: var(--bg);
+  padding: 0 14px; height: 32px; font-size: 12px;
+  position: sticky; top: 0; z-index: 10;
+}
+.topbar .brand {
+  color: var(--fg-strong); font-weight: 600; padding-right: 18px;
+  text-decoration: none; border: 0;
+}
+.topbar .brand:hover { background: transparent; color: var(--accent); }
+/* the tagline, in the one place it is read rather than only indexed */
+.topbar .tagline {
+  color: var(--faint); padding-right: 18px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; max-width: 40ch;
+}
+.topbar nav { display: flex; flex: 1; overflow-x: auto; }
+.topbar nav a {
+  color: var(--secondary); text-decoration: none; padding: 0 10px;
+  white-space: nowrap; border: 0; border-bottom: 2px solid transparent; line-height: 30px;
+}
+.topbar nav a:hover { color: var(--fg-strong); background: transparent; }
+.topbar nav a.on { color: var(--accent); border-bottom-color: var(--accent); }
+.topbar .host button {
+  all: unset; cursor: pointer; color: var(--faint); font: 11px/1 var(--mono);
+  padding: 4px 8px; border: 1px solid transparent;
+}
+.topbar .host button:hover { color: var(--fg-strong); border-color: var(--border); }
+
+/* ---------- listings ---------- */
+/* one row is one document. The languages it exists in sit beside the row
+   rather than inside it: they are their own links, and their own tap targets. */
+.listing { list-style: none; margin: calc(var(--global-space) * 2) 0 0; padding: 0; }
+.listing li {
+  display: flex; align-items: baseline; gap: 10px; padding: 0;
+  border-bottom: 1px solid var(--border);
+}
+.listing li::before { content: none; }
+.listing a.row {
+  flex: 1; min-width: 0;
+  display: flex; gap: 14px; align-items: baseline;
+  padding: 7px 8px; border: 0;
+  color: var(--fg); text-decoration: none;
+}
+.listing a.row:hover { background: var(--block-bg); color: var(--fg-strong); }
+.listing time { color: var(--faint); font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.listing .t { flex: 1; }
+.listing .c { color: var(--secondary); font-size: 11px; letter-spacing: .06em; }
+.empty { color: var(--faint); }
+
+/* the languages one document exists in, the one being read marked */
+.languages { white-space: nowrap; font-size: 11px; color: var(--faint); padding-right: 8px; }
+.languages a {
+  color: var(--secondary); border: 0; letter-spacing: .08em;
+  padding: 4px 3px; text-decoration: none;
+}
+.languages a:hover { color: var(--accent); background: transparent; }
+.languages a.on { color: var(--accent); }
+.languages i { font-style: normal; color: var(--border); padding: 0 1px; }
+
+.doc.intro { margin-bottom: calc(var(--global-space) * 2); }
+
+/* ---------- footers ---------- */
+.doc-foot {
+  display: flex; align-items: baseline; gap: 16px;
+  border-top: 1px dashed var(--border);
+  margin-top: calc(var(--global-space) * 4);
+  padding-top: var(--global-space);
+  font-size: 12px; color: var(--secondary);
+}
+.doc-foot a { color: var(--secondary); border: 0; }
+
+/* whatever site.php put there, one span per line, centred, and nothing else */
+.site-foot {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: 4px; font-size: 12px; color: var(--faint);
+  border-top: 1px solid var(--border); margin-top: calc(var(--global-space) * 4);
+  padding-top: var(--global-space); padding-bottom: calc(var(--global-space) * 3);
+}
+.site-foot a { color: var(--secondary); }
+.site-foot a:hover { color: var(--accent); }
+.site-foot code { font-size: .95em; }
+
+/* ---------- touch ----------
+   A finger, whatever the screen is: a tablet in landscape is 1024px wide and
+   still has no cursor to hover with. Sizes only — nothing moves. */
+@media (pointer: coarse) {
+  .topbar { height: auto; }
+  .topbar nav a { line-height: 42px; padding: 0 14px; }
+  .topbar .host button { padding: 11px 10px; font-size: 12px; }
+  .listing a.row { padding: 12px 8px; }
+  /* two language links a finger apart, not two words a finger wide */
+  .languages a { padding: 12px 0; min-width: 44px; display: inline-block; text-align: center; }
+  .languages i { display: none; }
+  .doc-foot { gap: 8px; padding-top: calc(var(--global-space) * 1.5); }
+}
+
+/* ---------- small screens ----------
+   Layout, not size. Nothing is hidden but the tagline, which is the one line
+   the top bar can spare. */
+@media (max-width: 900px) {
+  .topbar { padding: 0 10px; }
+  .reader-page { padding: calc(var(--global-space) * 2) calc(var(--global-space) * 1.5); }
+}
+
+@media (max-width: 700px) {
+  .topbar .tagline { display: none; }
+  .topbar .brand { padding-right: 12px; }
+  .reader-page { padding: calc(var(--global-space) * 2) var(--global-space); }
+  /* the title takes the line, and the date follows it rather than squeezing it */
+  .listing a.row { flex-wrap: wrap; gap: 0 12px; }
+  .listing .t { flex: 1 0 100%; order: -1; }
+  .listing .c { order: 2; }
+}

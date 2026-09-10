@@ -1,0 +1,21 @@
+# Per-instance configuration — copy site/site.php.example to site/site.php
+site/site.php
+
+# Build output
+dist/
+
+# Local Claude Code settings (machine-specific)
+.claude/settings.local.json
+
+# PHP
+/vendor/
+composer.lock
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+*.swp
+
+# Logs
+*.log

@@ -1,0 +1,878 @@
+#!/usr/bin/env php
+<?php
+/**
+ * The whole test suite. No framework — it asserts the handful of things that
+ * would actually break the system, and nothing else.
+ */
+declare(strict_types=1);
+
+use TerminalCms\Highlighter;
+use TerminalCms\Line;
+use TerminalCms\Markdown;
+use TerminalCms\Renderer;
+
+$root = dirname(__DIR__);
+require $root . '/site/src/bootstrap.php';
+Highlighter::load($root . '/shared/langs.json');
+
+$pass = 0;
+$fail = 0;
+
+function ok(bool $cond, string $what, string $detail = ''): void
+{
+    global $pass, $fail;
+    if ($cond) {
+        $pass++;
+        echo "  ok   $what\n";
+    } else {
+        $fail++;
+        echo "  FAIL $what\n";
+        if ($detail !== '') {
+            foreach (explode("\n", $detail) as $l) {
+                echo "       $l\n";
+            }
+        }
+    }
+}
+
+function diff(string $a, string $b): string
+{
+    $x = explode("\n", $a);
+    $y = explode("\n", $b);
+    $out = [];
+    for ($i = 0; $i < max(count($x), count($y)); $i++) {
+        if (($x[$i] ?? null) !== ($y[$i] ?? null)) {
+            $out[] = sprintf('line %d:', $i + 1);
+            $out[] = '  php: ' . var_export($x[$i] ?? null, true);
+            $out[] = '  js : ' . var_export($y[$i] ?? null, true);
+            if (count($out) > 12) {
+                break;
+            }
+        }
+    }
+    return implode("\n", $out);
+}
+
+/* ------------------------------------------------ the version, in both places */
+echo "version\n";
+$version = trim((string) file_get_contents($root . '/VERSION'));
+ok(preg_match('~^\d+\.\d+\.\d+$~', $version) === 1, 'VERSION is a version', $version);
+ok(str_contains((string) file_get_contents($root . '/editor/index.html'),
+                '<i class="ver">' . $version . '</i>'),
+   'the editor shows the version in VERSION',
+   "editor/index.html does not say $version");
+
+/* ------------------------------------- the archive is the repository layout */
+echo "\nrelease manifest\n";
+$manifest = require $root . '/bin/manifest.php';
+
+$gone = array_values(array_filter(
+    $manifest['include'],
+    static fn (string $rel) => !file_exists($root . '/' . $rel)
+));
+ok($gone === [], 'every path bin/manifest.php names exists', implode("\n", $gone));
+
+/* An archive that is not the repository cannot seed one, and the way that
+   happens is a file being added to git and nobody remembering the manifest. */
+if (!is_dir($root . '/.git') || trim((string) shell_exec('command -v git 2>/dev/null')) === '') {
+    echo "  -- not a git checkout, skipping the tracked-file comparison\n";
+} else {
+    $covered = array_merge($manifest['include'], $manifest['repo']);
+    $tracked = array_filter(explode("\n",
+        (string) shell_exec('git -C ' . escapeshellarg($root) . ' ls-files')));
+
+    $missed = [];
+    foreach ($tracked as $file) {
+        foreach ($covered as $rel) {
+            if ($file === $rel || str_starts_with($file, $rel . '/')) {
+                continue 2;
+            }
+        }
+        $missed[] = $file;
+    }
+    ok($missed === [], 'and every tracked file is named by it',
+       implode("\n", array_slice($missed, 0, 8)));
+}
+
+/* ------------------------------------------------ derived files are current */
+echo "\nderived files\n";
+$checks = [
+    '/editor/langs.js'        => "/* GENERATED from shared/langs.json by bin/build — do not edit. */\n"
+                               . 'window.LANGS = ' . rtrim((string) file_get_contents($root . '/shared/langs.json')) . ";\n",
+    '/site/shared/langs.json' => (string) file_get_contents($root . '/shared/langs.json'),
+    '/editor/theme.css'       => (string) file_get_contents($root . '/shared/theme.css'),
+    '/site/public/theme.css'  => (string) file_get_contents($root . '/shared/theme.css'),
+];
+/* the probe page is the editor page; undo the three rewrites bin/build makes
+   and what is left has to be byte-identical to editor/index.html */
+$probe = (string) @file_get_contents($root . '/tests/editor-probe.html');
+$back  = str_replace(
+    ['../editor/', '<script src="editor-probe.js"></script>' . "\n", ' probe</title>'],
+    ['', '', '</title>'],
+    $probe
+);
+ok($probe !== '' && $back === (string) file_get_contents($root . '/editor/index.html'),
+   '/tests/editor-probe.html matches editor/index.html', 'run bin/build');
+foreach ($checks as $rel => $want) {
+    ok(is_file($root . $rel) && file_get_contents($root . $rel) === $want,
+       "$rel matches its source", 'run bin/build');
+}
+
+/* ------------------------------------------------------- dialects and prompts
+ *
+ * The dialect tables exist twice — editor/editor.js and site/src/Line.php — and
+ * the language tables once, in shared/langs.json. Everything below is a way for
+ * those three to disagree without anybody noticing until a file round trips
+ * wrong on somebody else's machine. */
+echo "\ndialects\n";
+$langs = json_decode((string) file_get_contents($root . '/shared/langs.json'), true) ?: [];
+$bad = [];
+foreach ($langs as $name => $L) {
+    if ($name === '_comment') {
+        continue;
+    }
+    if (isset($L['like'])) {
+        if (!isset($langs[$L['like']]) || isset($langs[$L['like']]['like'])) {
+            $bad[] = "$name: like points at " . $L['like'] . ', which is not a definition';
+        }
+        continue;
+    }
+    foreach (['com', 'str', 'var'] as $k) {
+        $src = $L[$k] ?? null;
+        if ($src === null) {
+            continue;
+        }
+        /* the PHP tokenizer wraps these in ~...~, so a ~ would end the pattern */
+        if (str_contains($src, '~')) {
+            $bad[] = "$name.$k: contains ~, which is the PHP delimiter";
+        }
+        if (@preg_match('~' . $src . '~A', 'probe') === false) {
+            $bad[] = "$name.$k: is not a valid pattern";
+        }
+    }
+}
+ok($bad === [], 'every language table is usable by both tokenizers', implode("\n", $bad));
+
+$tables = null;
+$node   = trim((string) shell_exec('command -v node 2>/dev/null'));
+if ($node !== '') {
+    $tables = json_decode(
+        (string) shell_exec($node . ' ' . escapeshellarg($root . '/tests/js-tables.js')),
+        true
+    );
+}
+if (!is_array($tables)) {
+    echo "  -- node not installed, skipping the editor's half of the tables\n";
+} else {
+    ok($tables['prompts'] === Line::PROMPTS,
+       'the editor and the site agree on the CLI prompts',
+       "js : " . json_encode($tables['prompts']) . "\nphp: " . json_encode(Line::PROMPTS));
+
+    $missing = array_values(array_filter(
+        array_merge($tables['code'], $tables['cli']),
+        static fn (string $d) => !isset($langs[$d])
+    ));
+    ok($missing === [], 'every dialect the editor offers has a language table',
+       implode(' ', $missing));
+
+    $reserved = array_values(array_intersect(
+        array_merge($tables['code'], $tables['cli']),
+        ['output', 'text', 'console', 'shell-session', 'terminal']
+    ));
+    ok($reserved === [], 'no dialect collides with a fence word that means something else',
+       implode(' ', $reserved));
+
+    /* the tokenizers are two implementations of one table: the same line, in
+       the same dialect, has to come out as the same bytes on both sides */
+    $drift = [];
+    foreach ($tables['highlighted'] as $dialect => $wanted) {
+        foreach ($tables['samples'] as $k => $sample) {
+            $got = Highlighter::highlight($sample, (string) $dialect);
+            if ($got !== $wanted[$k]) {
+                $drift[] = "$dialect sample $k\n  php: $got\n  js : {$wanted[$k]}";
+            }
+        }
+    }
+    ok($drift === [], 'both tokenizers highlight every dialect identically',
+       implode("\n", array_slice($drift, 0, 4)));
+}
+
+/* the round trip a duplicated prompt would silently break */
+$wrong = [];
+foreach (Line::PROMPTS as $dialect => $prompt) {
+    [, $back] = Markdown::parse("```console\n$prompt hello\n```\n");
+    if (count($back) !== 1 || $back[0]->type !== 'cli'
+        || $back[0]->sub !== $dialect || $back[0]->text !== 'hello') {
+        $wrong[] = $dialect . ' -> ' . ($back[0]->sub ?? '?') . ' ' . ($back[0]->text ?? '');
+    }
+}
+ok($wrong === [], 'every CLI prompt reads back as the dialect that wrote it',
+   implode("\n", $wrong));
+
+/* --------------------------------------------------- the editor's own model */
+if ($node === '') {
+    echo "\neditor model\n  -- node not installed, skipping tests/js-model.js\n";
+} else {
+    echo "\neditor model\n";
+    $raw = shell_exec($node . ' ' . escapeshellarg($root . '/tests/js-model.js'));
+    $cases = json_decode((string) $raw, true);
+    if (!is_array($cases)) {
+        ok(false, 'the editor model suite ran', (string) $raw);
+    } else {
+        foreach ($cases as $case) {
+            ok((bool) $case['ok'], (string) $case['name'], (string) $case['detail']);
+        }
+    }
+}
+
+/* ------------------------------------------------------ round trip, per file */
+$files = [];
+foreach (['index.md', 'about/index.md', 'about/what-it-is.md', 'about/what-it-is-sk.md',
+          'about/everything-is-a-line.md', 'guides/index.md',
+          'guides/install-in-five-minutes.md', 'guides/writing-in-the-editor.md',
+          'guides/publishing-is-a-file-copy.md'] as $f) {
+    $files[] = $root . '/site/content/' . $f;
+}
+
+foreach ($files as $file) {
+    $name = str_replace($root . '/site/content/', '', $file);
+    echo "\n$name\n";
+
+    $src = (string) file_get_contents($file);
+    [, $lines] = Markdown::parse($src);
+
+    $once  = Markdown::toMarkdown($lines);
+    [, $l2] = Markdown::parse($once);
+    $twice = Markdown::toMarkdown($l2);
+
+    ok($once === $twice, 'php round trip is stable', diff($once, $twice));
+    ok($once === $src, 'php output is byte-identical to the source file', diff($src, $once));
+
+    if ($node === '') {
+        continue;
+    }
+
+    $raw = shell_exec($node . ' ' . escapeshellarg($root . '/tests/js-dump.js') . ' ' . escapeshellarg($file));
+    $js  = json_decode((string) $raw, true);
+    if (!is_array($js)) {
+        ok(false, 'js dump parsed', (string) $raw);
+        continue;
+    }
+
+    $phpTypes = array_map(
+        static fn (Line $l) => $l->type . ($l->sub !== null ? ':' . $l->sub : ''),
+        $lines
+    );
+    ok($phpTypes === $js['types'], 'php and js agree on the line types',
+       "php: " . implode(' ', $phpTypes) . "\njs : " . implode(' ', $js['types']));
+
+    ok($once === $js['markdown'], 'php and js emit identical markdown',
+       diff($once, $js['markdown']));
+
+    $phpBlocks = array_map(
+        static function (string $l): string {
+            return preg_match('~^<([a-z0-9]+)~i', $l, $m) === 1 ? $m[1] : '?';
+        },
+        explode("\n", Renderer::render($lines, false))
+    );
+    $jsBlocks = array_values(array_filter($js['blocks'], static fn ($b) => $b !== '?'));
+    $phpBlocks = array_values(array_filter($phpBlocks, static fn ($b) => $b !== '?'));
+    ok($phpBlocks === $jsBlocks, 'php and js render the same block sequence',
+       "php: " . implode(' ', $phpBlocks) . "\njs : " . implode(' ', $jsBlocks));
+}
+
+/* ------------------------------------------------------------- line breaks */
+echo "\nline breaks\n";
+
+/* the three forms a file can be written with, all one break */
+foreach (['LF' => "\n", 'CRLF' => "\r\n", 'CR' => "\r"] as $name => $eol) {
+    [, $ls] = Markdown::parse("# T{$eol}{$eol}a{$eol}");
+    ok(count($ls) === 2 && $ls[1]->text === 'a', "$name is one line break", $name);
+}
+
+/* A UTF-8 continuation byte is not a line break. PCRE's \R without the u
+   modifier matches the byte 0x85, which is the last byte of every character
+   whose code point ends in 0x05, so these were cut in half and lost a byte. */
+foreach (['★' => 'U+2605', 'х' => 'U+0445', 'Ņ' => 'U+0145'] as $ch => $point) {
+    $src = "---\ntitle: T\n---\n\n# T\n\na {$ch} b\n";
+    [, $ls] = Markdown::parse($src);
+    $para = end($ls);
+    ok($para->type === 'p' && $para->text === "a {$ch} b",
+       "$point survives the parser whole", bin2hex($para->text));
+    ok(Markdown::toMarkdown($ls) === $src, "$point round trips byte for byte");
+}
+
+/* ---------------------------------------------------------------- escaping */
+echo "\nescaping\n";
+$evil = "---\ntitle: <script>alert(1)</script>\n---\n\n"
+      . "# <img src=x onerror=alert(1)>\n\n"
+      . "A paragraph with <b>tags</b> and a [link](javascript:alert(1)).\n\n"
+      . "```html\n<script>alert(1)</script>\n```\n\n"
+      . "| <script>x</script> | b |\n| --- | --- |\n| c | d |\n";
+[, $evilLines] = Markdown::parse($evil);
+$html = Renderer::render($evilLines);
+
+ok(preg_match('~<\s*script~i', $html) !== 1, 'no <script> survives the renderer', $html);
+ok(preg_match('~<[^>]*\bon[a-z]+\s*=~i', $html) !== 1,
+   'no event handler survives the renderer', $html);
+ok(!str_contains($html, 'javascript:'), 'javascript: links are dropped', $html);
+ok(str_contains($html, '&lt;script&gt;'), 'the text is preserved, escaped');
+ok(str_contains($html, '<b>tags</b>') === false, 'inline html is escaped, not passed through');
+
+/* ------------------------------------------------------------ link targets */
+echo "\nlink targets\n";
+
+/* One list, read by both halves. A target that is not on the allowlist leaves
+   the writing behind and takes the link away — it never becomes an href. */
+$links = [
+    '[x](/guides/a)'                  => true,
+    '[x](/guides/v1.2-notes)'         => true,
+    '[x](#a-heading)'                 => true,
+    '[x](#)'                          => true,
+    '[x](https://example.com/)'       => true,
+    '[x](http://example.com/?a=1&b=2)' => true,
+    '[x](mailto:you@example.com)'     => true,
+    /* an origin, a climb and a path separator, all dressed as local paths */
+    '[x](//evil.example)'             => false,
+    '[x](/../secret)'                 => false,
+    '[x](/a/../../secret)'            => false,
+    '[x](&#47;&#47;evil.example)'     => false,
+    '[x](\\evil.example)'             => false,
+    '[x](http:///evil.example)'       => false,
+    /* not a scheme this renderer emits */
+    '[x](javascript:void)'            => false,
+    '[x](data:text/html,x)'           => false,
+    '[x](vbscript:x)'                 => false,
+    '[x](ftp://example.com/)'         => false,
+    '[x](mailto:not-an-address)'      => false,
+    '[x](relative.html)'              => false,
+];
+foreach ($links as $case => $isLink) {
+    $out = Renderer::inline($case);
+    ok(str_contains($out, '<a href=') === $isLink,
+       sprintf('%-34s %s', $case, $isLink ? 'is a link' : 'is not a link'), $out);
+}
+ok(str_contains(Renderer::inline('[x](https://example.com/)'), 'rel="noopener noreferrer"'),
+   'an external link carries rel="noopener noreferrer"');
+ok(!str_contains(Renderer::inline('[x](/guides/a)'), 'rel='),
+   'and a local one has nothing to carry');
+
+/* The editor previews a document by rendering it, so its allowlist has to be
+   the same one — a link in the preview that the site drops, or the other way
+   round, means the preview is not what the site would send. */
+if ($node === '') {
+    echo "  -- node not installed, skipping the editor's copy\n";
+} else {
+    $cases = array_keys($links);
+    $tmp   = sys_get_temp_dir() . '/tcms-links-' . getmypid() . '.json';
+    file_put_contents($tmp, json_encode($cases));
+    $raw = shell_exec($node . ' ' . escapeshellarg($root . '/tests/js-inline.js') . ' ' . escapeshellarg($tmp));
+    unlink($tmp);
+    $js = json_decode((string) $raw, true);
+    if (!is_array($js)) {
+        ok(false, 'the editor inline dump ran', (string) $raw);
+    } else {
+        $drift = [];
+        foreach ($cases as $k => $case) {
+            $php = Renderer::inline($case);
+            if (($js[$k] ?? null) !== $php) {
+                $drift[] = "$case\n  php: $php\n  js : " . var_export($js[$k] ?? null, true);
+            }
+        }
+        ok($drift === [], 'the editor and the site render every link identically',
+           implode("\n", array_slice($drift, 0, 4)));
+    }
+}
+
+/* ------------------------------------------------------------------ router */
+echo "\nrouting\n";
+$site = require $root . '/site/site.php.example';
+$router = new TerminalCms\Router($site, $root . '/site/content');
+
+$cases = [
+    '/'                                  => 200,
+    '/about'                             => 200,
+    '/guides'                            => 200,
+    '/about/everything-is-a-line'        => 200,
+    '/about/what-it-is'                  => 200,
+    '/about/what-it-is-sk'               => 200,
+    '/about/everything-is-a-line-sk'     => 404,
+    '/guides/install-in-five-minutes'    => 200,
+    '/guides/does-not-exist'             => 404,
+    '/not-a-category'                    => 404,
+    '/not-a-category/x'                  => 404,
+    '/guides/../../etc/passwd'           => 404,
+    '/guides/%2e%2e%2f%2e%2e%2fetc/passwd' => 404,
+    '/guides/index'                      => 200,
+    '/a/b/c'                             => 404,
+    /* parse_url cannot read these as a path at all, and a client may send them */
+    '//'                                 => 200,
+    '///'                                => 200,
+];
+foreach ($cases as $uri => $want) {
+    $r = $router->route($uri);
+    ok($r['status'] === $want, sprintf('%-40s -> %d', $uri, $want), 'got ' . $r['status']);
+}
+
+/* a slug declared in site.php with nothing behind it is empty, not an error */
+$ghost = $site;
+$ghost['categories'][] = ['slug' => 'ghost', 'label' => 'ghost'];
+$warnings = [];
+set_error_handler(static function (int $n, string $m) use (&$warnings): bool {
+    $warnings[] = $m;
+    return true;
+});
+$ghostRouter = new TerminalCms\Router($ghost, $root . '/site/content');
+$empty = $ghostRouter->route('/ghost');
+$gone  = $ghostRouter->route('/ghost/anything');
+restore_error_handler();
+ok($warnings === [], 'a category with no directory raises nothing', implode("\n", $warnings));
+ok($empty['status'] === 200 && $gone['status'] === 404,
+   'and is an empty category, not a broken one',
+   $empty['status'] . ' ' . $gone['status']);
+
+/* a category entry that is not a category is ignored, not turned into a path */
+$broken = $site;
+$broken['categories'] = array_merge([
+    'not-an-array',
+    ['label' => 'no slug'],
+    ['slug' => '../../etc', 'label' => 'climb'],
+    ['slug' => 'Upper', 'label' => 'not a directory name'],
+], $site['categories']);
+$warnings = [];
+set_error_handler(static function (int $n, string $m) use (&$warnings): bool {
+    $warnings[] = $m;
+    return true;
+});
+$brokenRouter = new TerminalCms\Router($broken, $root . '/site/content');
+$stillHere = $brokenRouter->route('/guides')['status'];
+$climb     = $brokenRouter->route('/../../etc')['status'];
+$upper     = $brokenRouter->route('/Upper')['status'];
+$nav       = TerminalCms\Page::html($broken, $brokenRouter->route('/'));
+restore_error_handler();
+ok($warnings === [], 'a malformed category entry raises nothing', implode("\n", $warnings));
+ok($stillHere === 200 && $climb === 404 && $upper === 404,
+   'and is unroutable, while the categories beside it still route',
+   "$stillHere $climb $upper");
+ok(!str_contains($nav, 'climb') && !str_contains($nav, 'no slug'),
+   'and is not in the navigation either', $nav);
+
+/* A document is found by comparing the request with the real file names, so a
+   file named in a way no slug rule would predict is still reachable — and is
+   reachable by the address its own listing prints. */
+$scratch = sys_get_temp_dir() . '/tcms-content-' . getmypid();
+mkdir($scratch . '/notes', 0755, true);
+file_put_contents($scratch . '/notes/Release-1.2.md', "---\ntitle: Release 1.2\n---\n\n# Release 1.2\n\nText.\n");
+$oddRouter = new TerminalCms\Router(['categories' => [['slug' => 'notes', 'label' => 'notes']]], $scratch);
+$odd = $oddRouter->route('/notes/Release-1.2');
+ok($odd['status'] === 200, 'a file name with a dot and a capital is still a document', (string) $odd['status']);
+ok(str_contains($oddRouter->route('/notes')['body'], 'href="/notes/Release-1.2"'),
+   'and the listing links to the address that works', $oddRouter->route('/notes')['body']);
+unlink($scratch . '/notes/Release-1.2.md');
+rmdir($scratch . '/notes');
+rmdir($scratch);
+
+/* ------------------------------------------------------- the index listings */
+echo "\nlistings\n";
+
+$listed = $router->route('/');
+ok(str_contains($listed['body'], '<ul class="listing">'),
+   'the homepage lists recent documents by default');
+ok(str_contains($router->route('/guides')['body'], '<ul class="listing">'),
+   'and so does a category page');
+
+$quiet = $site;
+$quiet['listing'] = false;
+$quietRouter = new TerminalCms\Router($quiet, $root . '/site/content');
+$body = $quietRouter->route('/')['body'];
+ok(!str_contains($body, '<ul class="listing">') && !str_contains($body, 'Nothing here yet.'),
+   "'listing' => false leaves the homepage its index.md and nothing else", $body);
+ok(str_contains($quietRouter->route('/guides')['body'], '<ul class="listing">'),
+   'and says nothing about the categories');
+
+$quietCat = $site;
+foreach ($quietCat['categories'] as $i => $c) {
+    if ($c['slug'] === 'guides') {
+        $quietCat['categories'][$i]['listing'] = false;
+    }
+}
+$catRouter = new TerminalCms\Router($quietCat, $root . '/site/content');
+$body = $catRouter->route('/guides')['body'];
+ok(!str_contains($body, '<ul class="listing">'),
+   'a category can switch its own listing off', $body);
+ok(str_contains($catRouter->route('/about')['body'], '<ul class="listing">'),
+   'without switching off the one next to it');
+ok(str_contains($catRouter->route('/')['body'], '<ul class="listing">'),
+   'or the homepage, which still lists documents from both');
+
+/* a site.php that names no listing setting lists everywhere */
+$older = $site;
+unset($older['listing']);
+foreach ($older['categories'] as $i => $c) {
+    unset($older['categories'][$i]['listing']);
+}
+$olderRouter = new TerminalCms\Router($older, $root . '/site/content');
+ok(str_contains($olderRouter->route('/')['body'], '<ul class="listing">')
+   && str_contains($olderRouter->route('/guides')['body'], '<ul class="listing">'),
+   'a site.php that names no listing setting lists everywhere');
+
+/* ------------------------------------------------------------- languages
+ *
+ * A document exists in one language per file, and the language is the suffix
+ * on the file name. Everything below is a way for two files that are one
+ * document to become two documents, or for one that is not to be split. */
+echo "\nlanguages\n";
+
+$codes = ['en', 'sk', 'pt-br'];
+$splits = [
+    'what-it-is'            => ['what-it-is', ''],
+    'what-it-is-sk'         => ['what-it-is', 'sk'],
+    'what-it-is-en'         => ['what-it-is', 'en'],
+    'notes-pt-br'           => ['notes', 'pt-br'],
+    /* a word that looks like a code and is not one, because nobody declared it */
+    'install-in-five-minutes' => ['install-in-five-minutes', ''],
+    'read-me-de'            => ['read-me-de', ''],
+    /* and a name that is nothing but a code is a name */
+    '-sk'                   => ['-sk', ''],
+];
+foreach ($splits as $slug => $want) {
+    ok(TerminalCms\Language::split($slug, $codes) === $want,
+       sprintf('%-24s -> %s', $slug, implode(' + ', $want)),
+       implode(' + ', TerminalCms\Language::split($slug, $codes)));
+}
+
+$declared = [
+    'the site\'s own language, and no others'   => [['lang' => 'sk'], ['sk']],
+    'the site\'s own first, then the rest'      => [['lang' => 'en', 'languages' => ['sk', 'cz']], ['en', 'sk', 'cz']],
+    'named twice, listed once'                  => [['lang' => 'en', 'languages' => ['en', 'sk']], ['en', 'sk']],
+    'spelled in capitals'                       => [['lang' => 'EN', 'languages' => ['SK']], ['en', 'sk']],
+    'what is not a code is not a language'      => [['languages' => ['sk', 'klingon', 5, '../etc']], ['en', 'sk']],
+    'a site.php that names none'                => [[], ['en']],
+];
+foreach ($declared as $what => [$config, $want]) {
+    $got = TerminalCms\Site::languages($config);
+    ok($got === $want, sprintf('%-42s -> %s', $what, implode(' ', $want)), implode(' ', $got));
+}
+
+/* one document in three languages, one of them the site's own */
+$box = sys_get_temp_dir() . '/tcms-langs-' . getmypid();
+mkdir($box . '/notes', 0755, true);
+$write = static function (string $rel, string $title, string $date) use ($box): void {
+    file_put_contents($box . '/' . $rel, "---\ntitle: $title\ndate: $date\n---\n\n# $title\n");
+};
+$write('notes/hello.md',    'Hello',  '2026-02-02');
+$write('notes/hello-sk.md', 'Ahoj',   '2026-02-02');
+$write('notes/hello-cz.md', 'Dobry',  '2026-02-02');
+$write('notes/alone-sk.md', 'Sam',    '2026-02-01');
+$write('notes/index.md',    'Notes',  '2026-01-01');
+$write('notes/index-sk.md', 'Poznamky', '2026-01-01');
+
+$multi = [
+    'title'      => 'many tongues',
+    'lang'       => 'en',
+    'languages'  => ['sk', 'cz'],
+    'categories' => [['slug' => 'notes', 'label' => 'notes']],
+];
+$mr = new TerminalCms\Router($multi, $box);
+
+$entries = TerminalCms\Listing::forCategory($box, 'notes', TerminalCms\Site::languages($multi));
+ok(count($entries) === 2, 'a document in three languages is one entry, not three',
+   implode(' ', array_map(static fn ($e) => $e->slug, $entries)));
+ok($entries[0]->slug === 'hello' && $entries[0]->title === 'Hello',
+   'and it is listed in the site\'s own language', $entries[0]->slug . ' ' . $entries[0]->title);
+ok(array_keys($entries[0]->languages) === ['en', 'sk', 'cz'],
+   'with every language it exists in, the site\'s own first',
+   implode(' ', array_keys($entries[0]->languages)));
+ok($entries[0]->languages === ['en' => '/notes/hello', 'sk' => '/notes/hello-sk', 'cz' => '/notes/hello-cz'],
+   'each one addressed by its own name', json_encode($entries[0]->languages));
+
+$alone = $entries[1];
+ok($alone->slug === 'alone-sk' && $alone->title === 'Sam' && $alone->languages === [],
+   'a document written in one language only is listed in that one, with no indicator',
+   $alone->slug . ' ' . $alone->title . ' ' . json_encode($alone->languages));
+
+$body = $mr->route('/notes')['body'];
+ok(substr_count($body, '<li>') === 2, 'the category page prints one row per document', $body);
+ok(str_contains($body, '<span class="languages">(<a href="/notes/hello" class="on">EN</a>'
+                     . ' <i>|</i> <a href="/notes/hello-sk">SK</a>'
+                     . ' <i>|</i> <a href="/notes/hello-cz">CZ</a>)</span>'),
+   'with (EN | SK | CZ) beside it, the one it is printed in marked', $body);
+
+$routes = [
+    '/notes/hello'    => ['Hello', 'en'],
+    '/notes/hello-sk' => ['Ahoj',  'sk'],
+    '/notes/hello-cz' => ['Dobry', 'cz'],
+    '/notes/alone-sk' => ['Sam',   'sk'],
+];
+foreach ($routes as $uri => [$title, $lang]) {
+    $r = $mr->route($uri);
+    ok($r['status'] === 200 && $r['title'] === $title && $r['lang'] === $lang,
+       sprintf('%-16s is %s in %s', $uri, $title, $lang),
+       $r['status'] . ' ' . $r['title'] . ' ' . $r['lang']);
+    ok(str_contains(TerminalCms\Page::html($multi, $r), '<html lang="' . $lang . '">'),
+       'and the page says so', $lang);
+}
+
+/* one document is one address per language, and nothing else */
+ok($mr->route('/notes/alone')['status'] === 404,
+   'a document written only in Slovak is not also at the bare address',
+   (string) $mr->route('/notes/alone')['status']);
+ok($mr->route('/notes/hello-de')['status'] === 404,
+   'and a language a document was never written in is not an address either');
+
+ok(str_contains($mr->route('/notes/hello-sk')['body'],
+                '<a href="/notes/hello-sk" class="on">SK</a>'),
+   'the document itself carries the same indicator, marking what is being read',
+   $mr->route('/notes/hello-sk')['body']);
+ok(!str_contains($mr->route('/notes/alone-sk')['body'], 'class="languages"'),
+   'and a document with one language carries none');
+
+ok(str_contains($mr->route('/notes')['body'], 'Poznamky') === false
+   && str_contains($mr->route('/notes')['body'], 'Notes'),
+   'a category reads its own index in the site\'s language', $mr->route('/notes')['body']);
+
+/* every file carrying a suffix, including the site's own language: the bare
+   address still works, because that is the address the listing prints */
+$suffixed = $box . '-2';
+mkdir($suffixed . '/notes', 0755, true);
+foreach (['hello-en' => 'Hello', 'hello-sk' => 'Ahoj'] as $n => $t) {
+    file_put_contents($suffixed . "/notes/$n.md", "---\ntitle: $t\n---\n\n# $t\n");
+}
+$sr = new TerminalCms\Router($multi, $suffixed);
+$one = $sr->route('/notes/hello');
+ok($one['status'] === 200 && $one['title'] === 'Hello',
+   'a file named -en answers to the bare address as well', $one['status'] . ' ' . $one['title']);
+ok(str_contains($sr->route('/notes')['body'], 'href="/notes/hello"'),
+   'and that is the address the listing prints', $sr->route('/notes')['body']);
+
+/* Two files claiming one language is a mistake in the content, and it resolves
+   the same way every time rather than differently per request: the name without
+   the suffix is the one the address belongs to. */
+$both = $box . '-3';
+mkdir($both . '/notes', 0755, true);
+foreach (['hello' => 'Plain', 'hello-en' => 'Suffixed'] as $n => $t) {
+    file_put_contents($both . "/notes/$n.md", "---\ntitle: $t\n---\n\n# $t\n");
+}
+$br = new TerminalCms\Router($multi, $both);
+ok($br->route('/notes/hello')['title'] === 'Plain',
+   'two files in one language: the unsuffixed name holds the address',
+   $br->route('/notes/hello')['title']);
+ok(substr_count($br->route('/notes')['body'], '<li>') === 1
+   && !str_contains($br->route('/notes')['body'], 'class="languages"'),
+   'and they are still one document, with one language to indicate',
+   $br->route('/notes')['body']);
+
+/* the site as it was before any of this: no suffixes, no indicators */
+$single = ['categories' => [['slug' => 'notes', 'label' => 'notes']]];
+$plain  = new TerminalCms\Router($single, $box);
+ok($plain->route('/notes/hello')['status'] === 200
+   && $plain->route('/notes/hello-sk')['status'] === 200,
+   'a site that declares no languages serves every file by its own name');
+ok(!str_contains($plain->route('/notes')['body'], 'class="languages"'),
+   'and prints no indicators, because it has nothing to indicate',
+   $plain->route('/notes')['body']);
+ok(substr_count($plain->route('/notes')['body'], '<li>') === 5,
+   'each file being a document of its own — index-sk.md included, because a
+    site that has not declared Slovak has no way to know what that is',
+   $plain->route('/notes')['body']);
+
+foreach (glob($box . '*/notes/*.md') ?: [] as $f) {
+    unlink($f);
+}
+foreach ([$box, $suffixed, $both] as $dir) {
+    rmdir($dir . '/notes');
+    rmdir($dir);
+}
+
+/* ------------------------------------------------------------- the meta bar */
+echo "\nmeta\n";
+[, $metaLines] = Markdown::parse("---\ntitle: A title\ncategory: about\ndate: 2026-01-02\n---\n\n# A title\n\nText.\n");
+$metaHtml = Renderer::render($metaLines);
+ok(str_contains($metaHtml, '<h1>A title</h1>' . "\n" . '<div class="doc-meta">'),
+   'the meta sits directly under the title', $metaHtml);
+ok(str_contains($metaHtml, 'category: about · date: 2026-01-02'),
+   'and carries every key the document declared', $metaHtml);
+ok(!str_contains($metaHtml, 'title: A title'),
+   'except the title, which is the title', $metaHtml);
+ok(!str_contains(Renderer::render($metaLines, false), 'doc-meta'),
+   'and can be left off entirely');
+
+[, $noH1] = Markdown::parse("---\ndate: 2026-01-02\n---\n\nJust a paragraph.\n");
+ok(str_starts_with(Renderer::render($noH1), '<div class="doc-meta">'),
+   'a document with no title puts its meta where the title would have been',
+   Renderer::render($noH1));
+
+[, $bare] = Markdown::parse("# Only a heading\n");
+ok(!str_contains(Renderer::render($bare), 'doc-meta'),
+   'a document with no meta has no meta bar');
+
+$r = $router->route('/about/everything-is-a-line');
+ok(str_contains($r['body'], 'Everything is a line'), 'the document actually renders');
+ok(!str_contains($r['body'], '<time>'), 'the date is not repeated in the document footer', $r['body']);
+ok(str_contains($r['body'], '<table>'), 'the table renders as a table');
+ok(str_contains($r['body'], '<details class="outsec">'), 'output is folded by default');
+ok(!str_contains($r['body'], '<details class="outsec" open'), 'output is not open by default');
+
+/* -------------------------------------------------------------- the footer */
+echo "\nfooter\n";
+
+/** The footer element of a page, or '' when the page has none. */
+function foot(array $site, array $route): string
+{
+    $html = TerminalCms\Page::html($site, $route);
+    return preg_match('~<footer.*?</footer>~s', $html, $m) === 1 ? $m[0] : '';
+}
+
+$home = $router->route('/');
+
+$withLinks = $site;
+$withLinks['footer'] = [
+    '[a link](https://example.com/) is **here**',
+    'second line',
+];
+$f = foot($withLinks, $home);
+ok(str_contains($f, '<a href="https://example.com/" rel="noopener noreferrer">a link</a>'),
+   'the footer carries links', $f);
+ok(str_contains($f, '<strong>here</strong>') && str_contains($f, 'second line'),
+   'and inline markup, one line per string', $f);
+ok(!str_contains($f, (string) $site['title']) && !str_contains($f, (string) $site['tagline']),
+   'and nothing the instance did not put there', $f);
+
+$evilFoot = $site;
+$evilFoot['footer'] = '<script>alert(1)</script> [x](javascript:alert(1))';
+$f = foot($evilFoot, $home);
+ok(!str_contains($f, '<script') && !str_contains($f, 'javascript:'),
+   'a footer cannot put markup on the page either', $f);
+
+/* the tagline is read in the top bar and indexed as the description */
+$taglined = TerminalCms\Page::html($site, $home);
+ok(str_contains($taglined, '<span class="tagline">' . $site['tagline'] . '</span>'),
+   'the tagline is in the top bar', $taglined);
+ok(str_contains($taglined, '<meta name="description" content="' . $site['tagline'] . '">'),
+   'and is still the page description');
+$noTag = $site;
+$noTag['tagline'] = '';
+$plain = TerminalCms\Page::html($noTag, $home);
+ok(!str_contains($plain, 'class="tagline"') && !str_contains($plain, 'name="description"'),
+   'an instance with no tagline gets neither', $plain);
+
+/* the two inline points on the page, and the one config value that reaches it
+   as CSS rather than as text */
+echo "\nthe page shell\n";
+$nonced = TerminalCms\Page::html($site, $home, 'r4nd0m+va1ue/=');
+ok(substr_count($nonced, 'nonce="r4nd0m+va1ue/="') === 2
+   && str_contains($nonced, '<script nonce="r4nd0m+va1ue/=">')
+   && str_contains($nonced, '<style nonce="r4nd0m+va1ue/=">'),
+   'the style block and the script both carry the nonce they are given', $nonced);
+ok(!str_contains(TerminalCms\Page::html($site, $home), 'nonce='),
+   'and neither carries an empty one when no nonce is given');
+ok(str_contains($nonced, '(function () {') && !str_contains($nonced, '$nonceAttr'),
+   'the script is emitted as written, not read as PHP', $nonced);
+
+$accents = [
+    '#d9a05f'                          => '#d9a05f',
+    '#ABCDEF'                          => '#ABCDEF',
+    'red'                              => '#d9a05f',
+    '#fff'                             => '#d9a05f',
+    '#d9a05f;background:url(//evil)'   => '#d9a05f',
+    '}html{display:none'               => '#d9a05f',
+];
+foreach ($accents as $given => $want) {
+    $accented = $site;
+    $accented['accent'] = $given;
+    ok(str_contains(TerminalCms\Page::html($accented, $home), '<style>:root{--accent:' . $want . '}</style>'),
+       sprintf('accent %-32s -> %s', var_export($given, true), $want));
+}
+
+$noFoot = $site;
+$noFoot['footer'] = '';
+ok(foot($noFoot, $home) === '', 'an empty footer is no footer element at all');
+unset($noFoot['footer']);
+ok(foot($noFoot, $home) === '', 'and so is a site.php that names no footer');
+
+echo "\nlinks and media\n";
+/* a heading is linkable, and two headings with the same words are two links */
+[, $twice] = Markdown::parse("## Notes\n\na\n\n## Notes\n\nb\n");
+ok(str_contains(Renderer::render($twice), '<h2 id="notes">')
+   && str_contains(Renderer::render($twice), '<h2 id="notes-2">'),
+   'two headings with the same words get two ids', Renderer::render($twice));
+
+/* an image path is a URL into public/media, never a way out of it */
+[, $img] = Markdown::parse("![a](../../etc/passwd.png?v=1)\n");
+ok(str_contains(Renderer::render($img), 'src="/media/passwd.png"'),
+   'an image path cannot climb out of media/', Renderer::render($img));
+
+/* and cannot become an address on somebody else's origin */
+foreach (['//evil.example/x.png', '\\\\evil.example/x.png', '/media/../../etc/passwd.png'] as $src) {
+    [, $one] = Markdown::parse("![a]($src)\n");
+    $out = Renderer::render($one);
+    ok(preg_match('~src="/media/[A-Za-z0-9._-]+"~', $out) === 1,
+       sprintf('%-30s is a name under media/', $src), $out);
+}
+
+/* ------------------------------------------- the built-in server serves assets */
+echo "\ndev server\n";
+$port = 8100 + (getmypid() % 400);
+$cfg  = $root . '/site/site.php';
+$temp = false;
+if (!is_file($cfg)) {
+    copy($root . '/site/site.php.example', $cfg);
+    $temp = true;
+}
+
+/* argv form, so no shell sits between us and the server we have to stop */
+$cmd = [PHP_BINARY, '-S', "127.0.0.1:$port",
+        '-t', $root . '/site/public', $root . '/site/public/index.php'];
+$proc = proc_open($cmd, [1 => ['file', '/dev/null', 'w'], 2 => ['file', '/dev/null', 'w']], $pipes);
+
+$base = "http://127.0.0.1:$port";
+$up   = false;
+for ($i = 0; $i < 40 && !$up; $i++) {
+    usleep(100000);
+    $up = @file_get_contents($base . '/') !== false;
+}
+
+if (!$up) {
+    ok(false, 'development server started on port ' . $port);
+} else {
+    /* the bug this exists for: a router script sees every request, including
+       real files, so index.php has to hand static assets back to the server */
+    foreach (['/theme.css' => 'text/css', '/site.css' => 'text/css'] as $path => $type) {
+        $body = @file_get_contents($base . $path);
+        $head = implode(' ', $http_response_header ?? []);
+        ok(is_string($body) && !str_contains($body, '<!doctype html'),
+           "$path is served as a file, not the 404 page");
+        ok(str_contains(strtolower($head), $type), "$path has content-type $type", $head);
+    }
+    $doc = @file_get_contents($base . '/about/everything-is-a-line');
+    ok(is_string($doc) && str_contains($doc, '<table>'), 'documents still route');
+    ok(@file_get_contents($base . '/nope') === false, 'unknown paths still 404');
+}
+
+if (is_resource($proc)) {
+    proc_terminate($proc);
+    proc_close($proc);
+}
+if ($temp) {
+    unlink($cfg);
+}
+
+/* ------------------------------------------------------- dangerous calls */
+echo "\nsource\n";
+$danger = ['eval(', 'exec(', 'shell_exec', 'system(', 'passthru', 'popen',
+           'unserialize(', 'extract(', 'assert(', '$_GET', '$_POST', '$_COOKIE',
+           'file_put_contents', 'fwrite', 'unlink', 'session_start'];
+$found = [];
+$scanned = array_merge(glob($root . '/site/src/*.php') ?: [], [$root . '/site/public/index.php']);
+foreach ($scanned as $f) {
+    $code = (string) file_get_contents($f);
+    foreach ($danger as $d) {
+        if (str_contains($code, $d)) {
+            $found[] = basename($f) . ': ' . $d;
+        }
+    }
+}
+ok($found === [], 'the site reads, and does nothing else', implode("\n", $found));
+
+echo "\n$pass passed, $fail failed\n";
+exit($fail === 0 ? 0 : 1);

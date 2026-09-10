@@ -1,0 +1,64 @@
+<?php
+/**
+ * Per-instance configuration. Copy to site.php and edit.
+ * This is the only file that differs between two installations of the same code.
+ */
+return [
+    'title'   => 'php-terminal-cms',
+    'tagline' => 'a document is an ordered sequence of typed lines',
+
+    /**
+     * The language the site is written in, and the language of every document
+     * whose file name carries no suffix. 'languages' is every other language a
+     * document may be written in: `what-it-is.md` is English, `what-it-is-sk.md`
+     * is the Slovak of the same document, and the two are one line in the
+     * listing with (EN | SK) beside it.
+     *
+     * A suffix is only a language if it is named here — `what-it-is` ends in
+     * `-is`, which is Icelandic. Leave 'languages' out and a site has one.
+     */
+    'lang'      => 'en',
+    'languages' => ['sk'],
+
+    /* accent colour, used for links, prompts and the active nav item. Six hex
+       digits and nothing else — it is the one setting that reaches the page as
+       CSS rather than as writing, and anything else falls back to this one. */
+    'accent'  => '#d9a05f',
+
+    /**
+     * The homepage listing: the recent documents from every category, printed
+     * under content/index.md. Set it to false and the homepage is index.md and
+     * nothing else. Leave it out and it is on.
+     */
+    'listing' => true,
+
+    /**
+     * The site footer, and the only thing that appears in it. One string is one
+     * line; a list is several. Each line is written in the same inline markdown
+     * a document uses — [text](url), **bold**, *italic*, `code` — and is
+     * escaped the same way, so a link is a link and nothing else gets through.
+     * Leave it empty and the page has no footer at all.
+     */
+    'footer' => [
+        '[php-terminal-cms](https://example.com/) · [write to me](mailto:you@example.com)',
+        'Written in the editor, published by copying a file.',
+    ],
+
+    /**
+     * The navigation AND the routable surface — a URL segment that is not in
+     * this list is a 404 even if the directory exists. Each slug must match a
+     * directory under content/, and is spelled like one: lower case, starting
+     * with a letter or a digit, then letters, digits, '-' and '_'. An entry
+     * that is not that shape is not a category. The label is the writing, and
+     * can be anything. The editor is never told this list: it reads a
+     * document's own category: meta line, so that line and this one have to
+     * agree.
+     *
+     * 'listing' works as it does above, for that category's own page: false
+     * prints its index.md alone, without the documents under it.
+     */
+    'categories' => [
+        ['slug' => 'about',  'label' => 'about',  'listing' => true],
+        ['slug' => 'guides', 'label' => 'guides', 'listing' => true],
+    ],
+];

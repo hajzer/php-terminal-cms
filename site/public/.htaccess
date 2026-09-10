@@ -1,0 +1,14 @@
+# A real file wins; everything else is a document request.
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+RewriteRule ^ index.php [L]
+
+# Nothing outside public/ is reachable, but say so explicitly.
+<FilesMatch "\.(md|json|example)$">
+    Require all denied
+</FilesMatch>
+
+Options -Indexes

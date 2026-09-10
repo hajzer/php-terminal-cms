@@ -1,0 +1,456 @@
+/* GENERATED from shared/langs.json by bin/build — do not edit. */
+window.LANGS = {
+  "_comment": "Single source of truth for both tokenizers. editor/langs.js is generated from this file by bin/build; site/src/Highlighter.php reads it directly. Patterns are raw regex sources with no delimiters or flags: JS wraps them in RegExp(src,'y'), PHP in '~src~A'. Both tokenize one Line at a time, so ^ means the start of the line and no pattern can span two of them. A ~ anywhere would end the PHP delimiter, so there is none. A \"like\" key aliases a dialect to another one's tables — one level only, never a chain. Every dialect offered by the editor (editor/editor.js TYPES) must appear here; bin/test asserts it.",
+
+  "php": {
+    "com": "//[^\\n]*|#[^\\n]*|/\\*[\\s\\S]*?\\*/",
+    "str": "'(?:\\\\.|[^'])*'|\"(?:\\\\.|[^\"])*\"",
+    "var": "\\$[A-Za-z_]\\w*",
+    "kw": ["<?php","?>","function","return","if","else","elseif","foreach","for","as","class","interface","trait","enum","extends","implements","new","public","private","protected","static","readonly","final","abstract","echo","print","use","namespace","const","array","match","fn","try","catch","finally","throw","true","false","null","int","float","string","bool","void","self","parent","instanceof","clone","yield","global","declare","strict_types"],
+    "bi": ["array_map","array_filter","array_values","array_keys","array_merge","implode","explode","count","sprintf","printf","str_repeat","str_replace","str_contains","str_starts_with","str_ends_with","substr","strlen","trim","file_get_contents","file_put_contents","json_encode","json_decode","preg_match","preg_replace","preg_split","glob","scandir","htmlspecialchars","in_array","usort","is_array","is_string"]
+  },
+
+  "js": {
+    "com": "//[^\\n]*|/\\*[\\s\\S]*?\\*/",
+    "str": "'(?:\\\\.|[^'])*'|\"(?:\\\\.|[^\"])*\"|`(?:\\\\.|[^`])*`",
+    "var": null,
+    "kw": ["const","let","var","function","return","if","else","for","of","in","while","do","switch","case","break","continue","class","extends","super","new","this","import","export","from","default","await","async","try","catch","finally","throw","typeof","instanceof","delete","yield","void","true","false","null","undefined"],
+    "bi": ["console","document","window","globalThis","Object","Array","String","Number","Boolean","JSON","Math","Date","RegExp","Error","Promise","Set","Map","WeakMap","Symbol","fetch","localStorage","setTimeout","setInterval","parseInt","parseFloat","require","module","exports","process"]
+  },
+
+  "ts": {
+    "com": "//[^\\n]*|/\\*[\\s\\S]*?\\*/",
+    "str": "'(?:\\\\.|[^'])*'|\"(?:\\\\.|[^\"])*\"|`(?:\\\\.|[^`])*`",
+    "var": null,
+    "kw": ["const","let","var","function","return","if","else","for","of","in","while","do","switch","case","break","continue","class","extends","implements","super","new","this","import","export","from","default","await","async","try","catch","finally","throw","typeof","instanceof","keyof","as","satisfies","is","interface","type","enum","namespace","declare","abstract","public","private","protected","readonly","override","true","false","null","undefined"],
+    "bi": ["string","number","boolean","object","symbol","bigint","any","unknown","never","void","Array","Record","Partial","Required","Readonly","Pick","Omit","Promise","Map","Set","console","document","window","JSON","Math"]
+  },
+
+  "python": {
+    "com": "#[^\\n]*",
+    "str": "'''[\\s\\S]*?'''|\"\"\"[\\s\\S]*?\"\"\"|[rbfu]*'(?:\\\\.|[^'])*'|[rbfu]*\"(?:\\\\.|[^\"])*\"",
+    "var": "@[A-Za-z_]\\w*",
+    "kw": ["def","class","return","yield","if","elif","else","for","while","break","continue","pass","import","from","as","with","try","except","finally","raise","lambda","global","nonlocal","assert","del","in","is","not","and","or","async","await","match","case","True","False","None","self","cls"],
+    "bi": ["print","len","range","enumerate","zip","map","filter","sorted","sum","min","max","abs","open","str","int","float","bool","list","dict","set","tuple","type","isinstance","getattr","setattr","hasattr","super","format","input","repr"]
+  },
+
+  "ruby": {
+    "com": "#[^\\n]*|=begin[\\s\\S]*?=end",
+    "str": "'(?:\\\\.|[^'])*'|\"(?:\\\\.|[^\"])*\"|%[wiq]?[\\[({][^\\])}]*[\\])}]",
+    "var": "@@?[A-Za-z_]\\w*|\\$[A-Za-z_]\\w*|:[A-Za-z_]\\w*[?!]?",
+    "kw": ["def","end","class","module","if","elsif","else","unless","case","when","then","while","until","for","in","do","break","next","redo","retry","return","yield","begin","rescue","ensure","raise","require","require_relative","include","extend","attr_accessor","attr_reader","attr_writer","self","nil","true","false","and","or","not","lambda","proc","super","alias","defined?"],
+    "bi": ["puts","print","p","pp","gets","new","each","map","select","reject","reduce","inject","length","size","push","pop","freeze","to_s","to_i","to_a","to_sym","nil?","respond_to?","send","instance_variable_get"]
+  },
+
+  "go": {
+    "com": "//[^\\n]*|/\\*[\\s\\S]*?\\*/",
+    "str": "`[^`]*`|'(?:\\\\.|[^'])*'|\"(?:\\\\.|[^\"])*\"",
+    "var": null,
+    "kw": ["package","import","func","return","var","const","type","struct","interface","map","chan","go","defer","select","switch","case","default","if","else","for","range","break","continue","fallthrough","goto","nil","true","false"],
+    "bi": ["make","new","len","cap","append","copy","delete","panic","recover","print","println","string","int","int8","int16","int32","int64","uint","uint8","uint64","byte","rune","float32","float64","bool","error","fmt","errors","context","http","json"]
+  },
+
+  "rust": {
+    "com": "//[^\\n]*|/\\*[\\s\\S]*?\\*/",
+    "str": "r?#*\"(?:\\\\.|[^\"])*\"#*|b?'(?:\\\\.|[^'])*'",
+    "var": "#!?\\[[^\\]]*\\]",
+    "kw": ["fn","let","mut","const","static","struct","enum","trait","impl","for","in","while","loop","if","else","match","return","break","continue","use","mod","pub","crate","super","self","Self","where","as","dyn","ref","move","async","await","unsafe","extern","type","true","false"],
+    "bi": ["String","str","Vec","Option","Some","None","Result","Ok","Err","Box","Rc","Arc","RefCell","HashMap","HashSet","BTreeMap","i8","i32","i64","u8","u32","u64","usize","isize","f32","f64","bool","char","println","print","format","vec","panic","write","assert","assert_eq","derive","clone","unwrap","expect"]
+  },
+
+  "java": {
+    "com": "//[^\\n]*|/\\*[\\s\\S]*?\\*/",
+    "str": "'(?:\\\\.|[^'])*'|\"(?:\\\\.|[^\"])*\"",
+    "var": "@[A-Za-z_]\\w*",
+    "kw": ["package","import","class","interface","enum","record","extends","implements","public","private","protected","static","final","abstract","synchronized","volatile","transient","native","new","return","if","else","for","while","do","switch","case","default","break","continue","try","catch","finally","throw","throws","instanceof","this","super","void","int","long","short","byte","char","float","double","boolean","var","true","false","null"],
+    "bi": ["String","Integer","Long","Double","Boolean","Object","List","ArrayList","Map","HashMap","Set","HashSet","Optional","Stream","System","Math","Exception","RuntimeException","Override","Arrays","Collections","StringBuilder"]
+  },
+
+  "kotlin": {
+    "com": "//[^\\n]*|/\\*[\\s\\S]*?\\*/",
+    "str": "\"\"\"[\\s\\S]*?\"\"\"|'(?:\\\\.|[^'])*'|\"(?:\\\\.|[^\"])*\"",
+    "var": "@[A-Za-z_]\\w*",
+    "kw": ["package","import","fun","val","var","class","object","interface","data","sealed","enum","companion","init","constructor","override","open","abstract","private","protected","internal","public","suspend","inline","reified","return","if","else","when","for","while","do","break","continue","try","catch","finally","throw","is","as","in","out","by","typealias","true","false","null","this","super"],
+    "bi": ["String","Int","Long","Double","Float","Boolean","Char","Any","Unit","Nothing","List","MutableList","Map","MutableMap","Set","listOf","mapOf","setOf","mutableListOf","println","print","let","run","apply","also","with","require","check"]
+  },
+
+  "swift": {
+    "com": "//[^\\n]*|/\\*[\\s\\S]*?\\*/",
+    "str": "\"\"\"[\\s\\S]*?\"\"\"|\"(?:\\\\.|[^\"])*\"",
+    "var": "@[A-Za-z_]\\w*",
+    "kw": ["import","func","let","var","class","struct","enum","protocol","extension","init","deinit","subscript","typealias","associatedtype","public","private","fileprivate","internal","open","static","final","override","mutating","lazy","weak","unowned","return","if","else","guard","switch","case","default","for","in","while","repeat","break","continue","fallthrough","defer","do","try","catch","throw","throws","rethrows","async","await","where","as","is","self","Self","super","nil","true","false","some","any"],
+    "bi": ["String","Int","Double","Float","Bool","Character","Array","Dictionary","Set","Optional","Result","Error","print","map","filter","reduce","compactMap","count","append","precondition","assert"]
+  },
+
+  "csharp": {
+    "com": "//[^\\n]*|/\\*[\\s\\S]*?\\*/",
+    "str": "@?\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'",
+    "var": "#\\w+",
+    "kw": ["using","namespace","class","struct","interface","record","enum","delegate","event","public","private","protected","internal","static","readonly","const","sealed","abstract","virtual","override","partial","async","await","new","return","if","else","for","foreach","in","while","do","switch","case","default","break","continue","try","catch","finally","throw","lock","using","yield","is","as","typeof","nameof","this","base","void","var","int","long","short","byte","char","float","double","decimal","bool","string","object","true","false","null"],
+    "bi": ["Console","String","Int32","Int64","Double","Boolean","Object","List","Dictionary","IEnumerable","Task","Func","Action","Exception","LINQ","Select","Where","ToList","WriteLine","Length","Count"]
+  },
+
+  "cpp": {
+    "com": "//[^\\n]*|/\\*[\\s\\S]*?\\*/",
+    "str": "'(?:\\\\.|[^'])*'|\"(?:\\\\.|[^\"])*\"",
+    "var": null,
+    "kw": ["#include","#define","#ifdef","#ifndef","#endif","#pragma","using","namespace","template","typename","class","struct","enum","union","public","private","protected","virtual","override","final","explicit","inline","constexpr","consteval","const","constinit","mutable","static","extern","friend","operator","new","delete","this","nullptr","return","if","else","for","while","do","switch","case","default","break","continue","goto","try","catch","throw","noexcept","sizeof","decltype","auto","void","int","char","long","short","float","double","bool","unsigned","signed","true","false","co_await","co_return","co_yield"],
+    "bi": ["std","string","vector","map","unordered_map","set","array","pair","tuple","shared_ptr","unique_ptr","make_shared","make_unique","cout","cerr","cin","endl","printf","memcpy","move","forward","size_t","begin","end","push_back","emplace_back"]
+  },
+
+  "c": {
+    "com": "//[^\\n]*|/\\*[\\s\\S]*?\\*/",
+    "str": "'(?:\\\\.|[^'])*'|\"(?:\\\\.|[^\"])*\"",
+    "var": null,
+    "kw": ["#include","#define","#ifdef","#ifndef","#endif","#pragma","#if","#else","#elif","static","const","volatile","struct","typedef","enum","union","register","extern","return","if","else","for","while","do","switch","case","default","break","continue","goto","sizeof","void","int","char","long","short","float","double","size_t","ssize_t","unsigned","signed","NULL","inline","restrict"],
+    "bi": ["malloc","calloc","realloc","free","memcpy","memchr","memset","memmove","printf","fprintf","sprintf","snprintf","strlen","strcmp","strncmp","strcpy","strchr","fopen","fclose","fread","fwrite","open","close","read","write","mmap","munmap","exit","assert"]
+  },
+
+  "objc": {
+    "com": "//[^\\n]*|/\\*[\\s\\S]*?\\*/",
+    "str": "@?\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'",
+    "var": "@[A-Za-z_]\\w*",
+    "kw": ["#import","#include","#define","@interface","@implementation","@protocol","@property","@synthesize","@end","@class","@selector","@autoreleasepool","static","const","typedef","struct","enum","return","if","else","for","while","do","switch","case","break","continue","nil","YES","NO","self","super","void","int","char","long","float","double","BOOL","id","instancetype"],
+    "bi": ["NSString","NSArray","NSDictionary","NSMutableArray","NSMutableDictionary","NSNumber","NSObject","NSLog","alloc","init","retain","release","copy","description"]
+  },
+
+  "scala": {
+    "com": "//[^\\n]*|/\\*[\\s\\S]*?\\*/",
+    "str": "\"\"\"[\\s\\S]*?\"\"\"|\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'",
+    "var": null,
+    "kw": ["package","import","object","class","trait","case","extends","with","def","val","var","lazy","implicit","given","using","private","protected","override","final","sealed","abstract","new","return","if","else","match","for","while","do","yield","try","catch","finally","throw","type","this","super","null","true","false"],
+    "bi": ["String","Int","Long","Double","Boolean","Unit","Any","AnyRef","Nothing","Option","Some","None","Either","Left","Right","List","Seq","Vector","Map","Set","Future","println","map","flatMap","filter","foreach","collect"]
+  },
+
+  "dart": {
+    "com": "//[^\\n]*|/\\*[\\s\\S]*?\\*/",
+    "str": "'''[\\s\\S]*?'''|\"\"\"[\\s\\S]*?\"\"\"|'(?:\\\\.|[^'])*'|\"(?:\\\\.|[^\"])*\"",
+    "var": "@[A-Za-z_]\\w*",
+    "kw": ["import","export","library","part","class","mixin","extends","implements","with","abstract","enum","typedef","factory","const","final","var","late","static","get","set","operator","new","this","super","return","if","else","for","in","while","do","switch","case","default","break","continue","try","catch","finally","throw","rethrow","async","await","yield","required","covariant","true","false","null"],
+    "bi": ["String","int","double","num","bool","List","Map","Set","Iterable","Future","Stream","Object","dynamic","void","print","runApp","build","setState","Widget","BuildContext"]
+  },
+
+  "perl": {
+    "com": "#[^\\n]*",
+    "str": "'(?:\\\\.|[^'])*'|\"(?:\\\\.|[^\"])*\"|q[qw]?\\{[^}]*\\}",
+    "var": "[$@%][$#]?[A-Za-z_]\\w*(?:::\\w+)*",
+    "kw": ["use","no","require","package","sub","my","our","local","state","return","if","elsif","unless","else","while","until","for","foreach","do","last","next","redo","goto","given","when","default","eval","die","warn","and","or","not","xor","qw","BEGIN","END","__PACKAGE__","__END__"],
+    "bi": ["print","printf","say","open","close","chomp","chop","split","join","push","pop","shift","unshift","splice","keys","values","exists","delete","defined","scalar","ref","bless","sprintf","sort","grep","map","length","substr"]
+  },
+
+  "lua": {
+    "com": "--\\[\\[[\\s\\S]*?\\]\\]|--[^\\n]*",
+    "str": "\\[\\[[\\s\\S]*?\\]\\]|'(?:\\\\.|[^'])*'|\"(?:\\\\.|[^\"])*\"",
+    "var": null,
+    "kw": ["local","function","end","return","if","then","elseif","else","for","in","while","repeat","until","do","break","goto","and","or","not","nil","true","false","self"],
+    "bi": ["print","pairs","ipairs","type","tostring","tonumber","require","pcall","xpcall","error","assert","setmetatable","getmetatable","rawget","rawset","select","unpack","table","string","math","io","os","coroutine"]
+  },
+
+  "r": {
+    "com": "#[^\\n]*",
+    "str": "'(?:\\\\.|[^'])*'|\"(?:\\\\.|[^\"])*\"",
+    "var": null,
+    "kw": ["function","if","else","for","in","while","repeat","break","next","return","library","require","source","TRUE","FALSE","NULL","NA","Inf","NaN","in"],
+    "bi": ["c","vector","list","data","frame","matrix","factor","length","nrow","ncol","dim","names","print","cat","paste","paste0","sapply","lapply","vapply","apply","summary","head","tail","plot","ggplot","mean","median","sum","seq","rep","which","subset"]
+  },
+
+  "julia": {
+    "com": "#=[\\s\\S]*?=#|#[^\\n]*",
+    "str": "\"\"\"[\\s\\S]*?\"\"\"|\"(?:\\\\.|[^\"])*\"",
+    "var": "@[A-Za-z_]\\w*",
+    "kw": ["function","end","return","if","elseif","else","for","in","while","break","continue","begin","let","do","try","catch","finally","throw","struct","mutable","abstract","primitive","type","module","using","import","export","const","global","local","macro","quote","where","true","false","nothing","missing"],
+    "bi": ["println","print","length","size","push","pop","map","filter","reduce","sum","zeros","ones","rand","Array","Vector","Matrix","Dict","Set","String","Int","Float64","Bool","typeof","convert"]
+  },
+
+  "haskell": {
+    "com": "\\{-[\\s\\S]*?-\\}|--[^\\n]*",
+    "str": "'(?:\\\\.|[^'])*'|\"(?:\\\\.|[^\"])*\"",
+    "var": null,
+    "kw": ["module","where","import","qualified","hiding","as","data","newtype","type","class","instance","deriving","do","let","in","case","of","if","then","else","forall","infix","infixl","infixr","foreign"],
+    "bi": ["IO","Maybe","Just","Nothing","Either","Left","Right","String","Int","Integer","Double","Bool","True","False","Char","map","filter","foldr","foldl","return","putStrLn","print","show","read","mapM","fmap","pure"]
+  },
+
+  "elixir": {
+    "com": "#[^\\n]*",
+    "str": "\"\"\"[\\s\\S]*?\"\"\"|\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'",
+    "var": "@[A-Za-z_]\\w*|:[A-Za-z_]\\w*[?!]?",
+    "kw": ["defmodule","defstruct","defprotocol","defimpl","defmacro","def","defp","do","end","fn","when","case","cond","if","unless","else","for","with","receive","after","try","rescue","catch","throw","raise","import","alias","require","use","quote","unquote","true","false","nil"],
+    "bi": ["IO","Enum","String","Map","List","Keyword","Kernel","Process","Task","GenServer","Supervisor","inspect","puts","to_string","put","get","new","reduce"]
+  },
+
+  "erlang": {
+    "com": "%[^\\n]*",
+    "str": "\"(?:\\\\.|[^\"])*\"",
+    "var": "\\?[A-Za-z_]\\w*",
+    "kw": ["module","export","import","behaviour","record","define","include","spec","type","case","of","if","end","fun","when","begin","receive","after","try","catch","throw","andalso","orelse","not","div","rem","true","false","undefined"],
+    "bi": ["io","lists","maps","binary","erlang","spawn","link","monitor","format","foreach","foldl","foldr","map","filter","length","element","tuple_size","atom_to_list","list_to_atom"]
+  },
+
+  "clojure": {
+    "com": ";[^\\n]*",
+    "str": "\"(?:\\\\.|[^\"])*\"",
+    "var": ":[A-Za-z_][\\w./-]*",
+    "kw": ["ns","def","defn","defn-","defmacro","defprotocol","defrecord","deftype","defmulti","defmethod","let","letfn","fn","if","if-let","when","when-let","cond","condp","case","do","loop","recur","try","catch","finally","throw","quote","var","set!","require","import","use","true","false","nil"],
+    "bi": ["println","print","str","map","filter","reduce","apply","conj","cons","first","rest","count","assoc","dissoc","get","get-in","update","into","vec","seq","range","partial","comp","atom","swap!","reset!"]
+  },
+
+  "bash": {
+    "com": "#[^\\n]*",
+    "str": "'[^']*'|\"(?:\\\\.|[^\"])*\"",
+    "var": "\\$\\{?\\w+\\}?|\\$[@*#?$!0-9-]",
+    "kw": ["if","then","fi","elif","else","for","in","do","done","while","until","case","esac","select","function","local","declare","readonly","export","set","unset","shift","return","exit","trap","source","time","coproc"],
+    "bi": ["echo","printf","read","cd","pwd","ls","find","xargs","grep","egrep","sed","awk","cut","sort","uniq","head","tail","wc","tr","mkdir","rmdir","rm","cp","mv","ln","touch","cat","less","tar","gzip","zip","unzip","chmod","chown","kill","ps","top","df","du","rsync","scp","ssh","sftp","curl","wget","git","make","composer","php","node","npm","npx","yarn","python","pip","docker","kubectl","systemctl","service","sudo","apt","apt-get","yum","dnf","brew","tmux","screen","jq","which","env","export"]
+  },
+
+  "sh": { "like": "bash" },
+
+  "zsh": {
+    "com": "#[^\\n]*",
+    "str": "'[^']*'|\"(?:\\\\.|[^\"])*\"",
+    "var": "\\$\\{?\\w+\\}?|\\$[@*#?$!0-9-]",
+    "kw": ["if","then","fi","elif","else","for","in","do","done","while","until","case","esac","function","local","typeset","declare","export","setopt","unsetopt","autoload","zmodload","alias","return","exit","source","emulate"],
+    "bi": ["echo","print","printf","read","cd","ls","grep","sed","awk","find","mkdir","rm","cp","mv","cat","tar","chmod","rsync","scp","ssh","curl","wget","git","make","composer","php","node","npm","python","pip","docker","kubectl","brew","tmux","jq"]
+  },
+
+  "fish": {
+    "com": "#[^\\n]*",
+    "str": "'[^']*'|\"(?:\\\\.|[^\"])*\"",
+    "var": "\\$\\w+",
+    "kw": ["if","else","end","for","in","while","switch","case","function","return","break","continue","and","or","not","begin","set","test","status","source"],
+    "bi": ["echo","printf","read","cd","ls","grep","sed","awk","find","mkdir","rm","cp","mv","cat","string","math","set_color","count","abbr","alias","funcsave","fisher","git","curl","php","node","npm","python","docker"]
+  },
+
+  "powershell": {
+    "com": "<#[\\s\\S]*?#>|#[^\\n]*",
+    "str": "'[^']*'|\"(?:`.|[^\"])*\"",
+    "var": "\\$[A-Za-z_]\\w*(?::\\w+)?",
+    "kw": ["if","else","elseif","switch","foreach","for","while","do","until","break","continue","function","filter","param","return","process","begin","end","try","catch","finally","throw","trap","class","enum","using","in","true","false"],
+    "bi": ["Set-Location","Get-Location","Get-ChildItem","Get-Item","Get-Content","Set-Content","Add-Content","Write-Host","Write-Output","Write-Error","New-Item","Remove-Item","Copy-Item","Move-Item","Rename-Item","Test-Path","Join-Path","Split-Path","Invoke-WebRequest","Invoke-RestMethod","Invoke-Expression","Start-Process","Stop-Process","Get-Process","Get-Service","Select-Object","Where-Object","ForEach-Object","Sort-Object","Measure-Object","ConvertTo-Json","ConvertFrom-Json","Out-File","Out-Null"]
+  },
+
+  "cmd": {
+    "com": "::[^\\n]*",
+    "str": "\"[^\"\\n]*\"",
+    "var": "%\\w+%|%%\\w|%[*0-9]",
+    "kw": ["if","else","for","in","do","goto","call","exit","rem","echo","set","setlocal","endlocal","shift","pause","start","errorlevel","exist","defined","not","equ","neq","lss","leq","gtr","geq"],
+    "bi": ["cd","chdir","dir","copy","xcopy","robocopy","move","del","erase","md","mkdir","rd","rmdir","ren","rename","type","more","find","findstr","attrib","tasklist","taskkill","ping","ipconfig","net","sc","reg","where","cls","title","powershell"]
+  },
+
+  "sql": {
+    "com": "--[^\\n]*|/\\*[\\s\\S]*?\\*/",
+    "str": "'(?:''|[^'])*'",
+    "var": null,
+    "kw": ["SELECT","FROM","WHERE","INSERT","INTO","VALUES","UPDATE","SET","DELETE","TRUNCATE","MERGE","JOIN","LEFT","RIGHT","FULL","INNER","OUTER","CROSS","ON","USING","GROUP","BY","ORDER","HAVING","LIMIT","OFFSET","FETCH","WITH","RECURSIVE","CREATE","ALTER","DROP","RENAME","TABLE","INDEX","VIEW","SEQUENCE","SCHEMA","DATABASE","TRIGGER","FUNCTION","PROCEDURE","CONSTRAINT","PRIMARY","FOREIGN","UNIQUE","CHECK","DEFAULT","KEY","REFERENCES","CASCADE","NOT","NULL","AND","OR","IN","EXISTS","BETWEEN","LIKE","ILIKE","IS","AS","ASC","DESC","DISTINCT","UNION","INTERSECT","EXCEPT","ALL","ANY","CASE","WHEN","THEN","ELSE","END","BEGIN","COMMIT","ROLLBACK","GRANT","REVOKE","EXPLAIN","ANALYZE"],
+    "bi": ["COUNT","SUM","AVG","MAX","MIN","COALESCE","NULLIF","GREATEST","LEAST","NOW","CURRENT_DATE","CURRENT_TIMESTAMP","DATE","EXTRACT","CAST","CONVERT","LENGTH","CHAR_LENGTH","SUBSTRING","TRIM","LOWER","UPPER","REPLACE","CONCAT","ROUND","ABS","JSON_AGG","ARRAY_AGG","ROW_NUMBER","RANK","OVER","PARTITION"]
+  },
+
+  "psql":   { "like": "sql" },
+  "mysql":  { "like": "sql" },
+  "sqlite": { "like": "sql" },
+  "node":   { "like": "js" },
+  "irb":    { "like": "ruby" },
+
+  "vb": {
+    "com": "'[^\\n]*",
+    "str": "\"(?:\"\"|[^\"])*\"",
+    "var": null,
+    "kw": ["Public","Private","Protected","Friend","Shared","Module","Class","Structure","Interface","Enum","Namespace","Imports","Sub","Function","Property","Get","Set","End","Dim","As","New","ReDim","If","Then","ElseIf","Else","Select","Case","For","Each","In","To","Step","Next","While","Do","Loop","Until","Exit","Continue","Try","Catch","Finally","Throw","Return","With","Using","ByVal","ByRef","Optional","Overrides","Nothing","True","False","And","Or","Not","AndAlso","OrElse","Is","IsNot"],
+    "bi": ["String","Integer","Long","Short","Double","Single","Decimal","Boolean","Object","Date","Char","Byte","Console","WriteLine","ReadLine","MsgBox","CInt","CStr","CDbl","IsNumeric","Len","Mid","Trim","UBound"]
+  },
+
+  "fortran": {
+    "com": "![^\\n]*",
+    "str": "'[^'\\n]*'|\\\"[^\\\"\\n]*\\\"",
+    "var": null,
+    "kw": ["program","end","module","subroutine","function","contains","use","implicit","none","integer","real","complex","logical","character","double","precision","parameter","dimension","allocatable","allocate","deallocate","pointer","target","intent","in","out","inout","type","class","interface","if","then","else","elseif","endif","do","while","enddo","select","case","default","where","forall","call","return","stop","continue","print","write","read","open","close","format","common","save","data"],
+    "bi": ["size","shape","allocated","associated","present","trim","adjustl","len","abs","sqrt","exp","log","sin","cos","max","min","sum","product","matmul","dot_product","reshape","transpose"]
+  },
+
+  "matlab": {
+    "com": "%\\{[\\s\\S]*?%\\}|%[^\\n]*",
+    "str": "'[^'\\n]*'|\\\"[^\\\"\\n]*\\\"",
+    "var": null,
+    "kw": ["function","end","return","if","elseif","else","switch","case","otherwise","for","while","break","continue","try","catch","global","persistent","classdef","properties","methods","events","parfor","spmd"],
+    "bi": ["disp","fprintf","sprintf","error","warning","size","length","numel","zeros","ones","eye","rand","randn","linspace","reshape","sum","prod","mean","median","std","max","min","find","sort","plot","figure","hold","axis","xlabel","ylabel","title","legend","isempty","isnumeric","strcmp","num2str","cellfun","arrayfun"]
+  },
+
+  "pascal": {
+    "com": "\\{[^}]*\\}|\\(\\*[\\s\\S]*?\\*\\)|//[^\\n]*",
+    "str": "'(?:''|[^'])*'",
+    "var": null,
+    "kw": ["program","unit","library","uses","interface","implementation","initialization","finalization","begin","end","var","const","type","procedure","function","record","array","of","set","file","class","object","property","constructor","destructor","inherited","private","protected","public","published","if","then","else","case","for","to","downto","do","while","repeat","until","with","goto","label","try","except","finally","raise","and","or","not","xor","div","mod","in","is","as","nil","true","false"],
+    "bi": ["Integer","LongInt","Cardinal","Real","Double","Extended","Boolean","Char","String","AnsiString","Pointer","TObject","Write","WriteLn","Read","ReadLn","Length","Copy","Pos","SetLength","New","Dispose","Inc","Dec","Ord","Chr","Round","Trunc","IntToStr","StrToInt"]
+  },
+
+  "cobol": {
+    "com": "\\*>[^\\n]*",
+    "str": "'[^'\\n]*'|\\\"[^\\\"\\n]*\\\"",
+    "var": null,
+    "kw": ["IDENTIFICATION","ENVIRONMENT","DATA","PROCEDURE","DIVISION","SECTION","PROGRAM-ID","AUTHOR","CONFIGURATION","INPUT-OUTPUT","FILE-CONTROL","WORKING-STORAGE","LINKAGE","SELECT","ASSIGN","ORGANIZATION","PIC","PICTURE","VALUE","OCCURS","REDEFINES","USAGE","COMP","COMP-3","MOVE","TO","ADD","SUBTRACT","MULTIPLY","DIVIDE","COMPUTE","GIVING","IF","ELSE","END-IF","EVALUATE","WHEN","END-EVALUATE","PERFORM","UNTIL","VARYING","THRU","END-PERFORM","CALL","USING","OPEN","CLOSE","READ","WRITE","REWRITE","DELETE","DISPLAY","ACCEPT","STOP","RUN","EXIT","GOBACK","INITIALIZE","STRING","UNSTRING","INSPECT","SET","SEARCH"],
+    "bi": ["ZERO","ZEROS","SPACE","SPACES","HIGH-VALUES","LOW-VALUES","ALL","INPUT","OUTPUT","EXTEND","SEQUENTIAL","INDEXED","DYNAMIC","INVALID","KEY"]
+  },
+
+  "asm": {
+    "com": ";[^\\n]*",
+    "str": "'[^'\\n]*'|\\\"[^\\\"\\n]*\\\"",
+    "var": "%\\w+|\\.[a-z][\\w.]*",
+    "kw": ["mov","movl","movq","movzx","movsx","lea","push","pop","add","sub","imul","idiv","inc","dec","and","or","xor","not","neg","shl","shr","sar","cmp","test","jmp","je","jne","jz","jnz","jg","jge","jl","jle","ja","jb","call","ret","leave","enter","nop","int","syscall","hlt","loop","rep","cld","std","global","section","extern"],
+    "bi": ["rax","rbx","rcx","rdx","rsi","rdi","rbp","rsp","r8","r9","r10","r11","r12","r13","r14","r15","eax","ebx","ecx","edx","esi","edi","ebp","esp","ax","bx","cx","dx","al","bl","cl","dl","byte","word","dword","qword","ptr","offset"]
+  },
+
+  "groovy": {
+    "com": "//[^\\n]*|/\\*[\\s\\S]*?\\*/",
+    "str": "'''[\\s\\S]*?'''|\"\"\"[\\s\\S]*?\"\"\"|'(?:\\\\.|[^'])*'|\"(?:\\\\.|[^\"])*\"",
+    "var": "@[A-Za-z_]\\w*|\\$\\{?\\w+\\}?",
+    "kw": ["package","import","class","interface","trait","enum","extends","implements","def","return","if","else","for","in","while","do","switch","case","default","break","continue","try","catch","finally","throw","throws","new","this","super","static","final","abstract","private","protected","public","synchronized","assert","instanceof","as","true","false","null","it"],
+    "bi": ["println","print","printf","String","Integer","List","Map","Set","Closure","each","collect","find","findAll","inject","sort","any","every","with","task","dependencies","plugins"]
+  },
+
+  "fsharp": {
+    "com": "\\(\\*[\\s\\S]*?\\*\\)|//[^\\n]*",
+    "str": "\"\"\"[\\s\\S]*?\"\"\"|\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])*'",
+    "var": "\\[<[^>]*>\\]",
+    "kw": ["let","rec","and","in","fun","function","match","with","when","if","then","else","elif","for","to","downto","while","do","done","try","finally","type","of","module","namespace","open","member","override","abstract","interface","inherit","new","static","mutable","ref","private","internal","public","yield","return","use","async","begin","end","true","false","null","not"],
+    "bi": ["List","Array","Seq","Map","Set","Option","Some","None","Result","Ok","Error","String","printfn","printf","sprintf","failwith","ignore","id","fst","snd","int","float","string","bool","unit"]
+  },
+
+  "ocaml": {
+    "com": "\\(\\*[\\s\\S]*?\\*\\)",
+    "str": "\"(?:\\\\.|[^\"])*\"|'(?:\\\\.|[^'])'",
+    "var": "'[a-z]\\w*",
+    "kw": ["let","rec","and","in","fun","function","match","with","when","if","then","else","for","to","downto","while","do","done","try","exception","raise","type","of","module","struct","sig","end","open","include","val","mutable","ref","class","object","method","inherit","new","external","begin","assert","lazy","true","false"],
+    "bi": ["List","Array","String","Bytes","Hashtbl","Map","Set","Option","Some","None","Result","Ok","Error","Printf","Format","print_endline","print_string","failwith","ignore","int_of_string","string_of_int","float","int","bool","unit","option"]
+  },
+
+  "lisp": {
+    "com": ";[^\\n]*|#\\|[\\s\\S]*?\\|#",
+    "str": "\"(?:\\\\.|[^\"])*\"",
+    "var": "[&:][A-Za-z_][\\w-]*",
+    "kw": ["defun","defmacro","defvar","defparameter","defconstant","defstruct","defclass","defmethod","defgeneric","lambda","let","let*","labels","flet","setq","setf","if","when","unless","cond","case","progn","prog1","loop","dolist","dotimes","do","return","return-from","block","catch","throw","unwind-protect","handler-case","quote","function","in-package","require","provide","t","nil"],
+    "bi": ["car","cdr","cons","list","append","length","nth","mapcar","mapc","reduce","remove","member","assoc","apply","funcall","eq","eql","equal","format","print","princ","terpri","null","atom","listp","numberp","stringp","symbolp"]
+  },
+
+  "scheme": { "like": "lisp" },
+
+  "ksh": { "like": "bash" },
+
+  "tcsh": {
+    "com": "#[^\\n]*",
+    "str": "'[^']*'|\"(?:\\\\.|[^\"])*\"",
+    "var": "\\$\\{?\\w+\\}?",
+    "kw": ["if","then","else","endif","foreach","end","while","switch","case","endsw","breaksw","goto","set","setenv","unset","unsetenv","alias","unalias","source","exit","onintr","limit"],
+    "bi": ["echo","cd","ls","grep","sed","awk","find","mkdir","rm","cp","mv","cat","chmod","rsync","scp","ssh","curl","wget","git","make","php","python","printenv","which"]
+  },
+
+  "nu": {
+    "com": "#[^\\n]*",
+    "str": "'[^']*'|\"(?:\\\\.|[^\"])*\"",
+    "var": "\\$[A-Za-z_][\\w.]*",
+    "kw": ["def","let","mut","const","export","use","module","alias","if","else","match","for","while","loop","break","continue","return","try","catch","do","where","true","false","null"],
+    "bi": ["echo","print","ls","cd","open","save","get","select","reject","first","last","length","sort-by","group-by","each","filter","reduce","str","into","from","to","http","ps","sys","help"]
+  },
+
+  "html": {
+    "com": "<!--[\\s\\S]*?-->|<!DOCTYPE[^>]*>",
+    "str": "'[^'\\n]*'|\"[^\"\\n]*\"",
+    "var": "</?[A-Za-z][\\w:-]*|/?>",
+    "kw": ["html","head","body","title","meta","link","script","style","div","span","section","article","header","footer","nav","main","aside","h1","h2","h3","h4","h5","h6","p","a","ul","ol","li","dl","dt","dd","table","thead","tbody","tr","th","td","form","label","input","button","select","option","textarea","img","figure","figcaption","picture","source","video","audio","canvas","svg","pre","code","details","summary","template","slot"],
+    "bi": ["class","id","href","src","alt","type","rel","name","value","style","title","width","height","lang","charset","content","placeholder","disabled","checked","selected","hidden","role","target","method","action","srcset","loading","defer","async"]
+  },
+
+  "xml": {
+    "com": "<!--[\\s\\S]*?-->|<!DOCTYPE[^>]*>|<\\?xml[^>]*\\?>",
+    "str": "'[^'\\n]*'|\"[^\"\\n]*\"",
+    "var": "</?[A-Za-z_][\\w:.-]*|/?>",
+    "kw": [],
+    "bi": ["xmlns","version","encoding","standalone","id","type","name","value","ref"]
+  },
+
+  "css": {
+    "com": "/\\*[\\s\\S]*?\\*/",
+    "str": "'[^'\\n]*'|\"[^\"\\n]*\"",
+    "var": "@[A-Za-z-]+|--[\\w-]+|\\.[A-Za-z_][\\w-]*|#[A-Za-z][\\w-]*|:{1,2}[a-z-]+",
+    "kw": ["color","background","background-color","background-image","border","border-radius","margin","padding","width","height","min-width","max-width","min-height","max-height","display","position","top","right","bottom","left","float","clear","flex","flex-direction","flex-wrap","justify-content","align-items","align-content","gap","grid","grid-template-columns","grid-template-rows","font","font-size","font-family","font-weight","line-height","letter-spacing","text-align","text-decoration","text-transform","white-space","overflow","overflow-x","overflow-y","opacity","visibility","z-index","cursor","content","transition","transform","animation","box-shadow","box-sizing","outline","list-style","vertical-align","object-fit"],
+    "bi": ["none","auto","inherit","initial","unset","revert","block","inline","inline-block","flex","grid","contents","absolute","relative","fixed","sticky","static","solid","dashed","dotted","hidden","visible","scroll","center","left","right","start","end","space-between","space-around","bold","normal","italic","uppercase","lowercase","pointer","transparent","currentColor","var","calc","url","rgb","rgba","hsl","hsla","min","max","clamp"]
+  },
+
+  "json": {
+    "com": null,
+    "str": "\"(?:\\\\.|[^\"])*\"",
+    "var": "\"(?:\\\\.|[^\"])*\"(?=\\s*:)",
+    "kw": ["true","false","null"],
+    "bi": []
+  },
+
+  "yaml": {
+    "com": "#[^\\n]*",
+    "str": "'[^'\\n]*'|\"(?:\\\\.|[^\"\\n])*\"",
+    "var": "[A-Za-z_][\\w.-]*(?=\\s*:)|&\\w+|\\*\\w+",
+    "kw": ["true","false","null","yes","no","on","off"],
+    "bi": []
+  },
+
+  "toml": {
+    "com": "#[^\\n]*",
+    "str": "'''[\\s\\S]*?'''|\"\"\"[\\s\\S]*?\"\"\"|'[^'\\n]*'|\"(?:\\\\.|[^\"\\n])*\"",
+    "var": "\\[{1,2}[^\\]\\n]*\\]{1,2}|[A-Za-z_][\\w.-]*(?=\\s*=)",
+    "kw": ["true","false"],
+    "bi": []
+  },
+
+  "ini": {
+    "com": "[;#][^\\n]*",
+    "str": "'[^'\\n]*'|\"[^\"\\n]*\"",
+    "var": "\\[[^\\]\\n]*\\]|[A-Za-z_][\\w.-]*(?=\\s*=)",
+    "kw": ["true","false","yes","no","on","off","none"],
+    "bi": []
+  },
+
+  "dockerfile": {
+    "com": "#[^\\n]*",
+    "str": "'[^'\\n]*'|\"(?:\\\\.|[^\"])*\"",
+    "var": "\\$\\{?\\w+\\}?",
+    "kw": ["FROM","AS","RUN","CMD","LABEL","MAINTAINER","EXPOSE","ENV","ADD","COPY","ENTRYPOINT","VOLUME","USER","WORKDIR","ARG","ONBUILD","STOPSIGNAL","HEALTHCHECK","SHELL"],
+    "bi": ["apt-get","apk","yum","dnf","npm","yarn","pip","composer","curl","wget","git","make","php","node","python","alpine","debian","ubuntu"]
+  },
+
+  "makefile": {
+    "com": "#[^\\n]*",
+    "str": "'[^'\\n]*'|\"(?:\\\\.|[^\"])*\"",
+    "var": "\\$\\(\\w[^)]*\\)|\\$\\{\\w+\\}|\\$[@<^?*%+]",
+    "kw": ["ifeq","ifneq","ifdef","ifndef","else","endif","include","export","unexport","define","endef","override","vpath"],
+    "bi": ["make","shell","wildcard","patsubst","subst","foreach","filter","filter-out","notdir","dir","basename","addprefix","call","eval","gcc","cc","rm","mkdir","cp","install","php","node","npm"]
+  },
+
+  "nginx": {
+    "com": "#[^\\n]*",
+    "str": "'[^'\\n]*'|\"[^\"\\n]*\"",
+    "var": "\\$\\w+",
+    "kw": ["http","server","location","upstream","events","stream","map","types","include","listen","server_name","root","index","alias","try_files","return","rewrite","error_page","access_log","error_log","proxy_pass","proxy_set_header","fastcgi_pass","fastcgi_param","add_header","gzip","ssl_certificate","ssl_certificate_key","client_max_body_size","worker_processes","worker_connections","keepalive_timeout","expires","deny","allow","if","set","default_type","user"],
+    "bi": ["on","off","break","last","permanent","redirect","any","default"]
+  },
+
+  "graphql": {
+    "com": "#[^\\n]*",
+    "str": "\"\"\"[\\s\\S]*?\"\"\"|\"(?:\\\\.|[^\"])*\"",
+    "var": "\\$\\w+|@\\w+",
+    "kw": ["query","mutation","subscription","fragment","on","type","interface","union","enum","input","schema","scalar","directive","extend","implements","repeatable","true","false","null"],
+    "bi": ["String","Int","Float","Boolean","ID"]
+  },
+
+  "hcl": {
+    "com": "#[^\\n]*|//[^\\n]*|/\\*[\\s\\S]*?\\*/",
+    "str": "<<-?[A-Z]+[\\s\\S]*?[A-Z]+|\"(?:\\\\.|[^\"])*\"",
+    "var": "\\$\\{[^}]*\\}",
+    "kw": ["resource","data","variable","output","module","provider","terraform","locals","backend","provisioner","dynamic","for_each","count","depends_on","lifecycle","if","for","in","true","false","null"],
+    "bi": ["var","local","each","path","module","file","jsonencode","jsondecode","templatefile","lookup","merge","length","join","split","format","toset","tolist","tomap"]
+  },
+
+  "diff": {
+    "com": "^@@[^\\n]*",
+    "str": "^(?:diff |index |[-+]{3} )[^\\n]*",
+    "var": "^[-+][^\\n]*",
+    "kw": [],
+    "bi": []
+  }
+};
