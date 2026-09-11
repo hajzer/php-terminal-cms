@@ -11,7 +11,12 @@
   --global-font-size: 15px;
   --global-line-height: 1.5em;
   --global-space: 10px;
-  --page-width: 62em;
+  /* the measure, counted in the reader's font size, in the two forms the two
+     surfaces need: the reader page sets its own font size and takes the em,
+     the editor's write sheet is on a font size of its own and takes the px */
+  --page-measure: 62;
+  --page-width: calc(var(--page-measure) * 1em);
+  --page-width-px: calc(var(--page-measure) * var(--global-font-size));
   --doc-scale: 1;         /* + / - in the editor and on the page; see Page.php */
   --mono: ui-monospace, SFMono-Regular, "JetBrains Mono", "Fira Code", Menlo, Monaco, Consolas, monospace;
 

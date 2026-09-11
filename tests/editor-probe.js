@@ -972,6 +972,79 @@
   ok('Tab still walks Cells, unaffected by the new binding', caret() === 5, caret());
   key('Escape', box());
 
+
+  /* --- the write pane has the read pane's measure ---------------------- */
+  /* The two panes have different font bases — the sheet is 14px, the reader
+     page is --global-font-size — so the same measure cannot be reached by
+     copying a declaration in em. What is compared here is the number of
+     pixels each pane ends up with. */
+  var sheetEl = document.getElementById('sheet');
+  var readEl  = document.getElementById('read');
+  /* the cap the surface is under, the width it took, and the room it had: the
+     pane's own inside, which is what a centred surface is centred in */
+  function measure(el) { return parseFloat(getComputedStyle(el).maxWidth); }
+  function width(el)   { return el.getBoundingClientRect().width; }
+  function roomFor(el) { return el.parentNode.clientWidth; }
+  function insideOf(el) {
+    var pane = el.parentNode;
+    return pane.getBoundingClientRect().left + pane.clientLeft;
+  }
+
+  run('read');
+  var readCap = measure(readEl), readW = width(readEl), readRoom = roomFor(readEl);
+  run('write');
+  var writeCap = measure(sheetEl), writeW = width(sheetEl), writeRoom = roomFor(sheetEl);
+
+  ok('in write mode the write surface takes the read pane\'s measure',
+     Math.abs(writeCap - readCap) <= 1, writeCap + ' vs ' + readCap);
+  ok('and where the window has room for it, the two panes are as wide as each other',
+     readRoom <= readCap || writeRoom <= writeCap || Math.abs(writeW - readW) <= 1,
+     writeW + ' vs ' + readW);
+
+  run('read');
+  var readCapAgain = measure(readEl);
+  run('write');
+  ok('write → read → write leaves the measure the same in both',
+     measure(sheetEl) === writeCap && readCapAgain === readCap,
+     measure(sheetEl) + '/' + writeCap + ' :: ' + readCapAgain + '/' + readCap);
+
+  /* a cap that is a number is not yet a cap that binds: given a window with
+     room to spare, the surface has to stop short of the pane it sits in */
+  ok('the write surface is still capped — a wide window does not uncap the line',
+     getComputedStyle(sheetEl).maxWidth !== 'none' && isFinite(writeCap) && writeCap > 0 &&
+     (writeRoom <= writeCap || writeW < writeRoom),
+     getComputedStyle(sheetEl).maxWidth + ' in ' + writeRoom);
+
+  var inside = insideOf(sheetEl), sheetBox = sheetEl.getBoundingClientRect();
+  ok('the write surface is still centred in its pane',
+     Math.abs((sheetBox.left - inside) -
+              (inside + roomFor(sheetEl) - sheetBox.right)) <= 1,
+     (sheetBox.left - inside) + ' / ' + (inside + roomFor(sheetEl) - sheetBox.right));
+
+  key('+');
+  key('+');
+  var writeBig = measure(sheetEl);
+  run('read');
+  var readBig = measure(readEl);
+  run('write');
+  ok('+ scales the content and the measure follows it, in both panes',
+     Math.abs(writeBig - writeCap * 1.2) <= 1 && Math.abs(writeBig - readBig) <= 1,
+     writeBig + ' vs ' + writeCap * 1.2 + ' :: ' + readBig);
+  key('-');
+  key('-');
+  ok('- brings the measure back with the content',
+     Math.abs(measure(sheetEl) - writeCap) <= 1, measure(sheetEl));
+  key('0');
+
+  run('split');
+  var writePane = document.getElementById('tab-write').getBoundingClientRect();
+  var readPane  = document.getElementById('tab-read').getBoundingClientRect();
+  ok('split is unchanged: each pane fills its half, sheet and all',
+     Math.abs(writePane.width - readPane.width) <= 1 &&
+     getComputedStyle(sheetEl).maxWidth === 'none',
+     writePane.width + ' vs ' + readPane.width + ' :: ' + getComputedStyle(sheetEl).maxWidth);
+  run('write');
+
   var bad = out.filter(function (l) { return l.indexOf('FAIL') === 0; }).length;
   var pre = document.createElement('pre');
   pre.style.cssText = 'position:fixed;inset:0;z-index:999;background:#111;color:#ddd;' +

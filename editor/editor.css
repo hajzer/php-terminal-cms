@@ -107,7 +107,12 @@ body { overflow: hidden; font: 14px/1.6 var(--mono); }
 }
 
 /* --------------------------------------------------------- write surface */
-.sheet { max-width: 80ch; margin: 0 auto; padding: 30px 0 40vh;
+/* the read pane's measure: --page-width is counted in the reader's font size,
+   which is not this sheet's, so the sheet takes the same measure in the px
+   form theme.css derives beside it */
+.sheet {
+  max-width: calc(var(--page-width-px) * var(--doc-scale));
+  margin: 0 auto; padding: 30px 0 40vh;
   font-size: calc(14px * var(--doc-scale)); }
 .ln {
   display: grid; grid-template-columns: 50px 1fr; align-items: start;
