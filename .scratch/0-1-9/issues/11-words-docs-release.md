@@ -50,9 +50,9 @@ markup it writes is what causes the one that happens.
 The release. The cheat-sheet block in the README gains `^K`; mind the columns,
 which are three and are aligned by hand.
 
-The diagrams are issue 08 and may not have landed. If they have not, this issue
-does not wait for them and does not reference them — say so in the comments
-below and ship the README without.
+The diagrams are issue 08 and land with their own commit. This issue does not
+add references to them; if 08 was held for any reason, ship the README without
+and say so in the comments below.
 
 CONTEXT.md's **Site Config** entry lists what `site.php` holds, and it gains the
 favicon. That is a list, not a new term.
@@ -63,11 +63,11 @@ favicon. That is a list, not a new term.
 `bin/test` fails if the two disagree, and `php bin/build` regenerates
 `tests/editor-probe.html` from `editor/index.html` — never edit that by hand.
 
-`bin/manifest.php` **may** need a change, which is new for this release: the
-Editor's and the site's assets sit inside directories the manifest copies whole,
-but `docs/` is listed file by file, so `docs/media/` is named there by issue 08.
-If issue 08 was held, check the manifest anyway — `bin/test` fails when a
-tracked file has fallen off it, and that check is the one that will tell you.
+`bin/manifest.php` gains `docs/media` in issue 08, which is new for this
+release: the Editor's and the site's assets sit inside directories the manifest
+copies whole, but `docs/` is listed file by file. Check it here regardless —
+`bin/test` fails when a tracked file is not named by the manifest, and that
+check is the one that will tell you.
 
 ## Acceptance
 

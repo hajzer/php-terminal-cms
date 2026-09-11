@@ -10,12 +10,12 @@ The README explains a system whose whole idea is visual — two halves that neve
 talk to each other, and a document that is a sequence of typed lines — with one
 ASCII sketch and a lot of prose. Diagrams are coming.
 
-**The image files arrive from the maintainer, later.** This issue prepares
-everything that does not depend on having them, and states what must be true of
-them when they land. It is deliberately the one commit in this release that can
-be dropped without dropping anything else.
+The maintainer has the files. They land in this commit with the references that
+point at them: `bin/test` fails when a tracked file is not named by
+`bin/manifest.php`, so adding them without the manifest line turns the suite red
+— the two arrive together or not at all.
 
-## Scope — now
+## Scope
 
 - A home for them: `docs/media/`, referenced from the README by relative path so
   that it resolves on a git host and in an unpacked archive alike.
@@ -30,14 +30,8 @@ be dropped without dropping anything else.
 - The alt text, written as writing. A README is read in a terminal, by a screen
   reader, and on a phone with images off; the alt text is the diagram for all
   three, and it is not "diagram".
-
-## Scope — when the files land
-
 - Every reference resolves, from the repository root and from an unpacked
   archive.
-- Nothing points at a file that is not there. The references land in the same
-  commit as the files: a README shipped pointing at a missing image is worse
-  than a README with no images.
 - The existing ASCII sketch of the two halves stays unless a diagram genuinely
   replaces it. It works where images do not.
 - Each file is small enough that cloning the repository is not a decision, and
@@ -56,13 +50,13 @@ diagram that documents something the code does not do yet.
 - [ ] the README says where each diagram goes and what it is for
 - [ ] alt text is written for each, and reads as writing rather than as a label
 - [ ] no reference in the README points at a file that is not in the repository
-- [ ] with the files in place: every reference resolves from the repository
-  root, and from an unpacked archive built by `bin/package`
+- [ ] every reference resolves from the repository root, and from an unpacked
+  archive built by `bin/package`
 - [ ] the archive carries `docs/media/` and its contents
 
 ## Comments
 
-If the image files have not arrived when the rest of the release is ready, this
-issue is held and its commit is skipped. Nothing else in 0.1.9 depends on it,
-and issue 10 should not wait for it — say so in that issue's comments rather
-than shipping a README that points at nothing.
+The files exist and are the maintainer's to place. Nothing else in 0.1.9 depends
+on this issue, so if a diagram turns out to want redrawing it can be held
+without holding the release — but the manifest line and the references belong
+with whatever files do land, never ahead of them.

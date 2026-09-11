@@ -97,12 +97,13 @@ is still a measure and not the absence of one: an ultrawide window should not
 produce a line of text a metre long, which is why this matches the read pane
 rather than uncapping the way split mode does.
 
-**Diagrams in the README, and room kept for them.** The files come from the
-maintainer later. What does not depend on having them — where they live, the
-manifest line that ships them, where each goes and what each is for, and the alt
-text — is decided in this release. The references land in the same commit as the
-files, because a README shipped pointing at a missing image is worse than a
-README with no images, and the commit is droppable if they do not arrive.
+**Diagrams in the README.** They live in `docs/media/`, referenced by relative
+path so they resolve on a git host and in an unpacked archive alike, with alt
+text written as writing because a README is also read in a terminal and with
+images off. The files, the manifest line that ships them and the references that
+point at them arrive in one commit: `bin/test` fails when a tracked file is not
+named by `bin/manifest.php`, so a file added without the line turns the suite
+red, and a reference added without the file ships a README pointing at nothing.
 
 **A third review, and the findings it produces.** One review of everything added
 since 0.1.4, in the shape the first two took: scope written down, findings in a
@@ -206,8 +207,9 @@ makes this one allowed.
     so that I lose nothing.
 31. As someone who unpacked the archive, I want the README's images to be in it,
     so that the copy I have is the copy that was written.
-32. As a maintainer, I want the diagrams to be the one droppable commit, so that
-    a release is not held up by an image that has not been drawn.
+32. As a maintainer, I want the files, the manifest line and the references to
+    arrive together, so that the repository is never in a state where one of
+    the three is missing.
 
 ### The write pane's measure
 
@@ -330,8 +332,9 @@ makes this one allowed.
   gains that directory — `docs/` is listed file by file rather than copied
   whole, so a new directory under it is invisible to the archive until it is
   named, and `bin/test`'s manifest check is what catches the omission.
-- The diagram commit is the one in this release that may be dropped. Nothing
-  else depends on it, and the release does not wait for it.
+- The files, the manifest line and the README's references are one commit.
+  `bin/test`'s manifest check is what enforces the first half of that, and it is
+  why they cannot be staged separately.
 
 ### The write pane's measure
 
@@ -525,9 +528,9 @@ audit changes there arrives with the assertion that would have caught it.
   first in two releases to need `bin/manifest.php` changed. `editor/` and
   `site/` are copied whole so assets inside them ship without a line; `docs/` is
   listed file by file, so `docs/media/` is not.
-- The diagrams arrive on the maintainer's timeline, not the agent's. Issue 08 is
-  written so that everything not depending on the files is done first, and so
-  that the commit can be skipped. Issue 10 must not wait for it.
+- The logo, the icon and the diagrams exist and are the maintainer's to place.
+  Nothing else in the release depends on issue 08, so a diagram that wants
+  redrawing can hold that one commit without holding the release.
 - The `bin/build` repathing trap was found while writing these issues, not by
   the review: a new asset in `editor/index.html` is not repathed into the probe,
   and `bin/test` passes anyway because it undoes the rewrite generically. It is
