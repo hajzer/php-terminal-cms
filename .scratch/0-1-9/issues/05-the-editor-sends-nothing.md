@@ -1,6 +1,6 @@
 # 05 — The editor sends nothing, and the suite says so
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 Commit: 3 of 8 — "test: the editor sends nothing"
 
@@ -53,12 +53,12 @@ one. Scanning generated files, or `tests/`.
 
 ## Acceptance
 
-- [ ] `php bin/test` green, with the new check passing on the tree as it stands
-- [ ] the check fails, naming file and term, when `fetch(` is put into
+- [x] `php bin/test` green, with the new check passing on the tree as it stands
+- [x] the check fails, naming file and term, when `fetch(` is put into
   `editor/ui.js` — verified by trying it and then taking it out again
-- [ ] it does not fire on `editor/ui.js`'s header comment
-- [ ] it does not fire on `navigator.clipboard`
-- [ ] `editor/langs.js` is out of scope of the check, and the reason is written
+- [x] it does not fire on `editor/ui.js`'s header comment
+- [x] it does not fire on `navigator.clipboard`
+- [x] `editor/langs.js` is out of scope of the check, and the reason is written
   where the check is
-- [ ] the assertion count in the suite's output has risen and the new line reads
+- [x] the assertion count in the suite's output has risen and the new line reads
   as plainly as the one beside it
