@@ -13,6 +13,21 @@
   .win { fill: #21262a; stroke: #2d3336; }
   .bar { fill: #2d3336; }
   .arw { stroke: #7c8486; stroke-width: 1.5; fill: none; marker-end: url(#tip); }
+  /* The picture has no ground of its own. Panels and windows carry theirs, so
+     what is drawn inside them is always light on dark; what stands directly on
+     the page (class o) is toned to read on white and on dark alike, and is
+     sharpened for either where the viewer says which it prefers. */
+  .o.h { fill: #8a9296; }
+  .o.a { fill: #c48a3f; }
+  .o.s { fill: #7c8486; }
+  .o.f { fill: #6e777a; }
+  .frame { fill: none; stroke: #7c8486; stroke-opacity: .55; stroke-dasharray: 4 4; }
+  @media (prefers-color-scheme: dark) {
+    .o.h { fill: #e8ecec; } .o.a { fill: #d9a05f; } .o.s { fill: #7c8486; } .o.f { fill: #5a6265; }
+  }
+  @media (prefers-color-scheme: light) {
+    .o.h { fill: #1e2225; } .o.a { fill: #9a6520; } .o.s { fill: #4f5759; } .o.f { fill: #6b7376; }
+  }
 </style>
 <defs>
   <marker id="tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
@@ -20,14 +35,12 @@
   </marker>
 </defs>
 
-<rect width="1200" height="712" fill="#191c1e"/>
-
 <!-- header -->
 <rect x="24" y="26" width="44" height="34" rx="6" fill="#21262a" stroke="#d9a05f"/>
 <text class="a" x="46" y="50" font-size="16" text-anchor="middle">&gt;_</text>
-<text class="h" x="82" y="52" font-size="26">php-terminal-cms</text>
-<text class="s" x="352" y="52" letter-spacing="2.5">WRITE · EXPORT · PUBLISH</text>
-<text class="f" x="1176" y="52" text-anchor="end">a document is an ordered sequence of typed lines</text>
+<text class="o h" x="82" y="52" font-size="26">php-terminal-cms</text>
+<text class="o s" x="352" y="52" letter-spacing="2.5">WRITE · EXPORT · PUBLISH</text>
+<text class="o f" x="1176" y="52" text-anchor="end">a document is an ordered sequence of typed lines</text>
 
 <!-- ============================== 1 · WRITE ============================== -->
 <rect class="panel" x="24" y="100" width="496" height="320" rx="8"/>
@@ -52,17 +65,17 @@
 
 <!-- ============================ the transfer ============================ -->
 <path class="arw" d="M528 250 H568"/>
-<text class="f" x="548" y="238" text-anchor="middle">export</text>
+<text class="o f" x="548" y="238" text-anchor="middle">export</text>
 <rect x="578" y="222" width="64" height="56" rx="6" fill="#21262a" stroke="#d9a05f"/>
 <text class="a" x="610" y="246" text-anchor="middle">.md</text>
 <text class="f" x="610" y="264" text-anchor="middle">one file</text>
 <path class="arw" d="M650 250 H690"/>
-<text class="f" x="670" y="238" text-anchor="middle">copy</text>
+<text class="o f" x="670" y="238" text-anchor="middle">copy</text>
 
-<text class="s" x="610" y="312" text-anchor="middle">git · rsync · scp</text>
-<text class="s" x="610" y="328" text-anchor="middle">WinSCP · a USB stick</text>
-<text class="f" x="610" y="352" text-anchor="middle">The two halves never</text>
-<text class="f" x="610" y="368" text-anchor="middle">talk to each other.</text>
+<text class="o s" x="610" y="312" text-anchor="middle">git · rsync · scp</text>
+<text class="o s" x="610" y="328" text-anchor="middle">WinSCP · a USB stick</text>
+<text class="o f" x="610" y="352" text-anchor="middle">The two halves never</text>
+<text class="o f" x="610" y="368" text-anchor="middle">talk to each other.</text>
 
 <!-- ============================= 2 · PUBLISH ============================ -->
 <rect class="panel" x="700" y="100" width="476" height="320" rx="8"/>
@@ -91,12 +104,12 @@
 <text class="f" x="720" y="374">no database · no session · no cookie · no build step</text>
 <text class="cap" x="720" y="398">PHP reads content/ and renders it again on every request.</text>
 
-<text class="s" x="600" y="444" text-anchor="middle">Or skip the copy: content/*.md on the server is an ordinary file, and vim, nano or any terminal editor edits it in place.</text>
+<text class="o s" x="600" y="444" text-anchor="middle">Or skip the copy: content/*.md on the server is an ordinary file, and vim, nano or any terminal editor edits it in place.</text>
 
 <!-- ========================= 3 · A REQUEST ============================== -->
-<rect x="24" y="462" width="1152" height="234" rx="8" fill="none" stroke="#2d3336" stroke-dasharray="4 4"/>
-<text class="a" x="44" y="488">3 · ONE REQUEST</text>
-<text class="s" x="192" y="488">site/src — where a request goes once it reaches PHP, and which class does what</text>
+<rect class="frame" x="24" y="462" width="1152" height="234" rx="8"/>
+<text class="o a" x="44" y="488">3 · ONE REQUEST</text>
+<text class="o s" x="192" y="488">site/src — where a request goes once it reaches PHP, and which class does what</text>
 
 <rect class="panel" x="44" y="504" width="157" height="172" rx="6"/>
 <text class="h" x="56" y="526" font-size="12">Web server</text>

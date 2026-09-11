@@ -57,7 +57,10 @@ again.
   unpacked archive is the copy that was written; the example site's copy under
   `site/public/media/` is written from it by `bin/build` and checked by
   `bin/test`, as the two copies of `theme.css` are, and is the first image
-  the example content has carried.
+  the example content has carried. The picture has no ground of its own: the
+  panels carry theirs, and what stands directly on the page is toned to read
+  on white and on dark alike, sharpened for either where the viewer says
+  which it prefers.
 - The editor's claim that it sends nothing is a test. `bin/test` scans
   `editor/editor.js` and `editor/ui.js` for every way a page opens a connection
   and fails naming the file and the call, the way it scans the site's PHP for

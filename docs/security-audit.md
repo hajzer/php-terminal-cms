@@ -206,7 +206,9 @@ refused is a decision about what the preview is. It is issue 12.
   48 — and `logo.png` one PNG, byte-identical between the Editor and the site;
   `docs/media/logo.png` is the same mark beside the wordmark, one PNG, which
   only the README shows. The diagram is an SVG with one internal `url(#tip)`
-  marker and no script, no external reference and no `foreignObject`; the
+  marker, a `<style>` of its own holding two `prefers-color-scheme` queries
+  and no `@import`, and no script, no external reference and no
+  `foreignObject`; the
   example site serves a copy of it from `site/public/media/`, which
   `bin/build` writes from `docs/media/` and `bin/test` compares, the way the
   two copies of `theme.css` are kept. `bin/package` copies directories with
