@@ -1,6 +1,6 @@
 # 08 — The README's diagrams
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 Commit: 5 of 8 — "docs: the diagrams"
 
@@ -45,14 +45,14 @@ diagram that documents something the code does not do yet.
 
 ## Acceptance
 
-- [ ] `docs/media/` exists and is named in `bin/manifest.php`
-- [ ] `php bin/test` green, including the manifest check
-- [ ] the README says where each diagram goes and what it is for
-- [ ] alt text is written for each, and reads as writing rather than as a label
-- [ ] no reference in the README points at a file that is not in the repository
-- [ ] every reference resolves from the repository root, and from an unpacked
+- [x] `docs/media/` exists and is named in `bin/manifest.php`
+- [x] `php bin/test` green, including the manifest check
+- [x] the README says where each diagram goes and what it is for
+- [x] alt text is written for each, and reads as writing rather than as a label
+- [x] no reference in the README points at a file that is not in the repository
+- [x] every reference resolves from the repository root, and from an unpacked
   archive built by `bin/package`
-- [ ] the archive carries `docs/media/` and its contents
+- [x] the archive carries `docs/media/` and its contents
 
 ## Comments
 
@@ -60,3 +60,24 @@ The files exist and are the maintainer's to place. Nothing else in 0.1.9 depends
 on this issue, so if a diagram turns out to want redrawing it can be held
 without holding the release — but the manifest line and the references belong
 with whatever files do land, never ahead of them.
+
+The maintainer's PNG turned out to document a different program: a `templates/`
+directory, an `F1`–`F4` toolbar, a "New post / Edit post / List posts" sidebar
+and a penguin for a mark — none of which exist here. The maintainer asked for it
+to be redrawn against the code, and confirmed the one claim that looked wrong
+but is not: the CLI in it means editing the deployed `content/*.md` with a
+terminal editor, which is true and is now said in those words.
+
+So it is drawn, not photographed — `docs/media/architecture.svg`, 10 kB, in the
+project's own palette, rendered inline by a git host and editable the next time
+the code moves. It sits at the head of Layout, where the tree said what the
+files are and nothing said what happens between them. The ASCII sketch stays.
+
+Review then caught the diagram doing the thing this issue put out of scope.
+The bottom row claimed to be the order the classes in `site/src` are reached and
+was not: `Router` consults `Site`, `Language` and `Listing` before `Document`,
+not after. It also said there are no rewrite rules, and `site/public/.htaccess`
+ships three. Both are fixed in `828d2ec`.
+
+Only one file landed, so only one diagram is placed. The manifest line and the
+references went in with it.
