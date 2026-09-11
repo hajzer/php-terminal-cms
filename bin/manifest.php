@@ -14,9 +14,10 @@ return [
     'include' => [
         'README.md', 'LICENSE', 'VERSION', 'CONTEXT.md', 'CHANGELOG.md', 'AGENTS.md',
         '.gitignore',
-        'docs/adr', 'docs/agents', 'docs/line-types.md', 'docs/keymap.md',
+        'docs/adr', 'docs/agents', 'docs/media',
+        'docs/line-types.md', 'docs/keymap.md',
         'docs/format.md', 'docs/config.md', 'docs/deploy.md', 'docs/security.md',
-        'docs/security-audit.md', 'docs/media',
+        'docs/security-audit.md',
         'shared', 'editor', 'site', 'bin', 'tests',
     ],
 

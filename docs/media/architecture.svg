@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800" role="img" aria-labelledby="ttl dsc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 712" width="1200" height="712" role="img" aria-labelledby="ttl dsc">
 <title id="ttl">php-terminal-cms — write, export, publish</title>
-<desc id="dsc">Two halves that never talk to each other. Lines are composed in a static editor page and exported as one markdown file; that file is copied to a server by hand; there PHP reads it and renders HTML on every request, through index.php, Router, the document classes and Page.</desc>
+<desc id="dsc">Two halves that never talk to each other. Lines are composed in a static editor page and exported as one markdown file; that file is copied to a server by hand; there PHP reads it and renders HTML on every request, through index.php, routing, the document classes and Page.</desc>
 <style>
   text { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; fill: #cbd0d1; }
   .h { fill: #e8ecec; }
@@ -20,7 +20,7 @@
   </marker>
 </defs>
 
-<rect width="1200" height="800" fill="#191c1e"/>
+<rect width="1200" height="712" fill="#191c1e"/>
 
 <!-- header -->
 <rect x="24" y="26" width="44" height="34" rx="6" fill="#21262a" stroke="#d9a05f"/>
@@ -95,8 +95,8 @@
 
 <!-- ========================= 3 · A REQUEST ============================== -->
 <rect x="24" y="462" width="1152" height="234" rx="8" fill="none" stroke="#2d3336" stroke-dasharray="4 4"/>
-<text class="a" x="44" y="488">3 · A REQUEST, IN ORDER</text>
-<text class="s" x="248" y="488">site/src — every class the URL passes through, left to right</text>
+<text class="a" x="44" y="488">3 · ONE REQUEST</text>
+<text class="s" x="192" y="488">site/src — where a request goes once it reaches PHP, and which class does what</text>
 
 <rect class="panel" x="44" y="504" width="157" height="172" rx="6"/>
 <text class="h" x="56" y="526" font-size="12">Web server</text>
@@ -115,23 +115,23 @@
 <text class="s" x="247" y="562">The only PHP entry</text>
 <text class="s" x="247" y="576">point there is.</text>
 <text class="s" x="247" y="604">Reads site.php,</text>
-<text class="s" x="247" y="618">loads the language</text>
-<text class="s" x="247" y="632">table, mints one</text>
+<text class="s" x="247" y="618">loads the Dialect</text>
+<text class="s" x="247" y="632">tables, mints one</text>
 <text class="s" x="247" y="646">CSP nonce for this</text>
 <text class="s" x="247" y="660">request alone.</text>
 <path class="arw" d="M400 590 H418"/>
 
 <rect class="panel" x="426" y="504" width="157" height="172" rx="6"/>
-<text class="h" x="438" y="526" font-size="12">Router</text>
-<text class="s" x="438" y="548">Compares the URL</text>
-<text class="s" x="438" y="562">with the Category</text>
-<text class="s" x="438" y="576">list in site.php.</text>
-<text class="s" x="438" y="604">No rewrite rules</text>
-<text class="s" x="438" y="618">and no table of</text>
-<text class="s" x="438" y="632">patterns — that is</text>
-<text class="s" x="438" y="646">ADR-0004. A segment</text>
-<text class="s" x="438" y="660">that is not a Category</text>
-<text class="s" x="438" y="674">is a 404.</text>
+<text class="h" x="438" y="526" font-size="12">Routing</text>
+<text class="p" x="438" y="548" font-size="11">Router · Site</text>
+<text class="p" x="438" y="562" font-size="11">Language · Listing</text>
+<text class="s" x="438" y="590">Compares the URL</text>
+<text class="s" x="438" y="604">with the Category</text>
+<text class="s" x="438" y="618">list in site.php,</text>
+<text class="s" x="438" y="632">the second segment</text>
+<text class="s" x="438" y="646">with real filenames.</text>
+<text class="s" x="438" y="660">Never builds a path</text>
+<text class="s" x="438" y="674">from the request.</text>
 <path class="arw" d="M591 590 H609"/>
 
 <rect class="panel" x="617" y="504" width="157" height="172" rx="6"/>
@@ -148,16 +148,13 @@
 <path class="arw" d="M782 590 H800"/>
 
 <rect class="panel" x="808" y="504" width="157" height="172" rx="6"/>
-<text class="h" x="820" y="526" font-size="12">The page round it</text>
-<text class="p" x="820" y="548" font-size="11">Site</text>
-<text class="p" x="820" y="562" font-size="11">Listing</text>
-<text class="p" x="820" y="576" font-size="11">Language</text>
-<text class="p" x="820" y="590" font-size="11">Page</text>
-<text class="s" x="820" y="618">The navigation, the</text>
-<text class="s" x="820" y="632">listing below it,</text>
-<text class="s" x="820" y="646">the language links,</text>
-<text class="s" x="820" y="660">the shell and the</text>
-<text class="s" x="820" y="674">footer.</text>
+<text class="h" x="820" y="526" font-size="12">The shell</text>
+<text class="p" x="820" y="548" font-size="11">Page</text>
+<text class="s" x="820" y="576">Wraps the article in</text>
+<text class="s" x="820" y="590">the navigation, the</text>
+<text class="s" x="820" y="604">tagline, the language</text>
+<text class="s" x="820" y="618">links and the footer,</text>
+<text class="s" x="820" y="632">and names the nonce.</text>
 <path class="arw" d="M973 590 H991"/>
 
 <rect class="panel" x="999" y="504" width="157" height="172" rx="6"/>
@@ -170,22 +167,4 @@
 <text class="s" x="1011" y="632">no cookie read.</text>
 <text class="f" x="1011" y="660">docs/security.md</text>
 
-<!-- ============================== the claims ============================ -->
-<path d="M24 712 H1176" stroke="#2d3336"/>
-
-<text class="a" x="24" y="744">No database</text>
-<text class="s" x="24" y="764">The content is files in</text>
-<text class="s" x="24" y="778">content/, and that is all.</text>
-
-<text class="a" x="312" y="744">No build step</text>
-<text class="s" x="312" y="764">Drop a .md in and it is</text>
-<text class="s" x="312" y="778">published. Nothing to run.</text>
-
-<text class="a" x="600" y="744">No dependency</text>
-<text class="s" x="600" y="764">PHP 8.1 or newer. No composer,</text>
-<text class="s" x="600" y="778">no npm, no CDN, no third-party JS.</text>
-
-<text class="a" x="888" y="744">Plain markdown</text>
-<text class="s" x="888" y="764">What you exported is what is</text>
-<text class="s" x="888" y="778">on disk. Leave whenever you like.</text>
 </svg>
