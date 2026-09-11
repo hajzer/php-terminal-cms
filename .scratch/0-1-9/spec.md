@@ -1,4 +1,5 @@
-# 0.1.9 — a link where the caret is, a table you can point at, and a hard look
+# 0.1.9 — a link where the caret is, a table you can point at, a face, and a
+hard look
 
 Status: ready-for-agent
 
@@ -44,6 +45,18 @@ an image a Line names", written in `ui.js`, in CONTEXT.md and in
 dangerous calls and has done since 0.1.4; it does not scan the Editor for the
 ways a browser page can talk to the network.
 
+**Neither half has a face.** No page in this software emits a favicon — not the
+published site, not the Editor. Every browser asks for `/favicon.ico` anyway, so
+a reader gets a blank tab icon and the server renders a 404 page to answer a
+request it was always going to receive. `logo` arrived in 0.1.8 and puts a
+picture in the brand link, but Site Config cannot name an icon, the shipped
+example Instance leaves `logo` commented out so a fresh unpack demonstrates
+neither, and the Editor spells its name out in text with nothing in its tab.
+
+**The README explains a visual idea in prose.** Two halves that never talk to
+each other, and a document that is an ordered sequence of typed Lines, carried
+by one ASCII sketch and a lot of words.
+
 ## Solution
 
 **The link lands where the writer is.** While a Line is open for editing, `^K`
@@ -60,6 +73,23 @@ Clicking an entry selects that Column and reveals `+ × ‹ ›` — add, remove
 left, move right — which call the same `Doc.prototype.column` the commands call.
 Clicking a Cell puts the cursor on that row and opens it with the caret already
 in that Cell. With a Column selected, `^←` and `^→` move it.
+
+**A favicon that is a setting, and one that is a file.** Site Config gains
+`favicon` beside `logo`, read through the same media-path reduction — so a local
+absolute path stands as it is and `/favicon.ico` at the document root is
+expressible, and anything else is the file it names under `/media/`. The archive
+ships a real icon and a real logo, and `site.php.example` names both rather than
+commenting one out, so an unpacked Instance has a face before anything is
+configured. The Editor gets the same mark and the same icon as **files beside
+it**, because the Editor is never told any configuration and does not start now:
+an Instance has an identity of its own and the Editor has none to have.
+
+**Diagrams in the README, and room kept for them.** The files come from the
+maintainer later. What does not depend on having them — where they live, the
+manifest line that ships them, where each goes and what each is for, and the alt
+text — is decided in this release. The references land in the same commit as the
+files, because a README shipped pointing at a missing image is worse than a
+README with no images, and the commit is droppable if they do not arrive.
 
 **A third review, and the findings it produces.** One review of everything added
 since 0.1.4, in the shape the first two took: scope written down, findings in a
@@ -129,47 +159,84 @@ makes this one allowed.
 17. As a writer, I want `×` on a Run one Column wide to be refused and say why,
     as the command is.
 
+### The logo, the favicon and the diagrams
+
+18. As a reader, I want the tab showing a page of this site to carry an icon,
+    so that I can find it among twenty other tabs.
+19. As an Instance, I want to name my own favicon in `site.php`, so that the
+    icon is mine the way the logo and the accent already are.
+20. As an Instance, I want the icon read the way the logo's src is read, so that
+    there is one rule about what a configured path may be and not two.
+21. As an Instance, I want `/favicon.ico` at the document root to be
+    expressible, so that the file browsers ask for by habit can be the file they
+    get, served without PHP in the path.
+22. As someone unpacking the archive, I want a logo and an icon already there
+    and already named in the example config, so that a fresh Instance has a face
+    before I configure anything.
+23. As an Instance with no interest in either, I want to be able to say none and
+    get none, so that "say nothing" and "say none" are different answers.
+24. As a writer, I want the Editor's tab to carry an icon, so that the tab I
+    write in is findable too.
+25. As a writer, I want the Editor's top bar to carry the same mark the site
+    does, so that the two halves look like one piece of software.
+26. As a writer who opens the Editor from a file on disk, I want its mark and
+    its icon to load there, so that the page works the way it is actually used.
+27. As a maintainer, I want the Editor to gain no configuration of any kind, so
+    that "the Editor is never told anything" stays true.
+28. As a maintainer, I want adding an asset to the Editor's page to be caught
+    when it is not repathed into the probe, so that the probe cannot silently
+    ask for a file that is not there.
+29. As a reader of the README, I want diagrams of the things it explains in
+    prose, so that the shape of the system arrives before the paragraphs do.
+30. As a reader of the README in a terminal, with a screen reader, or on a phone
+    with images off, I want alt text that is the diagram rather than a label,
+    so that I lose nothing.
+31. As someone who unpacked the archive, I want the README's images to be in it,
+    so that the copy I have is the copy that was written.
+32. As a maintainer, I want the diagrams to be the one droppable commit, so that
+    a release is not held up by an image that has not been drawn.
+
 ### The review and the audit
 
-18. As a maintainer, I want everything added since the last review looked at
+33. As a maintainer, I want everything added since the last review looked at
     once, so that four releases of new surface are not carried into a public
     release unexamined.
-19. As a maintainer, I want the review's scope written down even where it finds
+34. As a maintainer, I want the review's scope written down even where it finds
     nothing, so that "nobody looked" and "somebody looked and it was clean" are
     told apart later.
-20. As a maintainer, I want the findings in a severity table in the shape the
+35. As a maintainer, I want the findings in a severity table in the shape the
     first two reviews used, so that the record reads as one document and not as
     three.
-21. As a maintainer, I want each finding fixed in this release or written up as
+36. As a maintainer, I want each finding fixed in this release or written up as
     its own issue with a reason for deferring it, so that a finding cannot be
     recorded and then quietly lost.
-22. As a maintainer, I want a surface that was looked at and deliberately left
+37. As a maintainer, I want a surface that was looked at and deliberately left
     alone to say so and say why, as 0.1.4's review did.
-23. As a maintainer, I want every fix to arrive with the assertion that would
+38. As a maintainer, I want every fix to arrive with the assertion that would
     have caught it, so that the same defect cannot return unnoticed.
-24. As a maintainer, I want the Language suffix reaching the Router reviewed,
+39. As a maintainer, I want the Language suffix reaching the Router reviewed,
     since a request slug becoming a file name is the oldest boundary here and it
     gained a new shape in 0.1.7.
-25. As a maintainer, I want `logo` reviewed as a config string that becomes a
+40. As a maintainer, I want `logo` reviewed as a config string that becomes a
     path in the page shell, since that is the newest way `site.php` reaches the
     page as something other than writing.
-26. As a maintainer, I want `link_open` reviewed for what `target="_blank"` adds
+41. As a maintainer, I want `link_open` reviewed for what `target="_blank"` adds
     beside the `rel` that was already there, and for whether the scheme test is
     the right test.
-27. As a maintainer, I want the href allowlist reviewed now that the Editor's
+42. As a maintainer, I want the href allowlist reviewed now that the Editor's
     overlay reads it as well as the Renderer, since the two halves disagreeing
     is exactly the 0.1.4 finding that the parity test exists to prevent.
-28. As a maintainer, I want the Editor's one outbound request reviewed as the
+43. As a maintainer, I want the Editor's one outbound request reviewed as the
     new thing it is, and the documentation about it checked against what the
     code does.
-29. As a person who cares what my Editor talks to, I want the claim that it
+44. As a person who cares what my Editor talks to, I want the claim that it
     sends nothing to be a test rather than a sentence, so that a future change
     that adds a request fails the suite instead of quietly making the
     documentation wrong.
-30. As a maintainer, I want the deep code review's findings to become issues or
+45. As a maintainer, I want the deep code review's findings to become issues or
     fixes rather than a second document, so that there is one record of security
     and one backlog of everything else.
-31. As a maintainer, I want the suite green and the probe run in a browser at
+46. As a maintainer, I want the suite green and the probe run in a browser at
     the end of the review, so that the review's own changes are held to what
     every other change here is held to.
 
@@ -203,6 +270,42 @@ makes this one allowed.
   the existing `caretToCell(span, n)`.
 - The strip is write-pane chrome and is not rendered into the read pane, does
   not reach `renderDoc`, and has no expression in the exported markdown.
+
+### The logo, the favicon and the diagrams
+
+- `favicon` is read in `TerminalCms\Site` beside `logo` and emitted as one
+  `<link rel="icon">` by the page shell. It goes through the media-path
+  reduction that already exists and **no second rule is written** — that code is
+  audited and does exactly what is wanted, including keeping a local absolute
+  path as it stands.
+- The link's `type` follows the file's extension where that is known, because an
+  SVG icon wants one; an extension nobody recognises emits the link without a
+  type rather than guessing at one.
+- Absent and empty are different: no key gets the shipped default, an empty
+  string gets no link at all.
+- The archive ships two real assets — a logo under `site/public/media/`, which
+  is where `.gitkeep` already says images live, and an icon at the document
+  root, so the file browsers ask for by habit is served statically with no PHP
+  in the path. `site.php.example` names both instead of commenting `logo` out.
+- **The Editor gains no configuration.** Its mark and its icon are files shipped
+  in `editor/`, addressed by relative paths that resolve under `file://`,
+  because the Editor is opened from a filesystem as often as from a server.
+- The Editor's wordmark and version stay where they are; the mark joins them and
+  is sized to the top bar's existing line.
+- **`bin/build`'s repathing becomes generic.** It is a hand-written list of five
+  assets today, and `bin/test` compares the probe to the page by undoing the
+  rewrite generically — so an asset that was never rewritten matches anyway and
+  the check passes while the probe asks for a file that is not there. Confirmed
+  by simulation before this spec was written. Every relative `href=` and `src=`
+  is repathed, the probe's own script excepted, and an assertion checks that
+  every asset the probe references resolves.
+- The diagrams live in `docs/media/`, referenced by relative path so they
+  resolve on a git host and in an unpacked archive alike. `bin/manifest.php`
+  gains that directory — `docs/` is listed file by file rather than copied
+  whole, so a new directory under it is invisible to the archive until it is
+  named, and `bin/test`'s manifest check is what catches the omission.
+- The diagram commit is the one in this release that may be dropped. Nothing
+  else depends on it, and the release does not wait for it.
 
 ### The review and the audit
 
@@ -285,7 +388,27 @@ browser page reaches the network — `fetch`, `XMLHttpRequest`, `WebSocket`,
 Prior art: the `source` section of `bin/test`, added by the 0.1.4 review for
 exactly this purpose on the other half of the system.
 
-### 4. The rest of `php bin/test`
+### 4. `php bin/test` — the page shell and the manifest
+
+`favicon` is Site Config reaching the page, which is the seam every Site Config
+feature in 0.1.8 was asserted at: build a config array, render the whole page,
+read the HTML.
+
+- A named favicon emits one `<link rel="icon">` with the reduced href; a local
+  absolute path stands, a bare name lands under `/media/`.
+- The shapes the media-path rule already refuses — a protocol-relative URL, a
+  climb, a backslash, a control character — are reduced exactly as `logo`'s are.
+- An `.svg` carries a type; an unknown extension does not.
+- No key emits the default; an empty string emits no link.
+- `logo` is asserted unchanged in every case already covered.
+- The manifest check, which already fails when a tracked file has fallen off
+  `bin/manifest.php`, is what covers `docs/media/`.
+
+Prior art: the `the page shell` and `listings` sections, which already build
+Routers from hand-written config arrays and assert on the body, and the release
+manifest check.
+
+### 5. The rest of `php bin/test`
 
 Otherwise unchanged and green throughout. Nothing in the link or Table work
 reaches the PHP half, the exported markdown, or the rendered page; anything the
@@ -324,6 +447,18 @@ audit changes there arrives with the assertion that would have caught it.
 - **Automating the audit.** The scan added here asserts one narrow fact. It is
   not a substitute for reading the code, and nothing should be built that
   pretends it is.
+- **The Editor learning any configuration**, including its own mark. It has none
+  and gains none; 0.1.8 excluded this and the exclusion stands.
+- **A per-page or per-Category favicon**, Apple touch icons, a web app manifest,
+  a `theme-color`, and the rest of the icon zoo. One icon, one link.
+- **Generating, resizing or converting an image** at build time or at request
+  time. The assets are files somebody drew.
+- **Replacing the Editor's or the site's wordmark with the logo.** `title` still
+  does everything it does, and the Editor is still named in text.
+- **Any change to the media-path reduction**, which is audited code already
+  doing what a favicon needs.
+- **Diagrams anywhere but the README** — not in `docs/`, not in the published
+  site, not in the Editor — and no diagram of something the code does not do.
 
 ## Further Notes
 
@@ -342,6 +477,18 @@ audit changes there arrives with the assertion that would have caught it.
 - If the review finds something that belongs in 0.1.8 rather than after it, the
   local `v0.1.8` tag moves. Nothing is public yet, which is why the review is
   worth doing before anything is.
+- This release is the first to add **binary content to the archive**, and the
+  first in two releases to need `bin/manifest.php` changed. `editor/` and
+  `site/` are copied whole so assets inside them ship without a line; `docs/` is
+  listed file by file, so `docs/media/` is not.
+- The diagrams arrive on the maintainer's timeline, not the agent's. Issue 08 is
+  written so that everything not depending on the files is done first, and so
+  that the commit can be skipped. Issue 10 must not wait for it.
+- The `bin/build` repathing trap was found while writing these issues, not by
+  the review: a new asset in `editor/index.html` is not repathed into the probe,
+  and `bin/test` passes anyway because it undoes the rewrite generically. It is
+  fixed in issue 07 rather than left for issue 09, because issue 07 is the one
+  that would otherwise trip over it.
 - ADR-0015 needs no amendment and should not get one. This release is what it
   described as the alternative to a grid: affordances over Lines. If the strip
   turns out to want a Cell cursor after all, that is the moment to reopen it,

@@ -3,7 +3,7 @@
 Status: ready-for-agent
 Spec: ../spec.md
 Blocked by: 03
-Commit: 2 of 5 — "editor: a table you can point at"
+Commit: 2 of 7 — "editor: a table you can point at"
 
 ## What
 

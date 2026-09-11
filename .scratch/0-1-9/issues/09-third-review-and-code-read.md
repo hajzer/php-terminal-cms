@@ -1,9 +1,9 @@
-# 06 — The third security review, and a deep code read
+# 09 — The third security review, and a deep code read
 
 Status: ready-for-agent
 Spec: ../spec.md
-Blocked by: 01, 02, 03, 04, 05
-Commit: 4 of 5 — "docs: the third review"
+Blocked by: 01, 02, 03, 04, 05, 06, 07, 08
+Commit: 6 of 7 — "docs: the third review"
 
 ## What
 
@@ -16,7 +16,7 @@ code read** asks about correctness, drift and dead ends, and produces issues and
 fixes rather than a second document.
 
 **This is written last.** It reviews the release it ships in, so it runs after
-01–05 have landed.
+01–08 have landed.
 
 ## Scope — what is reviewed
 
@@ -48,6 +48,16 @@ because each is a boundary that moved:
   and what an unusual Cell does to it.
 - **The control treatment's reach** into `shared/theme.css` and both generated
   copies.
+- **`favicon`**, as a second config string becoming a path in the page shell,
+  and whether one media-path rule serving both it and `logo` is right or is two
+  jobs wearing one hat.
+- **The assets the archive now ships** — a logo, an icon, and whatever lands in
+  `docs/media/`. A release archive gained binary content it did not carry
+  before, and `bin/manifest.php` gained a directory listed by name rather than
+  copied whole.
+- **`bin/build`'s repathing**, which was a hand-written list that `bin/test`
+  could not catch an omission from (issue 07). Check the generic version does
+  not now rewrite something it should not.
 
 ## Scope — what is produced
 

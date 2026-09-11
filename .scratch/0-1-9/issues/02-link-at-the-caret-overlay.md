@@ -3,7 +3,7 @@
 Status: ready-for-agent
 Spec: ../spec.md
 Blocked by: 01
-Commit: 1 of 5 — "editor: a link where the caret is"
+Commit: 1 of 7 — "editor: a link where the caret is"
 
 ## What
 
