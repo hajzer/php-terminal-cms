@@ -1,6 +1,6 @@
 # 07 — The editor's own logo and favicon
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 Commit: 4 of 8 — "brand: a logo and a favicon, both halves"
 
@@ -56,16 +56,40 @@ fitting the mark on the line it already has.
 
 ## Acceptance
 
-- [ ] `editor/index.html` carries a `<link rel="icon">` and a mark in the brand,
+- [x] `editor/index.html` carries a `<link rel="icon">` and a mark in the brand,
   and both resolve when the page is opened from the filesystem
-- [ ] the wordmark and the version are unchanged and in the same place
-- [ ] the top bar's height is unchanged
-- [ ] `php bin/build` regenerates `tests/editor-probe.html` and every asset the
+- [x] the wordmark and the version are unchanged and in the same place
+- [x] the top bar's height is unchanged
+- [x] `php bin/build` regenerates `tests/editor-probe.html` and every asset the
   probe references resolves to a file that exists
-- [ ] `bin/build`'s repathing is generic — adding a sixth asset to the page
+- [x] `bin/build`'s repathing is generic — adding a sixth asset to the page
   needs no edit to `bin/build`
-- [ ] a new asset added to the page and left unrepathed **fails** `bin/test` —
+- [x] a new asset added to the page and left unrepathed **fails** `bin/test` —
   verified by trying it and then taking it out again
-- [ ] `php bin/test` green, including the derived-files check
-- [ ] the probe green in a browser, opened from the filesystem, with its count
+- [x] `php bin/test` green, including the derived-files check
+- [x] the probe green in a browser, opened from the filesystem, with its count
   noted in the comments
+
+## Comments
+
+Landed in `bin/build`, `bin/test`, `editor/index.html`, `editor/editor.css`,
+`docs/config.md`, and the two files `editor/favicon.ico` and `editor/logo.png`.
+
+The repathing is one `preg_replace_callback` over every `href=`/`src=` in the
+page: a value carrying a scheme or a fragment never matches the pattern, and of
+what does match, an absolute path and a protocol-relative URL stand. The page
+has seven assets now and `bin/build` names none of them.
+
+The trap was reproduced before it was fixed and again after: a sixth stylesheet
+added to the page and left unrepathed in the probe leaves the byte-comparison
+green — as the issue said it would — and fails the new assertion with
+`extra.css`. Both files were then taken back out.
+
+`php bin/test`: 526 passed, 0 failed. `tests/editor-probe.html` opened from
+`file://` in Firefox: 0 failed of 162.
+
+The editor's mark and icon are copies of the two files the archive ships for the
+site rather than a build-time copy of one source, deliberately: an instance owns
+`site/public/media/logo.png` and `site/public/favicon.ico` and is expected to
+replace them, so a `bin/build` that wrote either would overwrite an operator's
+own picture. The editor's two are the software's own and belong to it.
