@@ -139,6 +139,94 @@ ok('and the cursor is visible afterwards', d.foldedAt(d.cur) === false);
 ok('the whole run came back, not just that line', d.foldedAt(1) === false);
 ok('reveal() on a visible line is a no-op', d.reveal() === false);
 
+/* ---------------------------------------------------------------- links */
+/* What the overlay stands on: finding the addressed thing in a Line's text and
+   rewriting it, with no DOM anywhere near it. */
+
+eq('a Line with no links reports none', L.links('plain words, (parens) and [brackets]'), []);
+eq('one link is read back whole', L.links('see [the guide](/guides/a) for more'),
+   [{ wording: 'the guide', href: '/guides/a', at: 4, end: 26 }]);
+eq('several links come back in the order they appear',
+   L.links('[a](/1) then [b](/2) then [c](/3)').map(function (k) {
+     return k.wording + '=' + k.href; }),
+   ['a=/1', 'b=/2', 'c=/3']);
+
+/* the wording stops at the first closing bracket, exactly as inline() does */
+eq('a wording that contains a bracket keeps it',
+   L.links('[a [b](/x)'), [{ wording: 'a [b', href: '/x', at: 0, end: 10 }]);
+eq('and one with a closing bracket in it is not a link at all',
+   L.links('[a ] b](/x)'), []);
+
+eq('two adjacent links are two links',
+   L.links('[a](/1)[b](/2)').map(function (k) { return [k.wording, k.href, k.at, k.end]; }),
+   [['a', '/1', 0, 7], ['b', '/2', 7, 14]]);
+
+/* what links() finds is what the preview links: every safe one becomes an href */
+var mixed = '[a](/1) [b](javascript:void) [c](https://example.com/)';
+eq('links() finds what inline() matches, safe or not',
+   L.links(mixed).length, 3);
+ok('and the unsafe one is dropped by inline, not by links',
+   L.inline(mixed).indexOf('javascript') < 0, L.inline(mixed));
+
+/* ------------------------------------------------------------- rewriting */
+var three = 'a [one](/1) b [two](/2) c [three](/3) d';
+var two = L.setLink(three, 1, 'TWO', '/2b');
+eq('replacing the nth link rewrites that link', L.links(two).map(function (k) {
+     return k.wording + '=' + k.href; }), ['one=/1', 'TWO=/2b', 'three=/3']);
+ok('and leaves everything before it byte-identical',
+   two.slice(0, 14) === three.slice(0, 14), two);
+ok('and everything after it byte-identical',
+   two.slice(two.length - 16) === three.slice(three.length - 16), two);
+eq('a replacement out of range changes nothing', L.setLink(three, 9, 'x', '/x'), three);
+eq('a replacement with no target leaves the wording behind',
+   L.setLink('go [here](/1) now', 0, 'here', ''), 'go here now');
+eq('a wording that would break the syntax is cut down to what fits',
+   L.setLink('[a](/1)', 0, 'b] c', '/2 x)'), '[b c](/2x)');
+/* the overlay refuses empty wording with a message; the model refuses it too,
+   so `[](...)` cannot be written by either half */
+eq('a link with no wording is refused, leaving the text as it was',
+   L.setLink(three, 1, '   ', '/2b'), three);
+
+eq('unlinking keeps the wording exactly', L.unlink(three, 1), 'a [one](/1) b two c [three](/3) d');
+eq('unlinking leaves the other links alone',
+   L.links(L.unlink(three, 1)).map(function (k) { return k.wording; }), ['one', 'three']);
+eq('unlinking out of range changes nothing', L.unlink(three, 9), three);
+
+eq('appending to a Line that had none makes the only link',
+   L.addLink('some words', 'a guide', '/guides/a'), 'some words [a guide](/guides/a)');
+eq('appending to an empty Line writes the link alone',
+   L.addLink('', 'a guide', '/guides/a'), '[a guide](/guides/a)');
+eq('appending to a Line that had some puts the new one last',
+   L.links(L.addLink(three, 'four', '/4')).map(function (k) { return k.href; }),
+   ['/1', '/2', '/3', '/4']);
+eq('appending does not double a space already there',
+   L.addLink('words ', 'a', '/a'), 'words [a](/a)');
+eq('appending nothing to point at changes nothing', L.addLink('words', 'a', ''), 'words');
+eq('appending with no wording changes nothing', L.addLink('words', '', '/a'), 'words');
+
+/* ------------------------------------------------------------ safe targets */
+/* The same cases bin/test's `link targets` section lists, judged by the rule
+   the site publishes by — a disagreement here is a preview that lies. */
+var targets = {
+  '/guides/a': true, '/guides/v1.2-notes': true, '#a-heading': true, '#': true,
+  'https://example.com/': true, 'http://example.com/?a=1&b=2': true,
+  'mailto:you@example.com': true,
+  '//evil.example': false, '/../secret': false, '/a/../../secret': false,
+  '&#47;&#47;evil.example': false, '\\evil.example': false,
+  'http:///evil.example': false, 'javascript:void': false, 'data:text/html,x': false,
+  'vbscript:x': false, 'ftp://example.com/': false, 'mailto:not-an-address': false,
+  'relative.html': false
+};
+Object.keys(targets).forEach(function (t) {
+  ok('the overlay judges ' + t + ' the way the site does',
+     L.safeLinkHref(t) === targets[t],
+     'safeLinkHref=' + L.safeLinkHref(t) + ' want ' + targets[t]);
+  ok('and inline() agrees about ' + t,
+     (L.inline('[x](' + t + ')').indexOf('<a href=') > -1) === targets[t],
+     L.inline('[x](' + t + ')'));
+});
+ok('an empty href is nothing to point at', L.safeLinkHref('') === false);
+
 /* ------------------------------------------------------- markdown still ok */
 var md = '---\ntitle: t\n---\n\n# h\n\n```console\n$ ls\n```\n\n```output\nfile\n```\n';
 var round = L.toMarkdown(L.parse(md));

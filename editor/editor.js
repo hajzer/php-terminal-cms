@@ -157,18 +157,91 @@
     return /^https?:\/\/[^/\\]/i.test(href) || /^mailto:[^\s@]+@[^\s@]+$/i.test(href);
   }
 
+  /* The link syntax: a wording with no closing bracket in it, a target with no
+     space and no closing paren. inline() and links() read it through this one
+     expression, so what the overlay addresses is what the page publishes. */
+  var LINK = /\[([^\]]+)\]\(([^)\s]+)\)/g;
+
   function inline(s) {
     s = esc(s)
       .replace(/`([^`]+)`/g, '<code>$1</code>')
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
       .replace(/\*([^*]+)\*/g, '<em>$1</em>');
-    return s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, function (all, text, target) {
+    return s.replace(LINK, function (all, text, target) {
       var href = rawHref(target);
       if (!safeHref(href)) return text;
       var ext = /^https?:\/\//i.test(href);
       return '<a href="' + esc(href) + '"' + (ext ? ' rel="noopener noreferrer"' : '') +
              '>' + text + '</a>';
     });
+  }
+
+  /* ------------------------------------------------------------ addressing */
+
+  /* Everything about the thing a Line's text addresses — where the links in it
+     are and how to rewrite them — kept clear of the DOM so node can drive it. */
+
+  function asText(v) { return v == null ? '' : String(v); }
+
+  /* Whether an href the author typed is one the page will publish as a link.
+     inline() escapes a Line before it matches, so the judgement has to see the
+     href the same way round, or the overlay warns about the wrong ones. */
+  function safeLinkHref(href) {
+    return safeHref(rawHref(esc(asText(href))));
+  }
+
+  /** The links in a Line's text, in the order they appear: the wording, the
+   *  href as written, and where the whole `[wording](href)` sits. */
+  function links(text) {
+    var out = [], re = new RegExp(LINK.source, 'g'), m;
+    text = asText(text);
+    while ((m = re.exec(text)) !== null) {
+      out.push({ wording: m[1], href: m[2], at: m.index, end: m.index + m[0].length });
+    }
+    return out;
+  }
+
+  /* Each half cut down to what the syntax carries: a wording holds no closing
+     bracket and no line break, an href no space and no closing paren, so a
+     link written here reads back as the link that was written. */
+  function cleanWording(wording) { return asText(wording).replace(/[\]\r\n]/g, '').trim(); }
+  function cleanHref(href) { return asText(href).replace(/[\s)]/g, ''); }
+
+  /* `[wording](href)` — or, with nothing to point at, the wording alone, which
+     is what unlinking leaves behind. A link with no wording is not a link, and
+     nothing is written for it. */
+  function mkLink(wording, href) {
+    var w = cleanWording(wording), h = cleanHref(href);
+    return w ? (h ? '[' + w + '](' + h + ')' : w) : '';
+  }
+
+  function spliceLink(text, hit, to) {
+    return text.slice(0, hit.at) + to + text.slice(hit.end);
+  }
+
+  /** Rewrite the nth link of a Line's text, counting from zero. A link needs
+   *  wording; without it the text stands as it was. */
+  function setLink(text, n, wording, href) {
+    var hit = links(text)[n], to = mkLink(wording, href);
+    text = asText(text);
+    return (hit && to) ? spliceLink(text, hit, to) : text;
+  }
+
+  /** Take the nth link away, leaving its wording exactly as it stands. */
+  function unlink(text, n) {
+    var hit = links(text)[n];
+    text = asText(text);
+    return hit ? spliceLink(text, hit, hit.wording) : text;
+  }
+
+  /** Put a new link at the end of a Line's text. It takes both halves: with no
+   *  wording, or nothing to point at, there is no link to put there. */
+  function addLink(text, wording, href) {
+    var link = cleanHref(href) ? mkLink(wording, href) : '';
+    text = asText(text);
+    if (!link) return text;
+    if (!text) return link;
+    return /\s$/.test(text) ? text + link : text + ' ' + link;
   }
 
   /* ----------------------------------------------------------------- runs */
@@ -773,6 +846,7 @@
   var API = {
     TYPES: TYPES, byId: byId, byKey: byKey, PROMPTS: PROMPTS,
     esc: esc, highlight: highlight, inline: inline, runs: runs,
+    safeLinkHref: safeLinkHref, links: links, setLink: setLink, unlink: unlink, addLink: addLink,
     today: today, blank: blank,
     parse: parse, toMarkdown: toMarkdown, renderDoc: renderDoc,
     mk: mk, Doc: Doc, History: History

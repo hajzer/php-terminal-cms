@@ -48,6 +48,29 @@ through untouched. Every Meta but `title` is shown on the page, in one line
 under the title.
 _Avoid_: frontmatter (when you mean the Line), header, attribute
 
+**Link**:
+The one addressed thing a Line's text can carry — a Wording and an Href,
+written `[wording](href)` in any Line whose text becomes inline markup:
+headings, Paragraph, List, Quote, Note and Table. A Link the allowlist refuses
+is not a Link the page will make: it prints as its Wording alone, in the
+Editor's preview and on the public page alike.
+_Avoid_: anchor, hyperlink, url (that is one shape an Href can take), reference
+
+**Wording**:
+The half of a Link a reader sees. A Link cannot do without one — clearing it is
+refused rather than obeyed, so `[](…)` is never written.
+_Avoid_: text (that is the whole of a Line), label, caption (that is the Image's
+half), title
+
+**Href**:
+The half of a Link that says what it addresses, as the author wrote it.
+Clearing it unlinks, leaving the Wording exactly as it stands. One allowlist
+judges it — a fragment, a local absolute path, `http`, `https` or `mailto` —
+and the Editor and the Renderer share that one, so a Link in the preview is a
+Link on the page.
+_Avoid_: target (that is whether a Link opens in a new tab), address,
+destination, link
+
 ### Composing and publishing
 
 **Document**:
