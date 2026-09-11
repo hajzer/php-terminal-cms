@@ -170,3 +170,11 @@ maintainer's ask: the panels keep theirs, and the twelve texts that stand on
 the page itself took a tone that reads on white and on dark, with a
 colour-scheme query sharpening either — rendered four ways and looked at
 before committing.
+
+**The accent, in the mark's green.** Asked for after the brand landed. One
+value in `shared/theme.css` per scheme — `#21e08a` on dark, close to the
+logo's `#00f790` with the neon taken off, and `#137a3f` on light, chosen for
+the contrast the amber had on white — and the same green as `Site::ACCENT`,
+in `site.php.example`, the config guide, `docs/config.md` and the diagram's
+labels and strokes, where the amber had been. `bin/test`'s accent table names
+the new default. No colour that is not the accent moved.

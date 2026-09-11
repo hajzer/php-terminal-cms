@@ -23,7 +23,7 @@ return [
     /* accent colour, used for links, prompts and the active nav item. Six hex
        digits and nothing else — it is the one setting that reaches the page as
        CSS rather than as writing, and anything else falls back to this one. */
-    'accent'  => '#d9a05f',
+    'accent'  => '#21e08a',
 
     /**
      * The homepage listing: the recent documents from every category, printed

@@ -16,7 +16,7 @@ namespace TerminalCms;
 final class Site
 {
     /** The accent an instance that names none, or names one that is not a colour, gets. */
-    public const ACCENT = '#d9a05f';
+    public const ACCENT = '#21e08a';
 
     /** How many documents the homepage Listing prints for an instance that
      *  names no count, or names something that is not one. */

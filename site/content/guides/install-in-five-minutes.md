@@ -24,7 +24,7 @@ return [
     'title'   => 'my notes',
     'tagline' => 'kept in the open',
     'lang'    => 'en',
-    'accent'  => '#d9a05f',
+    'accent'  => '#21e08a',
     'listing' => true,
     'footer'  => [
         '[my notes](https://example.com/) · [write to me](mailto:you@example.com)',

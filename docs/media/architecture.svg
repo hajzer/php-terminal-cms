@@ -4,7 +4,7 @@
 <style>
   text { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; fill: #cbd0d1; }
   .h { fill: #e8ecec; }
-  .a { fill: #d9a05f; }
+  .a { fill: #21e08a; }
   .p { fill: #7fb2d9; }
   .s { fill: #7c8486; font-size: 11px; }
   .f { fill: #5a6265; font-size: 11px; }
@@ -18,15 +18,15 @@
      the page (class o) is toned to read on white and on dark alike, and is
      sharpened for either where the viewer says which it prefers. */
   .o.h { fill: #8a9296; }
-  .o.a { fill: #c48a3f; }
+  .o.a { fill: #16a35c; }
   .o.s { fill: #7c8486; }
   .o.f { fill: #6e777a; }
   .frame { fill: none; stroke: #7c8486; stroke-opacity: .55; stroke-dasharray: 4 4; }
   @media (prefers-color-scheme: dark) {
-    .o.h { fill: #e8ecec; } .o.a { fill: #d9a05f; } .o.s { fill: #7c8486; } .o.f { fill: #5a6265; }
+    .o.h { fill: #e8ecec; } .o.a { fill: #21e08a; } .o.s { fill: #7c8486; } .o.f { fill: #5a6265; }
   }
   @media (prefers-color-scheme: light) {
-    .o.h { fill: #1e2225; } .o.a { fill: #9a6520; } .o.s { fill: #4f5759; } .o.f { fill: #6b7376; }
+    .o.h { fill: #1e2225; } .o.a { fill: #137a3f; } .o.s { fill: #4f5759; } .o.f { fill: #6b7376; }
   }
 </style>
 <defs>
@@ -36,7 +36,7 @@
 </defs>
 
 <!-- header -->
-<rect x="24" y="26" width="44" height="34" rx="6" fill="#21262a" stroke="#d9a05f"/>
+<rect x="24" y="26" width="44" height="34" rx="6" fill="#21262a" stroke="#21e08a"/>
 <text class="a" x="46" y="50" font-size="16" text-anchor="middle">&gt;_</text>
 <text class="o h" x="82" y="52" font-size="26">php-terminal-cms</text>
 <text class="o s" x="352" y="52" letter-spacing="2.5">WRITE · EXPORT · PUBLISH</text>
@@ -66,7 +66,7 @@
 <!-- ============================ the transfer ============================ -->
 <path class="arw" d="M528 250 H568"/>
 <text class="o f" x="548" y="238" text-anchor="middle">export</text>
-<rect x="578" y="222" width="64" height="56" rx="6" fill="#21262a" stroke="#d9a05f"/>
+<rect x="578" y="222" width="64" height="56" rx="6" fill="#21262a" stroke="#21e08a"/>
 <text class="a" x="610" y="246" text-anchor="middle">.md</text>
 <text class="f" x="610" y="264" text-anchor="middle">one file</text>
 <path class="arw" d="M650 250 H690"/>

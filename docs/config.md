@@ -11,7 +11,7 @@ return [
     'tagline'     => 'a document is an ordered sequence of typed lines',
     'lang'        => 'en',
     'languages'   => ['sk'],
-    'accent'      => '#d9a05f',
+    'accent'      => '#21e08a',
     'listing'     => true,
     'listing_max' => 15,
     'link_open'   => 'here',
@@ -266,7 +266,7 @@ are content, not code.
 
 ## The accent
 
-`accent` is one colour, written as six hexadecimal digits: `#d9a05f`,
+`accent` is one colour, written as six hexadecimal digits: `#21e08a`,
 `#3f7cac`, `#ABCDEF`. It is the only setting that reaches the page as CSS
 rather than as writing, so it is the only one with a shape it has to keep —
 `red`, `#fff` and `rgb(217,160,95)` are all rejected in favour of the default.

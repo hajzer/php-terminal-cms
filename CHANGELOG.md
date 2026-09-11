@@ -61,6 +61,11 @@ again.
   panels carry theirs, and what stands directly on the page is toned to read
   on white and on dark alike, sharpened for either where the viewer says
   which it prefers.
+- The accent is the mark's green. `shared/theme.css` carries `#21e08a` on dark
+  and `#137a3f` on light, the deeper one reading on white as the amber it
+  replaces did; the default an instance gets when `site.php` names no accent,
+  or names one that is not a colour, is the same green, and so is the one the
+  example configuration and the diagram's labels wear.
 - The editor's claim that it sends nothing is a test. `bin/test` scans
   `editor/editor.js` and `editor/ui.js` for every way a page opens a connection
   and fails naming the file and the call, the way it scans the site's PHP for

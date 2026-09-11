@@ -914,12 +914,12 @@ ok(str_contains($nonced, '(function () {') && !str_contains($nonced, '$nonceAttr
    'the script is emitted as written, not read as PHP', $nonced);
 
 $accents = [
-    '#d9a05f'                          => '#d9a05f',
+    '#21e08a'                          => '#21e08a',
     '#ABCDEF'                          => '#ABCDEF',
-    'red'                              => '#d9a05f',
-    '#fff'                             => '#d9a05f',
-    '#d9a05f;background:url(//evil)'   => '#d9a05f',
-    '}html{display:none'               => '#d9a05f',
+    'red'                              => '#21e08a',
+    '#fff'                             => '#21e08a',
+    '#21e08a;background:url(//evil)'   => '#21e08a',
+    '}html{display:none'               => '#21e08a',
 ];
 foreach ($accents as $given => $want) {
     $accented = $site;
