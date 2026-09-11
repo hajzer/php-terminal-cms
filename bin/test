@@ -1188,14 +1188,28 @@ ok($found === [], 'the site reads, and does nothing else', implode("\n", $found)
    a source scan cannot see; this says the other half, that the page opens no
    connection itself. docs/security.md says what the markup causes.
 
+   The terms are the calls that open a connection and the constructors that
+   do — an Image, a worker, a peer connection — and the one call that opens a
+   window. Setting `location` and clicking an anchor are navigations, and the
+   export overlay clicks an anchor to hand over a download, so neither is on
+   the list: a scan that fired on the download would have to be switched off.
+
    The two hand-written scripts are read. editor/langs.js is generated from
    shared/langs.json and is data, not code: its js table names fetch and eleven
    language tables name import, as words to colour. */
 $found = scan(
     [$root . '/editor/editor.js', $root . '/editor/ui.js'],
-    ['fetch(', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'sendBeacon', 'import(']
+    ['fetch(', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'sendBeacon', 'import(',
+     'importScripts', 'Image(', 'Worker(', 'serviceWorker', 'RTCPeerConnection',
+     'WebTransport', 'window.open(']
 );
 ok($found === [], 'the editor opens no connection', implode("\n", $found));
+
+/* the one request there is carries the src the line names and nothing the
+   page could have kept back: where the editor was opened from is not sent */
+ok(str_contains((string) file_get_contents($root . '/editor/index.html'),
+                '<meta name="referrer" content="no-referrer">'),
+   'and the one request it causes carries no referrer');
 
 echo "\n$pass passed, $fail failed\n";
 exit($fail === 0 ? 0 : 1);
