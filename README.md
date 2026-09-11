@@ -1,7 +1,5 @@
 ![php-terminal-cms](docs/media/logo.png)
 
-# php-terminal-cms
-
 A micro publishing platform built on one idea: **a document is an ordered
 sequence of typed lines**, not a blob of text.
 
