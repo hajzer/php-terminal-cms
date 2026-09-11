@@ -349,6 +349,81 @@ eq('appending does not double a space already there',
 eq('appending nothing to point at changes nothing', L.addLink('words', 'a', ''), 'words');
 eq('appending with no wording changes nothing', L.addLink('words', '', '/a'), 'words');
 
+/* ------------------------------------------------------- at the caret */
+/* What `^K` stands on: a link put where the writer is, rather than at the end.
+   Offsets are numbers here — a Selection never crosses out of ui.js. */
+
+var mid = L.addLinkAt('before after', 'here', '/h', 7, 7);
+eq('a caret in the middle puts the link there', mid.text, 'before [here](/h)after');
+ok('and leaves the text before it byte-identical', mid.text.slice(0, 7) === 'before ', mid.text);
+ok('and the text after it byte-identical', mid.text.slice(17) === 'after', mid.text);
+eq('the reported end is just past the link it wrote', mid.end, 17);
+ok('and the caret belongs there', mid.text.slice(mid.end) === 'after', mid.text);
+
+eq('a caret at the start writes the link first',
+   L.addLinkAt('words', 'a', '/a', 0, 0).text, '[a](/a)words');
+eq('a caret at the end writes the link last',
+   L.addLinkAt('words', 'a', '/a', 5, 5).text, 'words[a](/a)');
+
+eq('a selection is replaced by the link, and exactly that span',
+   L.addLinkAt('take these words away', 'these words', '/w', 5, 16).text,
+   'take [these words](/w) away');
+eq('and the reported end is just past the replacement',
+   L.addLinkAt('take these words away', 'these words', '/w', 5, 16).end, 22);
+eq('a selection covering the whole text leaves only the link',
+   L.addLinkAt('all of it', 'all of it', '/a', 0, 9).text, '[all of it](/a)');
+eq('inserting into an empty text writes the link alone',
+   L.addLinkAt('', 'a', '/a', 0, 0).text, '[a](/a)');
+
+/* a neighbouring link is text like any other: it is spliced around, not read */
+var beside = L.addLinkAt('see [one](/1) here', 'two', '/2', 13, 13);
+eq('inserting right after an existing link leaves that link untouched',
+   beside.text, 'see [one](/1)[two](/2) here');
+eq('and the Line then reports two links in the order they appear',
+   L.links(beside.text).map(function (k) { return k.wording + '=' + k.href; }),
+   ['one=/1', 'two=/2']);
+eq('inserting right before one leaves it untouched too, and comes first',
+   L.links(L.addLinkAt('see [one](/1) here', 'two', '/2', 4, 4).text)
+    .map(function (k) { return k.wording + '=' + k.href; }),
+   ['two=/2', 'one=/1']);
+
+/* ui.js reads offsets off a live DOM, so a stale one must not corrupt a Line */
+eq('an offset past the end clamps to the end',
+   L.addLinkAt('words', 'a', '/a', 99, 99).text, 'words[a](/a)');
+eq('and an offset with no end at all clamps there too',
+   L.addLinkAt('words', 'a', '/a', Infinity, Infinity).text, 'words[a](/a)');
+eq('a negative offset clamps to the start',
+   L.addLinkAt('words', 'a', '/a', -5, -5).text, '[a](/a)words');
+eq('a span that runs off both ends replaces the whole text',
+   L.addLinkAt('words', 'a', '/a', -5, 99).text, '[a](/a)');
+eq('a start after its end still replaces exactly that span',
+   L.addLinkAt('take these words away', 'these words', '/w', 16, 5).text,
+   'take [these words](/w) away');
+
+/* emptiness is mkLink's rule, unchanged: the same answers addLink gives */
+eq('inserting nothing to point at changes nothing',
+   L.addLinkAt('before after', 'a', '', 7, 7).text, 'before after');
+eq('inserting with no wording changes nothing',
+   L.addLinkAt('before after', '', '/a', 7, 7).text, 'before after');
+eq('a wording that is all space is refused, as everywhere else',
+   L.addLinkAt('before after', '   ', '/a', 7, 7).text, 'before after');
+eq('a refused link leaves the selection where it was',
+   L.addLinkAt('take these words away', '', '/w', 5, 16),
+   { text: 'take these words away', end: 16 });
+eq('a wording at the caret is cut down to what the syntax carries',
+   L.addLinkAt('x', 'b] c', '/2 x)', 1, 1).text, 'x[b c](/2x)');
+
+/* appending has not moved: `a` on a closed Line writes what it always wrote */
+eq('addLink is unchanged, byte for byte',
+   String(L.addLink),
+   "function addLink(text, wording, href) {\n" +
+   "    var link = cleanHref(href) ? mkLink(wording, href) : '';\n" +
+   "    text = asText(text);\n" +
+   "    if (!link) return text;\n" +
+   "    if (!text) return link;\n" +
+   "    return /\\s$/.test(text) ? text + link : text + ' ' + link;\n" +
+   "  }");
+
 /* ------------------------------------------------------------ safe targets */
 /* The same cases bin/test's `link targets` section lists, judged by the rule
    the site publishes by — a disagreement here is a preview that lies. */

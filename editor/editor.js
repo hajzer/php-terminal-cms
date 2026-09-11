@@ -234,6 +234,31 @@
     return hit ? spliceLink(text, hit, hit.wording) : text;
   }
 
+  /* An offset the DOM handed over, made safe to slice with: the caret can be
+     reported from a node that no longer matches the text behind it. */
+  function clampAt(at, len) {
+    at = Math.floor(Number(at));
+    if (!(at > 0)) return 0;
+    return at > len ? len : at;
+  }
+
+  /** Put a link into a Line's text at an offset, replacing the span between
+   *  `at` and `end` — a caret is the span where the two are equal. Offsets are
+   *  numbers, each clamped to the text and put back in order, so one read off a
+   *  DOM that has moved on narrows the span rather than corrupting the Line.
+   *  Answers the new text and the offset just past the link, which is where the
+   *  caret belongs. With no wording, or nothing to point at, there is no link
+   *  to put there and the text stands as it was. */
+  function addLinkAt(text, wording, href, at, end) {
+    var link = cleanHref(href) ? mkLink(wording, href) : '', swap;
+    text = asText(text);
+    at = clampAt(at, text.length);
+    end = clampAt(end, text.length);
+    if (at > end) { swap = at; at = end; end = swap; }
+    if (!link) return { text: text, end: end };
+    return { text: text.slice(0, at) + link + text.slice(end), end: at + link.length };
+  }
+
   /** Put a new link at the end of a Line's text. It takes both halves: with no
    *  wording, or nothing to point at, there is no link to put there. */
   function addLink(text, wording, href) {
@@ -986,7 +1011,8 @@
     esc: esc, highlight: highlight, inline: inline, runs: runs,
     cells: cells, joinCells: joinCells, cellAt: cellAt, cellEnd: cellEnd,
     COL_OPS: COL_OPS,
-    safeLinkHref: safeLinkHref, links: links, setLink: setLink, unlink: unlink, addLink: addLink,
+    safeLinkHref: safeLinkHref, links: links, setLink: setLink, unlink: unlink,
+    addLink: addLink, addLinkAt: addLinkAt,
     today: today, blank: blank,
     parse: parse, toMarkdown: toMarkdown, renderDoc: renderDoc,
     mk: mk, Doc: Doc, History: History
