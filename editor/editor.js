@@ -184,10 +184,12 @@
   function asText(v) { return v == null ? '' : String(v); }
 
   /* Whether an href the author typed is one the page will publish as a link.
-     inline() escapes a Line before it matches, so the judgement has to see the
-     href the same way round, or the overlay warns about the wrong ones. */
+     It is judged as the Line will carry it — cut down to what the syntax
+     holds, then escaped, because inline() escapes a Line before it matches —
+     so the overlay warns about the link that will be written and not about
+     the characters mkLink() drops on the way. */
   function safeLinkHref(href) {
-    return safeHref(rawHref(esc(asText(href))));
+    return safeHref(rawHref(esc(cleanHref(href))));
   }
 
   /** The links in a Line's text, in the order they appear: the wording, the
@@ -206,6 +208,13 @@
      link written here reads back as the link that was written. */
   function cleanWording(wording) { return asText(wording).replace(/[\]\r\n]/g, '').trim(); }
   function cleanHref(href) { return asText(href).replace(/[\s)]/g, ''); }
+
+  /* An Image's two halves, the same way: `![caption](src)` holds no closing
+     bracket in the caption and no closing paren in the src, and a Line
+     carrying either reads back as a Paragraph. A space stays in an src — a
+     file may be called that, and the syntax allows it. */
+  function cleanCaption(caption) { return cleanWording(caption); }
+  function cleanSrc(src) { return asText(src).replace(/[)\r\n]/g, '').trim(); }
 
   /* `[wording](href)` — or, with nothing to point at, the wording alone, which
      is what unlinking leaves behind. A link with no wording is not a link, and
@@ -1014,6 +1023,7 @@
     COL_OPS: COL_OPS,
     safeLinkHref: safeLinkHref, links: links, setLink: setLink, unlink: unlink,
     addLink: addLink, addLinkAt: addLinkAt,
+    cleanSrc: cleanSrc, cleanCaption: cleanCaption,
     today: today, blank: blank,
     parse: parse, toMarkdown: toMarkdown, renderDoc: renderDoc,
     mk: mk, Doc: Doc, History: History

@@ -890,11 +890,11 @@
     var first = fldA.value.trim(), second = fldB.value.trim();
 
     if (addr.kind === 'img') {
-      l.text = first;                                        /* src */
-      l.sub = second || null;                                /* caption */
+      l.text = L.cleanSrc(first);                            /* src */
+      l.sub = L.cleanCaption(second) || null;                /* caption */
       closeAddr();
       render();
-      return say(first ? 'image ' + first : 'image cleared');
+      return say(l.text ? 'image ' + l.text : 'image cleared');
     }
     var wording = first, href = second;
     if (!wording) return say('a link needs its wording — Esc leaves the line as it is');

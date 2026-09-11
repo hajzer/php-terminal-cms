@@ -447,6 +447,29 @@ Object.keys(targets).forEach(function (t) {
 });
 ok('an empty href is nothing to point at', L.safeLinkHref('') === false);
 
+/* the overlay judges the href it will write and not the one as typed: mkLink
+   cuts a space and a closing paren out of an href, so a judgement of the typed
+   one warns about a link the page will make */
+eq('an href with a space in it is judged as the link it becomes',
+   L.safeLinkHref('https://example.com/a b'), true);
+eq('and so is a fragment with a closing paren in it', L.safeLinkHref('#a)b'), true);
+ok('which is the link the Line then carries and the preview makes',
+   L.inline(L.addLinkAt('x', 'w', 'https://example.com/a b', 1, 1).text)
+    .indexOf('<a href="https://example.com/ab"') > -1,
+   L.inline(L.addLinkAt('x', 'w', 'https://example.com/a b', 1, 1).text));
+eq('while a space cannot smuggle an origin past it', L.safeLinkHref('/ /evil.example'), false);
+
+/* an Image's two halves are cut down the way a link's are: `![caption](src)`
+   has no room for a closing bracket in the one or a closing paren in the
+   other, and a Line written with either read back as a Paragraph */
+eq('a caption is cut down to what the syntax carries', L.cleanCaption(' cap]tion\n '), 'caption');
+eq('and an src to what the syntax carries', L.cleanSrc(' pic).png\n'), 'pic.png');
+eq('a space in an src is kept — a file may be called that', L.cleanSrc('my pic.png'), 'my pic.png');
+var imgLine = L.mk('img', L.cleanSrc('pic).png'), L.cleanCaption('cap]tion') || null);
+eq('so an Image written from the overlay reads back as an Image',
+   L.parse(L.toMarkdown([imgLine])).map(function (l) { return l.type + ':' + l.text + ':' + l.sub; }),
+   ['img:pic.png:caption']);
+
 /* a row whose Cells are all empty is a row: it is what `o` opens in a Run, and
    the alignment row it exports next to is the one written out of dashes */
 var emptyRow = L.toMarkdown([L.mk('table', 'a | b | c'), L.mk('table', L.joinCells(['', '', '']))]);

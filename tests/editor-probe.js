@@ -823,6 +823,18 @@
      fig.querySelector('figcaption').textContent === 'how it fits together',
      fig && fig.innerHTML);
 
+  /* the two halves are cut down to what `![caption](src)` can hold, as a
+     link's are — otherwise the exported Line reads back as a Paragraph */
+  key('a');
+  fa().value = 'pic).png';
+  fb().value = 'a cap]tion';
+  key('Enter', fb());
+  run('export');
+  md = document.getElementById('expMd').textContent;
+  key('Escape');
+  ok('an src and a caption are cut down to what the syntax carries',
+     md.indexOf('![a caption](pic.png)') > -1, md);
+
   oneLine('[kept  wording](https://a.example/)');
   key('a');
   fb().value = '';
