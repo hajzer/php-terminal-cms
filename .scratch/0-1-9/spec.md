@@ -1,7 +1,7 @@
 # 0.1.9 — a link where the caret is, a table you can point at, a face, and a
 hard look
 
-Status: ready-for-agent
+Status: ready-for-human
 
 ## Problem Statement
 
