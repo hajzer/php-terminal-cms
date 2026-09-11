@@ -524,6 +524,139 @@
   ok('and a wording edited on the way out is not thrown away',
      rows().join('|').indexOf('new wording') > -1, rows().join('|'));
 
+  /* --- ^K: the link lands where the writer is ---------------------------- */
+  /* The overlay reached from inside the box, with the offsets read off the box
+     itself. `a` on a closed Line still appends — there is no caret in it. */
+  function putSelection(at, end) {
+    var b = box(), r = document.createRange(), s = getSelection();
+    r.setStart(b.firstChild, at);
+    r.setEnd(b.firstChild, end);
+    s.removeAllRanges();
+    s.addRange(r);
+  }
+  function ctrlK() { key('k', box(), false, true); }
+
+  oneLine('take these words away');
+  key('i');
+  putSelection(5, 16);
+  ctrlK();
+  ok('^K with a selection opens the overlay with the selection as the wording',
+     addrOn() && !picking() && fa().value === 'these words', fa().value);
+  fb().value = 'https://w.example/';
+  key('Enter', fb());
+  var placed = rows().join('|');
+  ok('committing replaces exactly the selected span, and the rest is untouched',
+     placed.indexOf('take [these words](https://w.example/) away') > -1, placed);
+  ok('the caret sits after the inserted link', caret() === 38, caret());
+  document.execCommand('insertText', false, '!');
+  ok('and typing carries on there',
+     box() && box().textContent.indexOf(')! away') > -1, box() && box().textContent);
+  key('Escape', box());
+
+  oneLine('before after');
+  key('i');
+  putCaret(7);
+  ctrlK();
+  ok('^K with a caret and no selection opens an empty form',
+     addrOn() && !picking() && !fa().value && !fb().value, fa().value + ' / ' + fb().value);
+  fa().value = 'here';
+  fb().value = 'https://h.example/';
+  key('Enter', fb());
+  ok('and the committed link lands at the caret',
+     rows().join('|').indexOf('before [here](https://h.example/)after') > -1, rows().join('|'));
+  key('Escape', box());
+  key('z', document, false, true);
+  ok('one insertion at the caret is one ^Z',
+     rows().join('|').indexOf('before after') > -1 &&
+     rows().join('|').indexOf('[here]') < 0, rows().join('|'));
+
+  oneLine('leave me alone');
+  var keptK = rows().join('|');
+  key('i');
+  putCaret(5);
+  ctrlK();
+  fa().value = 'never';
+  fb().value = 'https://n.example/';
+  key('Escape', fb());
+  key('Escape', box());
+  ok('Esc leaves the line exactly as it was',
+     !addrOn() && rows().join('|') === keptK, rows().join('|'));
+
+  oneLine('take these words away');
+  key('i');
+  putSelection(4, 16);
+  ctrlK();
+  ok('a selection that took a space with it links the phrase, not the space',
+     fa().value === 'these words', fa().value);
+  fb().value = 'https://w.example/';
+  key('Enter', fb());
+  ok('and the space it took is still there',
+     rows().join('|').indexOf('take [these words](https://w.example/) away') > -1,
+     rows().join('|'));
+  key('Escape', box());
+  key('z', document, false, true);
+  ok('one link over a selection is one ^Z too',
+     rows().join('|').indexOf('take these words away') > -1, rows().join('|'));
+
+  oneLine('keep this exactly');
+  key('i');
+  putSelection(5, 9);
+  ctrlK();
+  key('Escape', fa());
+  ok('Esc hands the selection back, not just the text',
+     !addrOn() && !!box() && String(getSelection()) === 'this', String(getSelection()));
+  key('Escape', box());
+
+  document.getElementById('actClear').click();
+  key('f');
+  key('i');
+  var keptF = rows().join('|');
+  ctrlK();
+  ok('^K on an image line offers nothing new and changes nothing',
+     !addrOn() && msg().indexOf('src and caption') > -1 && rows().join('|') === keptF,
+     msg() + ' :: ' + rows().join('|'));
+  key('Escape', box());
+
+  oneLine('see [one](https://a.example/) here');
+  key('i');
+  putCaret(29);
+  ctrlK();
+  fa().value = 'two';
+  fb().value = 'https://b.example/';
+  key('Enter', fb());
+  key('Escape', box());
+  ok('a line that already carried a link reports both afterwards, in order',
+     window.TerminalCms.links(rows().join('|')).map(function (k) { return k.wording; })
+       .join(' ') === 'one two',
+     rows().join('|'));
+
+  oneLine('tail text');
+  key('a');
+  fa().value = 'end';
+  fb().value = 'https://e.example/';
+  key('Enter', fb());
+  ok('a on a line that is not being edited still appends',
+     rows().join('|').indexOf('tail text [end](https://e.example/)') > -1, rows().join('|'));
+
+  document.getElementById('actClear').click();
+  key('c');
+  key('i');
+  var keptC = rows().join('|');
+  ctrlK();
+  ok('^K on a code line says so and changes nothing',
+     !addrOn() && msg().indexOf('nothing to address') > -1 && rows().join('|') === keptC,
+     msg() + ' :: ' + rows().join('|'));
+  key('Escape', box());
+
+  document.getElementById('actClear').click();
+  key('t');
+  key('i');
+  type('a | b | c');
+  putCaret(1);
+  key('Tab', box());
+  ok('Tab still walks Cells, unaffected by the new binding', caret() === 5, caret());
+  key('Escape', box());
+
   var bad = out.filter(function (l) { return l.indexOf('FAIL') === 0; }).length;
   var pre = document.createElement('pre');
   pre.style.cssText = 'position:fixed;inset:0;z-index:999;background:#111;color:#ddd;' +

@@ -1,6 +1,6 @@
 # 02 — A link where the caret is: the overlay half
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 Blocked by: 01
 Commit: 1 of 8 — "editor: a link where the caret is"
@@ -40,21 +40,21 @@ no editing from the preview. No second key that does the same thing.
 
 `tests/editor-probe.js`, run in a browser, covers and passes:
 
-- [ ] `^K` with a selection inside an open edit box opens the overlay with the
+- [x] `^K` with a selection inside an open edit box opens the overlay with the
   selection as the `wording`
-- [ ] committing replaces exactly the selected span, and the rest of the Line is
+- [x] committing replaces exactly the selected span, and the rest of the Line is
   byte-identical
-- [ ] `^K` with a caret and no selection opens an empty form and the committed
+- [x] `^K` with a caret and no selection opens an empty form and the committed
   link lands at the caret
-- [ ] the caret sits after the inserted link and typing continues there
-- [ ] `Esc` leaves the Line's text identical
-- [ ] a Line that already carried a link still reports both afterwards, in order
-- [ ] `a` on a Line not being edited still appends, unchanged
-- [ ] one `^Z` takes back the whole insertion
-- [ ] `^K` on a Code Line says so and changes nothing
-- [ ] `Tab` still walks Cells in a Table Line, unaffected by the new binding
+- [x] the caret sits after the inserted link and typing continues there
+- [x] `Esc` leaves the Line's text identical
+- [x] a Line that already carried a link still reports both afterwards, in order
+- [x] `a` on a Line not being edited still appends, unchanged
+- [x] one `^Z` takes back the whole insertion
+- [x] `^K` on a Code Line says so and changes nothing
+- [x] `Tab` still walks Cells in a Table Line, unaffected by the new binding
 
 Then:
 
-- [ ] `php bin/test` green
-- [ ] the probe green in a browser, with its count noted in the comments
+- [x] `php bin/test` green
+- [x] the probe green in a browser, with its count noted in the comments

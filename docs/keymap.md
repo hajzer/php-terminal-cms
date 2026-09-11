@@ -70,6 +70,7 @@ One key each. Applies to the line under the cursor.
 | `z` | fold / unfold this block's output section |
 | `C` | copy this code, CLI or output block to the clipboard |
 | `a` | the links in this line — or an image's file and caption |
+| `^K` (while editing) | a link at the caret, or over what is selected |
 
 `a` opens the overlay on whatever the cursor is on. On a line that carries
 links it shows them to pick between — one link opens straight for editing, and
@@ -77,6 +78,14 @@ none opens an empty form, so writing the first link in a line is also one key.
 On an image line the two fields are `src` and `caption` instead. A line
 that carries no inline markup at all — code, CLI, output, rule, meta — says so
 and is left alone.
+
+`^K` is the same overlay reached from inside the box, and it puts the link
+where the writer is rather than at the end. Text selected in the box arrives as
+the wording and the committed link replaces exactly that span; with nothing
+selected the form opens empty and the link lands at the caret. Either way the
+caret is left after the link, so typing carries on. `a` on a line that is not
+open for editing appends, as it always has — there is no caret there to speak
+of.
 
 Clearing the href unlinks, leaving the wording as writing; clearing the wording
 is refused, because `[](…)` is not a link. An href the published page would

@@ -289,15 +289,45 @@
     catch (e) { return span.textContent.length; }
     return r.toString().length;
   }
-  function caretTo(span, at) {
-    var walk = document.createTreeWalker(span, NodeFilter.SHOW_TEXT);
-    var r = document.createRange(), node, seen = 0;
+  /* An offset counted in characters, found again among the box's nodes. */
+  function pointAt(span, at) {
+    var walk = document.createTreeWalker(span, NodeFilter.SHOW_TEXT), node, seen = 0;
     while ((node = walk.nextNode())) {
-      if (seen + node.length >= at) { r.setStart(node, at - seen); r.collapse(true); break; }
+      if (seen + node.length >= at) return { node: node, at: at - seen };
       seen += node.length;
     }
-    if (!node) { r.selectNodeContents(span); r.collapse(false); }
+    return null;
+  }
+  function caretTo(span, at) {
+    var r = document.createRange(), p = pointAt(span, at);
+    if (p) { r.setStart(p.node, p.at); r.collapse(true); }
+    else { r.selectNodeContents(span); r.collapse(false); }
     var sel = getSelection();
+    sel.removeAllRanges();
+    sel.addRange(r);
+  }
+
+  /** What the box's selection covers, counted the same way: a caret is the span
+   *  whose two offsets are equal. This is where the DOM stops — editor.js is
+   *  handed the numbers and never the Selection they were read from. */
+  function caretRange(span) {
+    var sel = getSelection(), end = caretOffset(span), r;
+    if (!sel || !sel.rangeCount) return { at: end, end: end };
+    r = document.createRange();
+    r.selectNodeContents(span);
+    try { r.setEnd(sel.getRangeAt(0).startContainer, sel.getRangeAt(0).startOffset); }
+    catch (e) { return { at: end, end: end }; }
+    return { at: r.toString().length, end: end };
+  }
+  /** Put the selection back over a span of characters — what the writer had
+   *  highlighted before the overlay took the focus away. */
+  function selectSpan(span, at, end) {
+    var a = pointAt(span, at), b = pointAt(span, end), r, sel;
+    if (at === end || !a || !b) return caretTo(span, end);
+    r = document.createRange();
+    r.setStart(a.node, a.at);
+    r.setEnd(b.node, b.at);
+    sel = getSelection();
     sel.removeAllRanges();
     sel.addRange(r);
   }
@@ -353,6 +383,11 @@
 
     span.addEventListener('keydown', function (ev) {
       ev.stopPropagation();
+      if ((ev.ctrlKey || ev.metaKey) && !ev.altKey && (ev.key === 'k' || ev.key === 'K')) {
+        ev.preventDefault();
+        addrAtCaret(span, line);
+        return;
+      }
       if (ev.key === 'Tab' && line.type === 'table') {
         ev.preventDefault();
         tabCell(span, ev.shiftKey);
@@ -600,32 +635,78 @@
 
   /* -------------------------------------------------- the address overlay
    *
-   * The addressed thing in a Line, reached with `a`. One card with two states:
-   * the picker, which is the links the Line already has, and the form, which is
-   * the two halves of the one that was picked. Every rewrite of the text itself
-   * comes from editor.js — what is here is DOM, keys and focus.
+   * The addressed thing in a Line, reached with `a` on a Line that is closed
+   * and `^K` inside one that is open. One card with two states: the picker,
+   * which is the links the Line already has, and the form, which is the two
+   * halves of the one that was picked. Every rewrite of the text itself comes
+   * from editor.js — what is here is DOM, keys and focus.
    *
-   * addr is null, or { line, kind, n }: the *line object*, so a commit lands
-   * where the overlay opened even if the document moved underneath it, and n
-   * says which link is being written — -1 for one that is not there yet. */
+   * addr is null, or { line, kind, n, where }: the *line object*, so a commit
+   * lands where the overlay opened even if the document moved underneath it; n
+   * says which link is being written — -1 for one that is not there yet; and
+   * where is the span of the open box it was reached from, or null. */
 
   var LINKABLE = ['h1', 'h2', 'h3', 'p', 'list', 'quote', 'note', 'table'];
   var REJECTED = 'not a link the page will make; it will print as text';
   var addr = null, pickAt = 0;
+
+  /* A Line with no inline markup in it has nothing to address, whichever key
+     asked. Says so, and answers whether that was the case. */
+  function unaddressable(l) {
+    if (LINKABLE.indexOf(l.type) > -1) return false;
+    say('a ' + L.byId[l.type].name.toLowerCase() + ' line has nothing to address');
+    return true;
+  }
 
   function openAddr() {
     commitEdit();
     render();
     var l = doc.line();
     if (l.type === 'img') return addrForm(l, 'img', -1);
-    if (LINKABLE.indexOf(l.type) < 0) {
-      return say('a ' + L.byId[l.type].name.toLowerCase() + ' line has nothing to address');
-    }
+    if (unaddressable(l)) return;
     /* nothing to pick between is not a question worth asking: no links opens an
        empty form, one link opens that one */
     var found = L.links(l.text);
     if (found.length > 1) return addrPicker(l, found);
     addrForm(l, 'link', found.length ? 0 : -1);
+  }
+
+  /* `^K` inside an open edit box: the same overlay, opened on the span the
+     caret was at. The offsets are read off the live box before anything
+     redraws, and the text under them arrives as the wording, so linking a
+     phrase is select-then-one-key. */
+  function addrAtCaret(span, l) {
+    /* an Image addresses a file, not a span of its text, so there is no caret
+       in it to put a link at — and `a` is still the way to its two fields */
+    if (l.type === 'img') {
+      return say('an image line has no text to link — a opens its src and caption');
+    }
+    if (unaddressable(l)) return;
+    var where = trimmed(span.textContent, caretRange(span));
+    commitEdit();
+    render();
+    addrForm(l, 'link', -1, where);
+    say(where.wording ? 'a link for what is selected' : 'a link at the caret');
+  }
+
+  /* A selection dragged over a phrase usually takes a space with it. The
+     wording is what the link will carry, so the space is dropped from the span
+     as well as from the wording — otherwise the link eats it on the way in. */
+  function trimmed(text, where) {
+    var at = where.at, end = where.end;
+    while (at < end && /\s/.test(text.charAt(at))) at++;
+    while (end > at && /\s/.test(text.charAt(end - 1))) end--;
+    return { at: at, end: end, wording: text.slice(at, end) };
+  }
+
+  /* Back into the box the overlay was opened from: over the span Esc left
+     alone, or after the link that was just written. */
+  function backToEdit(l, where) {
+    var i = doc.lines.indexOf(l);
+    if (i < 0) return;
+    doc.cur = i;
+    startEdit();
+    if (editing) selectSpan(editing.span, where.at, where.end);
   }
 
   function showAddr(kind, picking) {
@@ -661,12 +742,14 @@
     if (b) addrForm(addr.line, 'link', +b.dataset.n);
   }
 
-  function addrForm(l, kind, n) {
-    addr = { line: l, kind: kind, n: n };
+  /* `where` is the span of the open edit box the overlay was reached from, or
+     null when it was reached from the picker or from `a` on a closed Line. */
+  function addrForm(l, kind, n, where) {
+    addr = { line: l, kind: kind, n: n, where: where || null };
     var img = kind === 'img', hit = img ? null : L.links(l.text)[n];
     labA.textContent = img ? 'src' : 'wording';
     labB.textContent = img ? 'caption' : 'href';
-    fldA.value = img ? l.text : (hit ? hit.wording : '');
+    fldA.value = img ? l.text : (where ? where.wording : (hit ? hit.wording : ''));
     fldB.value = img ? (l.sub || '') : (hit ? hit.href : '');
     showAddr(kind, false);
     warnAddr();
@@ -682,17 +765,26 @@
     warnEl.textContent = bad ? REJECTED : '';
   }
 
-  function closeAddr() {
+  function hideAddr() {
+    var was = addr;
     addr = null;
     addrOv.classList.remove('on');
     fldA.blur();
     fldB.blur();
+    return was;
+  }
+
+  /* Esc, or the close button: nothing is written. An overlay reached from an
+     open box hands the box back exactly as it took it, selection and all. */
+  function closeAddr() {
+    var was = hideAddr();
+    if (was && was.where) backToEdit(was.line, was.where);
   }
 
   /* One committed overlay is one change: the line is rewritten once, and the
      render() that follows is the single state the history keeps. */
   function commitAddr() {
-    var l = addr.line, n = addr.n;
+    var l = addr.line, n = addr.n, where = addr.where, put = null;
     var first = fldA.value.trim(), second = fldB.value.trim();
 
     if (addr.kind === 'img') {
@@ -713,10 +805,15 @@
     if (!href) {
       l.text = (had && wording === had.wording) ? L.unlink(l.text, n)
                                                 : L.setLink(l.text, n, wording, '');
+    } else if (where) {
+      put = L.addLinkAt(l.text, wording, href, where.at, where.end);
+      l.text = put.text;
     } else if (n < 0) l.text = L.addLink(l.text, wording, href);
     else l.text = L.setLink(l.text, n, wording, href);
-    closeAddr();
+    hideAddr();
     render();
+    /* the caret goes back after the render, and after the link, not before */
+    if (put) backToEdit(l, { at: put.end, end: put.end });
     say(!href ? 'unlinked — the wording stays'
               : (L.safeLinkHref(href) ? 'link set' : REJECTED));
   }
