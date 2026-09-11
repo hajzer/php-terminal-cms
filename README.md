@@ -159,7 +159,7 @@ page gives its navigation, listings and language links room for a finger, and
 drops the tagline when there is no room for it.
 
 The editor's legend along the bottom is the writing loop when there is no
-keyboard to run it from: the line types on the left with `link` beside them,
+keyboard to run it from: the line types on the left with `link` among them,
 `edit` `new` `remove` `↑` `↓` `fold` on the right, each doing what the key
 printed beside it does. Tap a line to put the cursor on it, tap it again to
 write in it.

@@ -178,7 +178,9 @@
       run: function () { commitEdit(); doc.shift(1); render(); } },
     { a: 'fold', label: 'fold',   key: 'z', keys: ['z'],
       run: function () { toggleFold(); } },
-    { a: 'addr', label: 'link',   key: 'a', keys: ['a'],
+    /* `before` is where it is drawn: a Link and an Image are the two addressed
+       things, so they stand together, and Meta stays last as it always was */
+    { a: 'addr', label: 'link',   key: 'a', keys: ['a'], before: 'img',
       run: function () { openAddr(); } }
   ];
   var byAct = {}, actByKey = {};
@@ -191,18 +193,17 @@
     return '<b class="do" data-a="' + x.a + '">' + x.label + '<i>' + L.esc(x.key) + '</i></b>';
   }
 
-  /* The types on the left, the writing loop on the right — and `link` on the
-     left with the types, because it is a thing you do to what the Line says
-     rather than to the Line's place in the document. It is still an action and
-     never lights up: a Line has a Type and may have a link, which is why it
-     stands a little apart from the fourteen. */
+  /* The types on the left, the writing loop on the right — and `link` among
+     the types, because it is a thing you do to what the Line says rather than
+     to the Line's place in the document. It is still an action and never takes
+     the `on` class: a Line has a Type and may have a link. */
   function drawLegend() {
     var cl = doc.line();
     legend.innerHTML = L.TYPES.map(function (t) {
-      return '<b data-t="' + t.id + '" class="' + (t.id === cl.type ? 'on' : '') + '">' +
+      return (byAct.addr.before === t.id ? chip(byAct.addr) : '') +
+        '<b data-t="' + t.id + '" class="' + (t.id === cl.type ? 'on' : '') + '">' +
         t.name.replace('Heading ', 'H') + '<i>' + t.key + '</i></b>';
     }).join('') +
-      chip(byAct.addr) +
       '<span class="sep"></span>' +
       ACTS.filter(function (x) { return x !== byAct.addr; }).map(chip).join('') +
       '<span class="act"><kbd>^Z</kbd> undo · <kbd>:</kbd> commands · <kbd>?</kbd> keys</span>';
