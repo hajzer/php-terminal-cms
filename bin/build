@@ -24,18 +24,26 @@ if ($json === false || json_decode($json, true) === null) {
     exit(1);
 }
 
-/* The browser probe is the editor's own page, so it cannot drift from it. */
+/* The browser probe is the editor's own page, so it cannot drift from it.
+   Every relative asset in the page is repathed by shape rather than by a
+   list, so that an asset added to the page needs no edit here. */
 $page = (string) file_get_contents($root . '/editor/index.html');
-$probe = str_replace(
-    ['<title>php-terminal-cms — editor</title>',
-     'href="theme.css"', 'href="editor.css"',
-     'src="langs.js"', 'src="editor.js"', 'src="ui.js"',
-     '</body>'],
-    ['<title>php-terminal-cms — editor probe</title>',
-     'href="../editor/theme.css"', 'href="../editor/editor.css"',
-     'src="../editor/langs.js"', 'src="../editor/editor.js"', 'src="../editor/ui.js"',
-     '<script src="editor-probe.js"></script>' . "\n" . '</body>'],
+$probe = (string) preg_replace_callback(
+    /* a value with a scheme or a fragment in it is not a path beside the page,
+       and the class excludes both, so only a path is ever matched at all */
+    '~\b(href|src)="([^":#]+)"~',
+    /* of those, an absolute path and a protocol-relative URL are addressed
+       from somewhere other than this directory, so they stand as they are */
+    static fn (array $m): string => str_starts_with($m[2], '/')
+        ? $m[0]
+        : $m[1] . '="../editor/' . $m[2] . '"',
     $page
+);
+$probe = str_replace(
+    ['<title>php-terminal-cms — editor</title>', '</body>'],
+    ['<title>php-terminal-cms — editor probe</title>',
+     '<script src="editor-probe.js"></script>' . "\n" . '</body>'],
+    $probe
 );
 
 $targets = [

@@ -103,8 +103,8 @@ $checks = [
     '/editor/theme.css'       => (string) file_get_contents($root . '/shared/theme.css'),
     '/site/public/theme.css'  => (string) file_get_contents($root . '/shared/theme.css'),
 ];
-/* the probe page is the editor page; undo the three rewrites bin/build makes
-   and what is left has to be byte-identical to editor/index.html */
+/* the probe page is the editor page; undo the rewrites bin/build makes and
+   what is left has to be byte-identical to editor/index.html */
 $probe = (string) @file_get_contents($root . '/tests/editor-probe.html');
 $back  = str_replace(
     ['../editor/', '<script src="editor-probe.js"></script>' . "\n", ' probe</title>'],
@@ -113,6 +113,18 @@ $back  = str_replace(
 );
 ok($probe !== '' && $back === (string) file_get_contents($root . '/editor/index.html'),
    '/tests/editor-probe.html matches editor/index.html', 'run bin/build');
+
+/* An asset the rewrite missed matches anyway once the rewrite is undone, so
+   the comparison above is blind to exactly the mistake that breaks the probe:
+   a page asset the probe asks for relative to tests/ and does not get. */
+preg_match_all('~\b(?:href|src)="([^":#]+)"~', $probe, $refs);
+$lost = array_values(array_filter(
+    array_unique($refs[1]),
+    static fn (string $rel): bool => !str_starts_with($rel, '/')
+        && !is_file($root . '/tests/' . $rel)
+));
+ok($lost === [], 'and every asset it names is a file that exists',
+   implode("\n", $lost) . "\n" . 'run bin/build');
 foreach ($checks as $rel => $want) {
     ok(is_file($root . $rel) && file_get_contents($root . $rel) === $want,
        "$rel matches its source", 'run bin/build');

@@ -15,6 +15,12 @@ body { overflow: hidden; font: 14px/1.6 var(--mono); }
   padding: 0 14px; height: 30px; font-size: 12px;
 }
 .topbar .brand { color: var(--fg-strong); font-weight: 600; padding-right: 18px; }
+/* the same mark the site wears, capped to the bar's line whatever the
+   file's own size is, so it fits without moving anything */
+.topbar .brand .logo {
+  height: 18px; width: auto; vertical-align: middle;
+  margin-right: 7px; position: relative; top: -1px;
+}
 .topbar .brand span { color: var(--accent); }
 .topbar .brand .ver {
   font-style: normal; font-weight: 400; font-size: 11px;

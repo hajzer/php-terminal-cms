@@ -288,9 +288,17 @@ the top of the file; everything below them is structure.
 The editor has no configuration at all: it is a static page, with nothing to
 read a config from and nothing an instance needs to tell it. The version in its
 top bar is the one in `VERSION`, written into `editor/index.html`; `bin/test`
-fails if the two ever disagree. It does not know
-the category list — a document's category is a `category:` meta line like any
-other, and the editor only reads it to say which directory the file belongs in.
+fails if the two ever disagree.
+
+Its mark and the icon in its tab are files beside it — `editor/logo.png` and
+`editor/favicon.ico` — rather than settings, because an instance has an identity
+of its own and the editor has none to have. Both are named by a relative path,
+so they resolve when the page is opened from the filesystem; changing either is
+replacing the file.
+
+It does not know the category list — a document's category is a `category:`
+meta line like any other, and the editor only reads it to say which directory
+the file belongs in.
 Getting the slug right is the writer's job, the same as getting the title right,
 and the site 404s a category it does not have.
 
