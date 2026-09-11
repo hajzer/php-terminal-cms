@@ -187,6 +187,103 @@ d = docOf(['p:a']);
 ok('a row opened elsewhere is no wider than the Line it came from',
    d.insert('below').text === '');
 
+/* -------------------------------------------------------------- columns */
+/* A Column is the nth Cell of every Line in a Table Run, so every operation on
+   one is a rewrite of the whole Run — and of nothing outside it. */
+function colDoc() {
+  return docOf(['p:before', 'table:a | b | c', 'table:d | e | f',
+                'p:between', 'table:x | y']);
+}
+d = colDoc(); d.cur = 1;
+ok('add with no number is done, not refused', d.column('add') === null);
+eq('add with no number puts an empty Column on the right', texts(d),
+   ['before', 'a | b | c | ', 'd | e | f | ', 'between', 'x | y']);
+
+d = colDoc(); d.cur = 2;
+ok('add takes a position', d.column('add', 2) === null);
+eq('and the empty Column lands before that Column, in every Line', texts(d),
+   ['before', 'a |  | b | c', 'd |  | e | f', 'between', 'x | y']);
+
+d = colDoc(); d.cur = 1;
+ok('del takes a number', d.column('del', 3) === null);
+eq('and that Column leaves every Line', texts(d),
+   ['before', 'a | b', 'd | e', 'between', 'x | y']);
+
+d = colDoc(); d.cur = 1;
+ok('left takes a number', d.column('left', 3) === null);
+eq('and that Column swaps with the one before it', texts(d),
+   ['before', 'a | c | b', 'd | f | e', 'between', 'x | y']);
+
+d = colDoc(); d.cur = 2;
+ok('right takes a number', d.column('right', 2) === null);
+eq('and that Column swaps with the one after it', texts(d),
+   ['before', 'a | c | b', 'd | f | e', 'between', 'x | y']);
+
+/* the Run's width is its widest Line; the short ones are squared up to it by
+   the first operation that touches them */
+d = docOf(['table:a | b | c', 'table:d']);
+d.cur = 0;
+d.column('add');
+eq('a short row is padded by an operation that touches it', texts(d),
+   ['a | b | c | ', 'd |  |  | ']);
+
+d = docOf(['table:a | b | c', 'table:d']);
+d.cur = 1;
+d.column('del', 2);
+eq('and padded before the Column is counted out of it', texts(d),
+   ['a | c', 'd | ']);
+
+/* refusals: a message, and not one Cell moved */
+d = colDoc(); d.cur = 1;
+eq('a number past the end of the table is refused', d.column('del', 9),
+   'no column 9 — this table is 3 wide');
+eq('a number before the start of it too', d.column('del', 0),
+   'no column 0 — this table is 3 wide');
+eq('left has nowhere to take the first Column', d.column('left', 1),
+   'column 1 has no neighbour on the left');
+eq('nor right the last', d.column('right', 3),
+   'column 3 has no neighbour on the right');
+eq('and the Run is exactly as it was', texts(d),
+   ['before', 'a | b | c', 'd | e | f', 'between', 'x | y']);
+
+d = docOf(['table:only']);
+eq('del on a Run one Column wide is refused', d.column('del', 1),
+   'a table is at least one column wide');
+eq('and the Run keeps its one Column', texts(d), ['only']);
+
+d = colDoc(); d.cur = 0;
+eq('a cursor on a Line that is not a Table Line is refused', d.column('add'),
+   'not a table line');
+eq('and nothing in the document moved', texts(d),
+   ['before', 'a | b | c', 'd | e | f', 'between', 'x | y']);
+eq('an operation nobody named is refused', d.column('sideways', 1),
+   'col add · del · left · right');
+
+/* the Column is named as the writer typed it, so the word itself is judged
+   here — the command line hands it over and says whatever comes back */
+d = colDoc(); d.cur = 1;
+eq('a Column named with a number is the same as one named with a word',
+   d.column('del', '3'), null);
+eq('and that Column is out of every Line', texts(d),
+   ['before', 'a | b', 'd | e', 'between', 'x | y']);
+d = colDoc(); d.cur = 1;
+eq('an operation that needs a number and has none is refused',
+   d.column('del'), 'col del <column number>');
+eq('and so is one named with something that is not a number',
+   d.column('left', 'two'), 'col left <column number>');
+eq('add is the one that may go without', d.column('add'), null);
+
+d = colDoc(); d.cur = 4;
+d.column('add', 1);
+eq('an operation in the second Run leaves the first alone', texts(d),
+   ['before', 'a | b | c', 'd | e | f', 'between', ' | x | y']);
+
+d = colDoc(); d.cur = 1;
+eq('the heading Cells name the Columns of the Run', d.columns(1), ['a', 'b', 'c']);
+eq('padded to the Run\'s width when the heading is short',
+   docOf(['table:a', 'table:d | e | f']).columns(0), ['a', '', '']);
+eq('a Line that is not a Table Line names none', d.columns(0), []);
+
 /* ---------------------------------------------------------------- links */
 /* What the overlay stands on: finding the addressed thing in a Line's text and
    rewriting it, with no DOM anywhere near it. */

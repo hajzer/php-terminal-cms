@@ -1,6 +1,6 @@
 # 04 — Columns: :col add, del, left, right
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 Blocked by: 03
 Commit: 2 of 5 — "editor: table cells and columns"
@@ -42,17 +42,17 @@ is generated from the command list.
 
 `node tests/js-model.js`, asserting on the text of every Line in the Run:
 
-- [ ] `add` with and without a position; `del`; `left`; `right`
-- [ ] a short row padded by an operation that touches it
-- [ ] a second Run below left untouched
-- [ ] refusals: out-of-range number, `del` at width 1, cursor not on a Table Line
+- [x] `add` with and without a position; `del`; `left`; `right`
+- [x] a short row padded by an operation that touches it
+- [x] a second Run below left untouched
+- [x] refusals: out-of-range number, `del` at width 1, cursor not on a Table Line
 
 `tests/editor-probe.js`, green in a browser:
 
-- [ ] `:col add`, `:col del 2`, `:col left 2` through the command line each change
+- [x] `:col add`, `:col del 2`, `:col left 2` through the command line each change
   every Line in the Run
-- [ ] `:col del 99` is refused with a message
-- [ ] Tab-completion on `:col del` lists the heading Cells against their numbers
-- [ ] one `:col` is one `^Z`
+- [x] `:col del 99` is refused with a message
+- [x] Tab-completion on `:col del` lists the heading Cells against their numbers
+- [x] one `:col` is one `^Z`
 
-- [ ] `php bin/test` green
+- [x] `php bin/test` green

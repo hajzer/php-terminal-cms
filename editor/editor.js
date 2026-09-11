@@ -293,11 +293,18 @@
     return (list || []).map(function (c) { return asText(c).trim(); }).join(' | ');
   }
 
+  /* A row padded to that many Cells. A Line shorter than its Run is squared up
+     to the Run's width before anything counts Columns in it — reading a table
+     and rewriting one both need every row the same length. */
+  function padCells(list, width) {
+    var out = (list || []).slice();
+    while (out.length < width) out.push('');
+    return out;
+  }
+
   /* A row of that many empty Cells — what a new row of a Run is born as. */
   function blankRow(width) {
-    var out = [], i;
-    for (i = 0; i < Math.max(1, width | 0); i++) out.push('');
-    return joinCells(out);
+    return joinCells(padCells([], Math.max(1, width | 0)));
   }
 
   /* ----------------------------------------------------------------- runs */
@@ -462,8 +469,8 @@
           var rows = run.map(function (l) { return cells(l.text); });
           var width = Math.max.apply(null, rows.map(function (r) { return r.length; }));
           rows.forEach(function (row, k) {
-            while (row.length < width) row.push('');
-            out.push('| ' + row.join(' | ') + ' |');
+            var full = padCells(row, width);
+            out.push('| ' + full.join(' | ') + ' |');
             if (k === 0) out.push('|' + new Array(width + 1).join(' --- |'));
           });
           out.push('');
@@ -544,10 +551,10 @@
           var w = Math.max.apply(null, rows.map(function (r) { return r.length; }));
           var t = '<div class="tablewrap"><table>';
           rows.forEach(function (row, k2) {
-            while (row.length < w) row.push('');
+            var full = padCells(row, w);
             var tag = k2 === 0 ? 'th' : 'td';
             t += k2 === 0 ? '<thead><tr>' : '<tr>';
-            row.forEach(function (c) { t += '<' + tag + '>' + inline(c) + '</' + tag + '>'; });
+            full.forEach(function (c) { t += '<' + tag + '>' + inline(c) + '</' + tag + '>'; });
             t += k2 === 0 ? '</tr></thead><tbody>' : '</tr>';
           });
           html.push(t + '</tbody></table></div>');
@@ -743,6 +750,58 @@
     for (j = start; j <= end; j++) width = Math.max(width, cells(a[j].text).length);
     return { start: start, end: end, width: width };
   };
+  /* ------------------------------------------------------------- columns
+   *
+   * A Column is the nth Cell of every Line in a Table Run — derived when
+   * asked, never stored. There is no Table object and no grid, so an operation
+   * on a Column is a rewrite of every Line of the Run at once, and it stops at
+   * the Run's bounds: a second Table further down is untouched. */
+
+  var COL_OPS = ['add', 'del', 'left', 'right'];
+
+  /** The heading Cells of the Run around Line `i`, one per Column and the
+   *  Run's width long — what a Column can be called besides its number. A
+   *  Line that is not a Table Line is in no Run and has none. */
+  Doc.prototype.columns = function (i) {
+    var run = this.tableRun(i);
+    return run ? padCells(cells(this.lines[run.start].text), run.width) : [];
+  };
+
+  /** Do one Column operation on the Run the cursor is in. A Column is named by
+   *  its number, counted from 1, as the writer typed it: `add` puts an empty
+   *  Column before Column `n`, or on the right when there is no `n`; `del`
+   *  takes Column `n` out; `left` and `right` swap it with its neighbour.
+   *  Every Line of the Run is rewritten, the short ones padded to its width
+   *  first. Returns null when it was done, or why it was refused — the whole
+   *  grammar of the operation is judged here, and nothing changes until it
+   *  passes. */
+  Doc.prototype.column = function (op, n) {
+    if (COL_OPS.indexOf(op) < 0) return 'col ' + COL_OPS.join(' · ');
+    if (n === undefined ? op !== 'add' : !/^[0-9]+$/.test(String(n))) {
+      return 'col ' + op + ' <column number>';
+    }
+    var run = this.tableRun(this.cur);
+    if (!run) return 'not a table line';
+    var w = run.width, at = n === undefined ? w + 1 : parseInt(n, 10);
+    var highest = op === 'add' ? w + 1 : w;      /* add may land past the last */
+    if (!(at >= 1 && at <= highest)) {
+      return 'no column ' + at + ' — this table is ' + w + ' wide';
+    }
+    var neighbour = op === 'left' ? at - 1 : at + 1;
+    if ((op === 'left' || op === 'right') && (neighbour < 1 || neighbour > w)) {
+      return 'column ' + at + ' has no neighbour on the ' + op;
+    }
+    if (op === 'del' && w < 2) return 'a table is at least one column wide';
+    for (var j = run.start; j <= run.end; j++) {
+      var row = padCells(cells(this.lines[j].text), w), swap;
+      if (op === 'add') row.splice(at - 1, 0, '');
+      else if (op === 'del') row.splice(at - 1, 1);
+      else { swap = row[at - 1]; row[at - 1] = row[neighbour - 1]; row[neighbour - 1] = swap; }
+      this.lines[j].text = joinCells(row);
+    }
+    return null;
+  };
+
   Doc.prototype.outRunStart = function (i) {
     if (!this.lines[i] || this.lines[i].type !== 'out') return -1;
     while (i > 0 && this.lines[i - 1].type === 'out') i--;
@@ -926,6 +985,7 @@
     TYPES: TYPES, byId: byId, byKey: byKey, PROMPTS: PROMPTS,
     esc: esc, highlight: highlight, inline: inline, runs: runs,
     cells: cells, joinCells: joinCells, cellAt: cellAt, cellEnd: cellEnd,
+    COL_OPS: COL_OPS,
     safeLinkHref: safeLinkHref, links: links, setLink: setLink, unlink: unlink, addLink: addLink,
     today: today, blank: blank,
     parse: parse, toMarkdown: toMarkdown, renderDoc: renderDoc,

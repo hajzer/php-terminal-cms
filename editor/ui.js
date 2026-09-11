@@ -790,6 +790,29 @@
         say('moved ' + a[1]);
       } },
 
+    { name: 'col', arg: 'add|del|left|right [n]',
+      help: 'a column of this table — counted from 1, across every row',
+      items: function (w) {
+        if (w.length === 2) return L.COL_OPS.slice();
+        /* a Column is named by its number; the heading is what says which
+           number, so Tab offers the two together */
+        if (w.length === 3) {
+          return doc.columns(doc.cur).map(function (head, i) {
+            return (i + 1) + (head ? ' ' + head : '');
+          });
+        }
+        return [];
+      },
+      run: function (a) {
+        /* the heading Tab writes beside the number is a word past the argument,
+           and a command's trailing words are its own business to ignore */
+        var why = doc.column(a[1], a[2]);
+        if (why) return say(why);
+        say(a[1] === 'add' ? 'column added'
+          : a[1] === 'del' ? 'column ' + a[2] + ' removed'
+          : 'column ' + a[2] + ' moved ' + a[1]);
+      } },
+
     { name: 'go', arg: '<line|top|end>', help: 'put the cursor on a line by number',
       items: function (w) { return w.length === 2 ? ['top', 'end'] : []; },
       run: function (a) {

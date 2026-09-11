@@ -287,6 +287,58 @@
      rows().join('|').indexOf('p | q | r') > -1, rows().join('|'));
   key('Escape', box());
 
+  /* --- columns: one command, every Line of the Run ---------------------- */
+  function tableRows() {
+    return rows().filter(function (r) { return r.indexOf('table') === 0; })
+                 .map(function (r) { return r.slice(r.indexOf(':') + 1); });
+  }
+  function compls() {
+    return [].map.call(document.querySelectorAll('#compl b'), function (b) {
+      return b.textContent;
+    });
+  }
+
+  document.getElementById('actClear').click();
+  key('t');
+  key('i');
+  type('one | two | three');
+  key('Escape', box());
+  key('o');
+  type('a | b | c');
+  key('Escape', box());
+  var before = tableRows().join(' / ');
+  ok('the table the column commands work on is two rows of three',
+     before === 'one | two | three / a | b | c', before);
+
+  run('col add');
+  ok(':col add puts an empty Column on the right of every Line',
+     tableRows().join(' / ') === 'one | two | three |  / a | b | c | ',
+     tableRows().join(' / '));
+  key('z', document, false, true);
+  ok('and one :col is one ^Z', tableRows().join(' / ') === before, tableRows().join(' / '));
+
+  run('col del 2');
+  ok(':col del takes that Column out of every Line',
+     tableRows().join(' / ') === 'one | three / a | c', tableRows().join(' / '));
+
+  run('col left 2');
+  ok(':col left swaps it with the Column before it, in every Line',
+     tableRows().join(' / ') === 'three | one / c | a', tableRows().join(' / '));
+
+  run('col del 99');
+  ok(':col del on a Column the table has not got is refused',
+     msg().indexOf('no column 99') === 0, msg());
+  ok('and the table is exactly as it was',
+     tableRows().join(' / ') === 'three | one / c | a', tableRows().join(' / '));
+
+  input = typeCmd('col del ');
+  ok('Tab completion on :col del offers the headings against their numbers',
+     compls().join(',') === '1 three,2 one', compls().join(','));
+  key('Tab', input);
+  ok('and picking one writes its number into the command',
+     input.value.indexOf('col del 1 three') === 0, input.value);
+  key('Escape', input);
+
   document.getElementById('actClear').click();
   key('c');
   key('Tab');
