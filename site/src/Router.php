@@ -98,6 +98,13 @@ final class Router
         $default  = $codes[0];
         [$base, $want] = Language::split($slug, $codes);
 
+        /* the site's own language is the bare slug, and only that: a file
+           named with its suffix answers there, as the listing says it does,
+           and not at a second address as well */
+        if ($want === $default) {
+            return null;
+        }
+
         $variants = Listing::variants($dir, $base, $codes);
         if ($variants === []) {
             return null;

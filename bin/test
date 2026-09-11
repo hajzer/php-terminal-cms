@@ -762,6 +762,9 @@ ok($one['status'] === 200 && $one['title'] === 'Hello',
    'a file named -en answers to the bare address as well', $one['status'] . ' ' . $one['title']);
 ok(str_contains($sr->route('/notes')['body'], 'href="/notes/hello"'),
    'and that is the address the listing prints', $sr->route('/notes')['body']);
+ok($sr->route('/notes/hello-en')['status'] === 404,
+   'and the suffixed address is not a second one for the same language',
+   (string) $sr->route('/notes/hello-en')['status']);
 
 /* Two files claiming one language is a mistake in the content, and it resolves
    the same way every time rather than differently per request: the name without
@@ -779,6 +782,9 @@ ok(substr_count($br->route('/notes')['body'], '<li>') === 1
    && !str_contains($br->route('/notes')['body'], 'class="languages"'),
    'and they are still one document, with one language to indicate',
    $br->route('/notes')['body']);
+ok($br->route('/notes/hello-en')['status'] === 404,
+   'and the suffixed file is not reachable at a second address',
+   (string) $br->route('/notes/hello-en')['status']);
 
 /* the site as it was before any of this: no suffixes, no indicators */
 $single = ['categories' => [['slug' => 'notes', 'label' => 'notes']]];
