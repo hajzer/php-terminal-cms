@@ -362,7 +362,9 @@
     var e = editing;
     editing = null;
     e.span.removeAttribute('contenteditable');
-    e.line.text = e.span.textContent.replace(/[\r\n]+/g, ' ');
+    /* one character for one: an offset read off the box before this — the
+       caret ^K opened the overlay at — is the same offset in the Line after */
+    e.line.text = e.span.textContent.replace(/[\r\n]/g, ' ');
     return true;
   }
 

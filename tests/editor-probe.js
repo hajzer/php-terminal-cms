@@ -897,6 +897,20 @@
      rows().join('|').indexOf('before after') > -1 &&
      rows().join('|').indexOf('[here]') < 0, rows().join('|'));
 
+  /* a line break in the box — Shift+Enter puts one there — commits as one
+     character, so the offset read off the box is the offset in the Line */
+  oneLine('ab');
+  key('i');
+  box().textContent = 'ab\n\ncd';
+  putCaret(4);
+  ctrlK();
+  fa().value = 'w';
+  fb().value = 'https://b.example/';
+  key('Enter', fb());
+  ok('a caret past two line breaks is still where the link lands',
+     rows().join('|').indexOf('ab  [w](https://b.example/)cd') > -1, rows().join('|'));
+  key('Escape', box());
+
   oneLine('leave me alone');
   var keptK = rows().join('|');
   key('i');
