@@ -21,6 +21,11 @@ three more things it can say about itself.
   the same overlay. An image's caption could not be written from the keyboard at
   all before this; it is the figure's caption and the image's alt text both, so
   a captioned figure is an accessible one.
+- `link` joins the legend, so the address overlay is reachable on a touch
+  screen — where the legend is the whole interface, and where `a`, `:link` and
+  `:img` are all unreachable. It is the seventh entry in the same table the
+  other six come from, so the button and the key printed on it still cannot
+  come to mean two different things.
 - The editor's read pane shows the actual picture for an image line, so you can
   see whether you named the right file. One that does not load falls back,
   silently, to the box with the file name in it that was there before. That is

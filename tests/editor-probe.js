@@ -466,6 +466,20 @@
      !addrOn() && msg().indexOf('nothing to address') > -1 && rows().join('|') === kept3,
      msg() + ' :: ' + rows().join('|'));
 
+  /* the legend is the whole interface where there is no keyboard, so the
+     address overlay has to be reachable from it and not from `a` alone */
+  oneLine('[wording](https://a.example/)');
+  var addrChip = document.querySelector('#legend b[data-a="addr"]');
+  ok('the legend offers the address action', !!addrChip,
+     document.querySelectorAll('#legend b[data-a]').length + ' actions');
+  ok('and prints the key that does the same thing',
+     !!addrChip && addrChip.querySelector('i').textContent === 'a',
+     addrChip && addrChip.innerHTML);
+  if (addrChip) { addrChip.click(); }
+  ok('clicking it opens the overlay on the line under the cursor',
+     addrOn() && !picking() && fa().value === 'wording', fa().value);
+  key('Escape');
+
   document.getElementById('actClear').click();
   key('f');
   key('a');

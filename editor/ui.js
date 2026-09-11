@@ -177,7 +177,9 @@
     { a: 'down', label: '↓',      key: 'J', keys: ['J'],
       run: function () { commitEdit(); doc.shift(1); render(); } },
     { a: 'fold', label: 'fold',   key: 'z', keys: ['z'],
-      run: function () { toggleFold(); } }
+      run: function () { toggleFold(); } },
+    { a: 'addr', label: 'link',   key: 'a', keys: ['a'],
+      run: function () { openAddr(); } }
   ];
   var byAct = {}, actByKey = {};
   ACTS.forEach(function (x) {
@@ -1201,12 +1203,11 @@
     if (k === 'k' || k === 'ArrowUp')   { step(-1); render(); e.preventDefault(); return; }
     if (k === 'g') { doc.cur = 0; render(); return; }
     if (k === 'G') { doc.cur = doc.lines.length - 1; render(); return; }
-    /* the six the legend also has as buttons, so that a key and the button
+    /* the seven the legend also has as buttons, so that a key and the button
        beside it cannot come to mean two different things */
     if (actByKey[k]) { e.preventDefault(); actByKey[k].run(); return; }
     if (k === 'O') { openLine('above'); e.preventDefault(); return; }
     if (k === 'y') { doc.duplicate(); render(); say('duplicated'); return; }
-    if (k === 'a') { openAddr(); e.preventDefault(); return; }
     if (k === 'C') { copyBlock(); return; }
     if (k === 'Tab') {
       e.preventDefault();
