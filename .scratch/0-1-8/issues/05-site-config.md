@@ -1,6 +1,6 @@
 # 05 — listing_max, link_open and logo
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 Commit: 3 of 5 — "site: link_open, listing_max, logo"
 
@@ -67,14 +67,14 @@ New assertions in `bin/test`, at the seam `Page::html($site, $router->route($p))
 — prior art: the `listings`, `the page shell` and `footer` sections, which
 already build Routers from hand-written config arrays.
 
-- [ ] `listing_max`: a small number prints that many; `0` prints all; absent prints
+- [x] `listing_max`: a small number prints that many; `0` prints all; absent prints
   fifteen; `-3`, `'ten'`, `2.5` each print fifteen; a Category page prints its
   whole Category whatever `listing_max` says; `listing => false` with a
   `listing_max` prints no list
-- [ ] `link_open`: with `'tab'`, an external body link carries `target="_blank"`
+- [x] `link_open`: with `'tab'`, an external body link carries `target="_blank"`
   and a local one does not, and a footer link behaves the same as a body link;
   with `'here'`, absent, and an unrecognised value, no page contains `target=`
-- [ ] `logo`: the brand anchor contains an `img` whose alt is the title and whose
+- [x] `logo`: the brand anchor contains an `img` whose alt is the title and whose
   src is under the media directory; an unsafe path is reduced; no logo → the
   shell is unchanged
 
@@ -82,5 +82,5 @@ And at `Renderer::inline($s, $mode)` — prior art: the `link targets` section �
 for the exact bytes: which hrefs get `target="_blank"`, that `rel` is still
 emitted alongside it, and that the one-argument call is what it is today.
 
-- [ ] `php bin/test` green
-- [ ] `tests/js-inline.js` unchanged
+- [x] `php bin/test` green
+- [x] `tests/js-inline.js` unchanged

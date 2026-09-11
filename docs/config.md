@@ -7,17 +7,20 @@ code, and it is deliberately excluded from the repository and the package.
 ```php
 <?php
 return [
-    'title'   => 'php-terminal-cms',
-    'tagline' => 'a document is an ordered sequence of typed lines',
-    'lang'      => 'en',
-    'languages' => ['sk'],
-    'accent'  => '#d9a05f',
-    'listing' => true,
-    'footer'  => [
+    'title'       => 'php-terminal-cms',
+    'tagline'     => 'a document is an ordered sequence of typed lines',
+    'lang'        => 'en',
+    'languages'   => ['sk'],
+    'accent'      => '#d9a05f',
+    'listing'     => true,
+    'listing_max' => 15,
+    'link_open'   => 'here',
+    // 'logo'     => '/media/logo.svg',
+    'footer'      => [
         '[php-terminal-cms](https://example.com/) · [write to me](mailto:you@example.com)',
         'Written in the editor, published by copying a file.',
     ],
-    'categories' => [
+    'categories'  => [
         ['slug' => 'about',  'label' => 'about',  'listing' => true],
         ['slug' => 'guides', 'label' => 'guides', 'listing' => true],
     ],
@@ -32,6 +35,9 @@ return [
 | `languages` | the other languages a document may be written in — see below |
 | `accent` | one `#rrggbb` colour: links, prompts, the active nav item, note borders — see below |
 | `listing` | whether the homepage lists documents — see below |
+| `listing_max` | how many documents the homepage lists — see below |
+| `link_open` | whether a link that leaves the site opens in a new tab — see below |
+| `logo` | a picture in the brand link, in front of the title — see below |
 | `footer` | the whole footer — see below |
 | `categories` | see below |
 
@@ -111,6 +117,67 @@ routable and still reachable by any link written to them; only the automatic lis
 is gone.
 
 A `site.php` that does not name the setting gets it on.
+
+### How many the homepage lists
+
+`listing_max` is the length of the homepage list:
+
+```php
+'listing_max' => 15,     /* the default */
+'listing_max' => 5,      /* the five newest, from every category */
+'listing_max' => 0,      /* every document there is */
+```
+
+A whole number of at least one prints that many documents; `0` prints all of
+them. Anything that is not a count — a negative, a fraction, a word — prints
+fifteen, because a homepage with no list on it is not what any of them asked
+for.
+
+A **category page is never capped**: it prints its whole category. A category is
+a finite thing an author chose the size of, and a document cut off a category
+listing has nowhere else to be listed. `listing_max` also does nothing when
+`listing` is `false`, because there is no list to be the length of.
+
+## Where a link opens
+
+A link that leaves the site can open in the reader's tab or in a new one:
+
+```php
+'link_open' => 'tab',     /* 'here' is the default */
+```
+
+`'tab'` puts `target="_blank"` on every link whose target names `http` or
+`https` — the same links that already carry `rel="noopener noreferrer"`. A link
+to this site, a fragment and a `mailto:` address never open a new tab, whatever
+the setting says, because they are not leaving. Any value other than `'tab'`,
+named or not, is `'here'`.
+
+The editor is never told this. Its preview shows the `'here'` rendering, which
+is the same markup with one attribute fewer.
+
+## The logo
+
+`logo` puts a picture in the brand link, in front of the title:
+
+```php
+'logo' => '/media/logo.svg',
+```
+
+The file lives in `site/public/media/`, and the src is read the way a document's
+image src is read: a local absolute path is used as it stands, and anything else
+— a relative path, another origin, a climb out of the root — is reduced to the
+file it names under `/media/`. The page's Content-Security-Policy allows images
+from this site and nowhere else, so a logo that named another origin would not
+have loaded even if it had been written out — the reduction is what makes it a
+picture instead of a broken one. See [security.md](security.md#the-renderer).
+
+`title` is unchanged and still does everything it did: it fills `<title>`, it is
+the writing in the brand link beside the picture, it is the homepage heading,
+and it is the logo's `alt` — so an instance is named whether or not the picture
+loads. The height is capped in CSS to the top bar's line, so a file of any size
+fits.
+
+Leave `logo` out and the brand link is the title alone, byte for byte as before.
 
 ## The footer
 

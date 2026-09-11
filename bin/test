@@ -370,6 +370,32 @@ ok(str_contains(Renderer::inline('[x](https://example.com/)'), 'rel="noopener no
 ok(!str_contains(Renderer::inline('[x](/guides/a)'), 'rel='),
    'and a local one has nothing to carry');
 
+/* link_open, in the bytes: a target is for a link that leaves the site, which
+   is the same set that carries rel — and the one-argument call is the page
+   every instance had before the setting existed. */
+$targets = [
+    '[x](https://example.com/)'   => true,
+    '[x](http://example.com/)'    => true,
+    '[x](/guides/a)'              => false,
+    '[x](#a-heading)'             => false,
+    '[x](mailto:you@example.com)' => false,
+];
+foreach ($targets as $case => $opens) {
+    $out = Renderer::inline($case, 'tab');
+    ok(str_contains($out, ' target="_blank"') === $opens,
+       sprintf("'tab' %-30s %s", $case, $opens ? 'opens a new tab' : 'opens here'), $out);
+}
+ok(str_contains(Renderer::inline('[x](https://example.com/)', 'tab'),
+                'rel="noopener noreferrer" target="_blank"'),
+   "and the target is emitted beside the rel, not instead of it");
+foreach (['here', '', 'yes', 'blank'] as $mode) {
+    ok(!str_contains(Renderer::inline('[x](https://example.com/)', $mode), 'target='),
+       sprintf('%-8s leaves the reader where they are', var_export($mode, true)));
+}
+ok(Renderer::inline('[x](https://example.com/) **b** `c`')
+   === Renderer::inline('[x](https://example.com/) **b** `c`', 'here'),
+   'and a call that names no mode renders the one that opens here');
+
 /* The editor previews a document by rendering it, so its allowlist has to be
    the same one — a link in the preview that the site drops, or the other way
    round, means the preview is not what the site would send. */
@@ -528,6 +554,73 @@ $olderRouter = new TerminalCms\Router($older, $root . '/site/content');
 ok(str_contains($olderRouter->route('/')['body'], '<ul class="listing">')
    && str_contains($olderRouter->route('/guides')['body'], '<ul class="listing">'),
    'a site.php that names no listing setting lists everywhere');
+
+/* listing_max — how many documents the homepage prints. It takes a content
+   directory bigger than the default to see a default at all, so this one is
+   built rather than borrowed. */
+$many = sys_get_temp_dir() . '/tcms-many-' . getmypid();
+mkdir($many . '/notes', 0755, true);
+mkdir($many . '/logs', 0755, true);
+foreach (range(1, 12) as $i) {
+    file_put_contents(sprintf('%s/notes/note-%02d.md', $many, $i),
+        sprintf("---\ntitle: Note %02d\ndate: 2026-01-%02d\n---\n\nText.\n", $i, $i));
+}
+foreach (range(1, 8) as $i) {
+    file_put_contents(sprintf('%s/logs/log-%02d.md', $many, $i),
+        sprintf("---\ntitle: Log %02d\ndate: 2026-02-%02d\n---\n\nText.\n", $i, $i));
+}
+$manySite = ['title' => 'many', 'categories' => [
+    ['slug' => 'notes', 'label' => 'notes'],
+    ['slug' => 'logs',  'label' => 'logs'],
+]];
+
+/** How many documents a page lists, at the seam the reader meets. */
+function listed(array $site, string $contentDir, string $uri): int
+{
+    $router = new TerminalCms\Router($site, $contentDir);
+    return substr_count(TerminalCms\Page::html($site, $router->route($uri)), '<li>');
+}
+
+ok(listed($manySite, $many, '/') === 15,
+   'a homepage that names no listing_max prints fifteen of twenty',
+   (string) listed($manySite, $many, '/'));
+
+$counts = [3 => 3, 1 => 1, 25 => 20, 0 => 20];
+foreach ($counts as $max => $want) {
+    $capped = $manySite;
+    $capped['listing_max'] = $max;
+    ok(listed($capped, $many, '/') === $want,
+       sprintf('listing_max %-3d prints %d of twenty', $max, $want),
+       (string) listed($capped, $many, '/'));
+}
+
+/* a count is a whole number of at least one — everything else is not a count,
+   and a homepage with no list on it is not what any of them asked for */
+foreach ([-3, 'ten', 2.5, null, true, '5'] as $notACount) {
+    $odd = $manySite;
+    $odd['listing_max'] = $notACount;
+    ok(listed($odd, $many, '/') === 15,
+       sprintf('listing_max %-8s is not a count, so fifteen', var_export($notACount, true)),
+       (string) listed($odd, $many, '/'));
+}
+
+$capped = $manySite;
+$capped['listing_max'] = 3;
+ok(listed($capped, $many, '/notes') === 12,
+   'a category prints its whole category whatever listing_max says',
+   (string) listed($capped, $many, '/notes'));
+
+$capped['listing'] = false;
+ok(listed($capped, $many, '/') === 0,
+   'and a listing_max on a homepage that lists nothing lists nothing',
+   (string) listed($capped, $many, '/'));
+
+foreach (glob($many . '/*/*.md') ?: [] as $f) {
+    unlink($f);
+}
+rmdir($many . '/notes');
+rmdir($many . '/logs');
+rmdir($many);
 
 /* ------------------------------------------------------------- languages
  *
@@ -802,6 +895,80 @@ $noFoot['footer'] = '';
 ok(foot($noFoot, $home) === '', 'an empty footer is no footer element at all');
 unset($noFoot['footer']);
 ok(foot($noFoot, $home) === '', 'and so is a site.php that names no footer');
+
+/* link_open, on the page: the body and the footer are one instance answering
+   one question, so they cannot disagree about where a link opens */
+$scratch = sys_get_temp_dir() . '/tcms-open-' . getmypid();
+mkdir($scratch . '/notes', 0755, true);
+file_put_contents($scratch . '/notes/links.md',
+    "---\ntitle: Links\n---\n\n# Links\n\n[away](https://example.com/) and [home](/notes/other).\n");
+$openSite = [
+    'title' => 'open', 'categories' => [['slug' => 'notes', 'label' => 'notes']],
+    'footer' => '[foot](https://example.com/)',
+];
+$openRouter = new TerminalCms\Router($openSite, $scratch);
+
+$tabbed = $openSite;
+$tabbed['link_open'] = 'tab';
+$tabRouter = new TerminalCms\Router($tabbed, $scratch);
+$page = TerminalCms\Page::html($tabbed, $tabRouter->route('/notes/links'));
+ok(str_contains($page, '<a href="https://example.com/" rel="noopener noreferrer" target="_blank">away</a>'),
+   "'tab' opens a link that leaves the site in a new one", $page);
+ok(str_contains($page, '<a href="/notes/other">home</a>'),
+   'and leaves a link to this site where it is', $page);
+ok(substr_count($page, 'target="_blank"') === 2
+   && str_contains(foot($tabbed, $tabRouter->route('/notes/links')), 'target="_blank"'),
+   'and the footer link opens the same way the body link does', $page);
+
+foreach (['here', 'yes', 'tabs', ''] as $mode) {
+    $elsewhere = $openSite;
+    $elsewhere['link_open'] = $mode;
+    /* its own router: the body is rendered from the site the router was built
+       with, so reading one router's page under another site proves nothing */
+    $elseRouter = new TerminalCms\Router($elsewhere, $scratch);
+    ok(!str_contains(TerminalCms\Page::html($elsewhere, $elseRouter->route('/notes/links')), 'target='),
+       sprintf('link_open %-7s puts no target on the page', var_export($mode, true)));
+}
+ok(!str_contains(TerminalCms\Page::html($openSite, $openRouter->route('/notes/links')), 'target='),
+   'and neither does a site.php that names none');
+
+/* the logo: an instance's own picture in the brand link */
+/** The brand link of a page. */
+function brand(array $site, array $route): string
+{
+    $html = TerminalCms\Page::html($site, $route);
+    return preg_match('~<a class="brand".*?</a>~s', $html, $m) === 1 ? $m[0] : '';
+}
+$logos = [
+    '/media/logo.svg'        => '/media/logo.svg',
+    '  /media/logo.svg  '    => '/media/logo.svg',
+    './media/logo.svg'       => '/media/logo.svg',
+    'https://evil.example/x.svg' => '/media/x.svg',
+    '//evil.example/x.svg'   => '/media/x.svg',
+    '/media/../../secret.svg' => '/media/secret.svg',
+];
+foreach ($logos as $given => $want) {
+    $logoed = $site;
+    $logoed['logo'] = $given;
+    ok(brand($logoed, $home) === '<a class="brand" href="/"><img class="logo" src="' . $want . '" alt="'
+       . $site['title'] . '">' . $site['title'] . '</a>',
+       sprintf('logo %-28s -> %s', var_export($given, true), $want), brand($logoed, $home));
+}
+$bare = brand($site, $home);
+ok($bare === '<a class="brand" href="/">' . $site['title'] . '</a>',
+   'an instance with no logo has the brand link it always had', $bare);
+$shell = TerminalCms\Page::html($site, $home);
+foreach (['' => 'an empty one', '   ' => 'a blank one', 'true' => 'one that is not a path',
+          'array' => 'one that is not even a string'] as $none => $what) {
+    $blank = $site;
+    $blank['logo'] = $none === 'array' ? ['/media/logo.svg'] : ($none === 'true' ? true : $none);
+    ok(TerminalCms\Page::html($blank, $home) === $shell,
+       'and ' . $what . ' leaves the whole page byte-identical to it');
+}
+
+unlink($scratch . '/notes/links.md');
+rmdir($scratch . '/notes');
+rmdir($scratch);
 
 echo "\nlinks and media\n";
 /* a heading is linkable, and two headings with the same words are two links */

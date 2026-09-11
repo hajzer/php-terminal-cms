@@ -17,8 +17,9 @@ final class Renderer
      * are printed once, under the title, and never in the flow.
      *
      * @param list<Line> $lines
+     * @param string $linkOpen where a link to another site opens — see inline()
      */
-    public static function render(array $lines, bool $withMeta = true): string
+    public static function render(array $lines, bool $withMeta = true, string $linkOpen = 'here'): string
     {
         $html = [];
         $body = array_values(array_filter($lines, static fn (Line $l) => $l->type !== 'meta'));
@@ -36,7 +37,7 @@ final class Renderer
 
             switch ($first->type) {
                 case 'h1':
-                    $html[] = '<h1>' . self::inline($first->text) . '</h1>';
+                    $html[] = '<h1>' . self::inline($first->text, $linkOpen) . '</h1>';
                     if ($pending !== '') {
                         $html[]  = $pending;
                         $pending = '';
@@ -46,10 +47,10 @@ final class Renderer
                 case 'h3':
                     $tag    = $first->type;
                     $id     = self::anchor($first->text, $seen);
-                    $html[] = "<$tag id=\"$id\">" . self::inline($first->text) . "</$tag>";
+                    $html[] = "<$tag id=\"$id\">" . self::inline($first->text, $linkOpen) . "</$tag>";
                     break;
                 case 'p':
-                    $html[] = '<p>' . self::inline($first->text) . '</p>';
+                    $html[] = '<p>' . self::inline($first->text, $linkOpen) . '</p>';
                     break;
                 case 'rule':
                     $html[] = '<hr>';
@@ -61,20 +62,20 @@ final class Renderer
                             . '</figure>';
                     break;
                 case 'list':
-                    $items  = array_map(static fn (Line $l) => '<li>' . self::inline($l->text) . '</li>', $run);
+                    $items  = array_map(static fn (Line $l) => '<li>' . self::inline($l->text, $linkOpen) . '</li>', $run);
                     $html[] = '<ul>' . implode('', $items) . '</ul>';
                     break;
                 case 'quote':
-                    $parts  = array_map(static fn (Line $l) => self::inline($l->text), $run);
+                    $parts  = array_map(static fn (Line $l) => self::inline($l->text, $linkOpen), $run);
                     $html[] = '<blockquote>' . implode('<br>', $parts) . '</blockquote>';
                     break;
                 case 'note':
-                    $parts  = array_map(static fn (Line $l) => self::inline($l->text), $run);
+                    $parts  = array_map(static fn (Line $l) => self::inline($l->text, $linkOpen), $run);
                     $html[] = '<div class="note"><span class="note-tag">note</span>'
                             . implode(' ', $parts) . '</div>';
                     break;
                 case 'table':
-                    $html[] = self::table($run);
+                    $html[] = self::table($run, $linkOpen);
                     break;
                 case 'code':
                 case 'cli': {
@@ -156,7 +157,7 @@ final class Renderer
     }
 
     /** @param list<Line> $run — first line is the header row */
-    private static function table(array $run): string
+    private static function table(array $run, string $linkOpen): string
     {
         $rows = array_map(
             static fn (Line $l) => array_map('trim', explode('|', $l->text)),
@@ -170,7 +171,7 @@ final class Renderer
             $tag   = $k === 0 ? 'th' : 'td';
             $out  .= $k === 0 ? '<thead><tr>' : '<tr>';
             foreach ($cells as $c) {
-                $out .= "<$tag>" . self::inline($c) . "</$tag>";
+                $out .= "<$tag>" . self::inline($c, $linkOpen) . "</$tag>";
             }
             $out .= $k === 0 ? '</tr></thead><tbody>' : '</tr>';
         }
@@ -180,8 +181,17 @@ final class Renderer
     /**
      * Inline markup. Everything is escaped first, so the replacements below can
      * only ever match text the author wrote — never markup they injected.
+     *
+     * @param string $linkOpen 'tab' opens a link to another site in a new one;
+     *        any other word, the default included, leaves it in the reader's.
+     *        Only a link that names http or https can carry a target, which is
+     *        the same set that carries rel="noopener noreferrer" — a fragment,
+     *        a local path and a mailto: address stay where they are whatever
+     *        the instance asks for. The Editor has no configuration and is
+     *        never told the setting, so its preview is the default rendering,
+     *        which is this one with one attribute fewer.
      */
-    public static function inline(string $s): string
+    public static function inline(string $s, string $linkOpen = 'here'): string
     {
         $s = e($s);
         $s = preg_replace('~`([^`]+)`~', '<code>$1</code>', $s) ?? $s;
@@ -190,14 +200,15 @@ final class Renderer
         /* links: the href is rebuilt from an allowlist of schemes, never passed through */
         return preg_replace_callback(
             '~\[([^\]]+)\]\(([^)\s]+)\)~',
-            static function (array $m): string {
+            static function (array $m) use ($linkOpen): string {
                 $href = self::rawHref($m[2]);
                 if (!self::safeHref($href)) {
                     return $m[1];
                 }
                 $ext = preg_match('~^https?://~i', $href) === 1;
                 return '<a href="' . e($href) . '"'
-                     . ($ext ? ' rel="noopener noreferrer"' : '') . '>' . $m[1] . '</a>';
+                     . ($ext ? ' rel="noopener noreferrer"' : '')
+                     . ($ext && $linkOpen === 'tab' ? ' target="_blank"' : '') . '>' . $m[1] . '</a>';
             },
             $s
         ) ?? $s;
@@ -254,8 +265,13 @@ final class Renderer
             || preg_match('~^mailto:[^\s@]+@[^\s@]+$~i', $href) === 1;
     }
 
-    /** Documents reference media absolutely; a relative ./media/x.png is normalised. */
-    private static function mediaUrl(string $src): string
+    /**
+     * Documents reference media absolutely; a relative ./media/x.png is
+     * normalised. The site's own logo is reduced the same way — a picture in
+     * the top bar is a picture like any other, and there is one answer to what
+     * a src may address.
+     */
+    public static function mediaUrl(string $src): string
     {
         /* a query or a fragment is not part of a file name */
         $src = preg_replace('~[?#].*$~', '', $src) ?? $src;

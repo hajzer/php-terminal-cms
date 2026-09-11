@@ -133,7 +133,7 @@ final class Router
         }
 
         $doc  = Document::load($found['file'], $category, $slug);
-        $body = '<article class="doc">' . $doc->html() . '</article>'
+        $body = '<article class="doc">' . $doc->html($this->linkOpen()) . '</article>'
               . $this->docFooter($doc, $found['lang'], $found['languages']);
 
         return ['status' => 200, 'title' => $doc->title(), 'body' => $body,
@@ -152,7 +152,7 @@ final class Router
         $intro = $this->resolve($category, 'index');
         if ($intro !== null) {
             $doc  = Document::load($intro['file'], $category, 'index');
-            $body .= '<article class="doc intro">' . $doc->html() . '</article>';
+            $body .= '<article class="doc intro">' . $doc->html($this->linkOpen()) . '</article>';
         } else {
             $body .= '<h1>' . e($label) . '</h1>';
         }
@@ -172,7 +172,7 @@ final class Router
         $intro = $this->resolve('', 'index');
         if ($intro !== null) {
             $doc  = Document::load($intro['file'], '', 'index');
-            $body .= '<article class="doc intro">' . $doc->html() . '</article>';
+            $body .= '<article class="doc intro">' . $doc->html($this->linkOpen()) . '</article>';
         } else {
             $body .= '<h1>' . e($this->title()) . '</h1>';
         }
@@ -182,6 +182,7 @@ final class Router
                 $this->contentDir,
                 Site::categories($this->site),
                 Site::languages($this->site),
+                Site::listingMax($this->site),
             ));
         }
 
@@ -192,6 +193,12 @@ final class Router
     private function title(): string
     {
         return (string) ($this->site['title'] ?? 'php-terminal-cms');
+    }
+
+    /** Where a link to another site opens, for every document this router renders. */
+    private function linkOpen(): string
+    {
+        return Site::linkOpen($this->site);
     }
 
     /** @return array{status:int, title:string, body:string, active:?string, lang:string} */

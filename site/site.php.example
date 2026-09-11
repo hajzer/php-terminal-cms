@@ -29,8 +29,31 @@ return [
      * The homepage listing: the recent documents from every category, printed
      * under content/index.md. Set it to false and the homepage is index.md and
      * nothing else. Leave it out and it is on.
+     *
+     * 'listing_max' is how many documents that list prints: a whole number, or
+     * 0 for every document there is. A category page always prints its whole
+     * category. Leave it out and the homepage prints fifteen.
      */
-    'listing' => true,
+    'listing'     => true,
+    'listing_max' => 15,
+
+    /**
+     * Where a link that leaves this site opens: 'here' in the tab the reader
+     * is in, or 'tab' in a new one. Only a link that names http or https can
+     * open a new tab — a link to this site, a fragment and a mailto: address
+     * stay where they are either way. Leave it out and every link opens here.
+     */
+    'link_open' => 'here',
+
+    /**
+     * A picture in the brand link, in front of the title. It is a file under
+     * public/media/, addressed the way a document addresses an image, and
+     * anything that is not a local path is read as a file name under that
+     * directory. The title stays the title: it is the logo's alt text, and it
+     * is still the writing beside it. Leave it out and the brand is the title
+     * alone.
+     */
+    // 'logo' => '/media/logo.svg',
 
     /**
      * The site footer, and the only thing that appears in it. One string is one

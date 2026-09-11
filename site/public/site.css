@@ -14,6 +14,12 @@ main.reader-page { font-size: calc(var(--global-font-size) * var(--doc-scale)); 
   text-decoration: none; border: 0;
 }
 .topbar .brand:hover { background: transparent; color: var(--accent); }
+/* an instance's own picture, beside the words it is the picture of — capped to
+   the bar's line, whatever the file's own size is */
+.topbar .brand .logo {
+  height: 20px; width: auto; vertical-align: middle;
+  margin-right: 8px; position: relative; top: -1px;
+}
 /* the tagline, in the one place it is read rather than only indexed */
 .topbar .tagline {
   color: var(--faint); padding-right: 18px; white-space: nowrap;

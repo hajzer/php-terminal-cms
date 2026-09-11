@@ -131,9 +131,12 @@ final class Listing
      * @param list<array{slug:string, label:string, listing:bool}> $categories
      *        as Site::categories() returns them — malformed entries are gone
      * @param list<string> $codes
+     * @param ?int $limit how many to print — null is every one there is, which
+     *        is what Site::listingMax() answers for an instance that asked for
+     *        all of them
      * @return list<Entry>
      */
-    public static function recent(string $contentDir, array $categories, array $codes = [], int $limit = 15): array
+    public static function recent(string $contentDir, array $categories, array $codes, ?int $limit): array
     {
         $all = [];
         foreach ($categories as $c) {

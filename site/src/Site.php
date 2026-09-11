@@ -18,6 +18,12 @@ final class Site
     /** The accent an instance that names none, or names one that is not a colour, gets. */
     public const ACCENT = '#d9a05f';
 
+    /** How many documents the homepage Listing prints for an instance that
+     *  names no count, or names something that is not one. */
+    public const LISTING_MAX = 15;
+
+    /** Where a link to another site opens for an instance that does not say. */
+    public const LINK_OPEN = 'here';
 
     /** The default language an instance that names none, or names something
      *  that is not a code, gets. */
@@ -94,6 +100,55 @@ final class Site
     public static function lists(array $site): bool
     {
         return ($site['listing'] ?? true) !== false;
+    }
+
+    /**
+     * How many documents the homepage Listing prints — a whole number of them,
+     * or null for every one there is. Only a whole number of at least one is a
+     * count; 0 is how an instance asks for all of them, and anything that is
+     * not a count at all — a negative, a fraction, a word, nothing — gets the
+     * default rather than a homepage with no list on it.
+     *
+     * A category listing is not capped: a category is a finite thing an author
+     * chose the size of, and cutting it off would hide documents that have
+     * nowhere else to be listed.
+     *
+     * @param array<string,mixed> $site
+     */
+    public static function listingMax(array $site): ?int
+    {
+        $max = $site['listing_max'] ?? self::LISTING_MAX;
+        if ($max === 0) {
+            return null;
+        }
+        return is_int($max) && $max >= 1 ? $max : self::LISTING_MAX;
+    }
+
+    /**
+     * Where a link to another site opens: 'here' in the tab the reader is in,
+     * or 'tab' in a new one. 'tab' is the only value that changes anything, so
+     * an instance that names something else gets the reader's tab kept.
+     *
+     * @param array<string,mixed> $site
+     */
+    public static function linkOpen(array $site): string
+    {
+        return ($site['link_open'] ?? null) === 'tab' ? 'tab' : self::LINK_OPEN;
+    }
+
+    /**
+     * The picture in the brand link, or '' for an instance that has none. The
+     * src is reduced exactly as an Image Line's src is, so a value that is not
+     * a safe local path names a file under the media directory rather than
+     * another origin.
+     *
+     * @param array<string,mixed> $site
+     */
+    public static function logo(array $site): string
+    {
+        $logo = $site['logo'] ?? '';
+        $logo = is_string($logo) ? trim($logo) : '';
+        return $logo === '' ? '' : Renderer::mediaUrl($logo);
     }
 
     /**

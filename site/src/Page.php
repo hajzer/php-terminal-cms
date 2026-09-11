@@ -37,7 +37,15 @@ final class Page
         $accent = Site::accent($site);
         /* the tagline is read in the top bar and indexed as the description */
         $tagline = trim((string) ($site['tagline'] ?? ''));
-        $footer  = self::footer($site['footer'] ?? '');
+        /* a footer that disagreed with the body about where a link opens would
+           be the same instance answering the same question two ways */
+        $footer  = self::footer($site['footer'] ?? '', Site::linkOpen($site));
+
+        /* the picture is in the brand link, in front of the words it is the
+           picture of — so the instance is named whether or not it loads */
+        $logo = Site::logo($site);
+        $brand = ($logo !== '' ? '<img class="logo" src="' . e($logo) . '" alt="' . e($name) . '">' : '')
+               . e($name);
 
         return '<!doctype html>
 <html lang="' . e($lang) . '">
@@ -52,7 +60,7 @@ final class Page
 </head>
 <body class="reader">
 <div class="topbar">
-  <a class="brand" href="/">' . e($name) . '</a>' .
+  <a class="brand" href="/">' . $brand . '</a>' .
 ($tagline !== '' ? "\n" . '  <span class="tagline">' . e($tagline) . '</span>' : '') . '
   <nav>' . $nav . '</nav>
   <div class="host">
@@ -81,8 +89,10 @@ final class Page
      * markup on the page any more than a document can.
      *
      * Nothing is added around it. A footer nobody configured is no footer.
+     *
+     * @param string $linkOpen where a link to another site opens — Renderer::inline()
      */
-    private static function footer(mixed $config): string
+    private static function footer(mixed $config, string $linkOpen): string
     {
         $lines = [];
         foreach (is_array($config) ? $config : [$config] as $line) {
@@ -91,7 +101,7 @@ final class Page
             }
             $line = trim((string) $line);
             if ($line !== '') {
-                $lines[] = '<span>' . Renderer::inline($line) . '</span>';
+                $lines[] = '<span>' . Renderer::inline($line, $linkOpen) . '</span>';
             }
         }
         if ($lines === []) {

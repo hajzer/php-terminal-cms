@@ -32,9 +32,10 @@ final class Document
         return $this->meta['date'] ?? '';
     }
 
-    public function html(): string
+    /** @param string $linkOpen where a link to another site opens — Renderer::inline() */
+    public function html(string $linkOpen = 'here'): string
     {
-        return Renderer::render($this->lines);
+        return Renderer::render($this->lines, true, $linkOpen);
     }
 
     /**
