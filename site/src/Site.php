@@ -54,7 +54,8 @@ final class Site
      */
     public static function lang(array $site): string
     {
-        $lang = strtolower(trim((string) ($site['lang'] ?? self::LANG)));
+        $lang = $site['lang'] ?? self::LANG;
+        $lang = is_string($lang) ? strtolower(trim($lang)) : '';
         return Language::isCode($lang) ? $lang : self::LANG;
     }
 
@@ -210,8 +211,9 @@ final class Site
      */
     public static function accent(array $site): string
     {
-        $accent = (string) ($site['accent'] ?? self::ACCENT);
-        return preg_match('~^#[0-9a-fA-F]{6}$~', $accent) === 1 ? $accent : self::ACCENT;
+        $accent = $site['accent'] ?? self::ACCENT;
+        return is_string($accent) && preg_match('~^#[0-9a-fA-F]{6}$~', $accent) === 1
+            ? $accent : self::ACCENT;
     }
 
     /** One URL segment, and one directory name under content/. */

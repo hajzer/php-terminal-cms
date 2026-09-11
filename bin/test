@@ -672,6 +672,24 @@ foreach ($declared as $what => [$config, $want]) {
     ok($got === $want, sprintf('%-42s -> %s', $what, implode(' ', $want)), implode(' ', $got));
 }
 
+/* a value that is not even a string is not a language or a colour — it is
+   the default, and it is not a warning printed into the page either */
+$warnings = [];
+set_error_handler(static function (int $n, string $m) use (&$warnings): bool {
+    $warnings[] = $m;
+    return true;
+});
+$notStrings = ['lang' => ['en'], 'accent' => ['#fff'], 'languages' => 'sk'];
+$langGot   = TerminalCms\Site::lang($notStrings);
+$accentGot = TerminalCms\Site::accent($notStrings);
+$codesGot  = TerminalCms\Site::languages($notStrings);
+restore_error_handler();
+ok($warnings === [], 'a lang or an accent that is not a string raises nothing', implode("\n", $warnings));
+ok($langGot === TerminalCms\Site::LANG && $accentGot === TerminalCms\Site::ACCENT,
+   'and each is its default', "$langGot $accentGot");
+ok($codesGot === ['en', 'sk'], 'while a languages list written as one word is that one language',
+   implode(' ', $codesGot));
+
 /* one document in three languages, one of them the site's own */
 $box = sys_get_temp_dir() . '/tcms-langs-' . getmypid();
 mkdir($box . '/notes', 0755, true);
