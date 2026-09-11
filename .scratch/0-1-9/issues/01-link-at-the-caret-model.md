@@ -1,6 +1,6 @@
 # 01 — A link where the caret is: the model half
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 Commit: 1 of 8 — "editor: a link where the caret is"
 
@@ -43,23 +43,23 @@ three-implementations rule is not engaged.
 
 `node tests/js-model.js` covers, and passes:
 
-- [ ] a caret in the middle of a Paragraph puts the link there, both halves of
+- [x] a caret in the middle of a Paragraph puts the link there, both halves of
   the text intact byte for byte
-- [ ] a caret at offset 0, and a caret at the end of the text
-- [ ] a selection is replaced by the link, and exactly that span
-- [ ] a selection covering the whole text
-- [ ] inserting into an empty text
-- [ ] inserting beside an existing link leaves that link untouched, and the Line
+- [x] a caret at offset 0, and a caret at the end of the text
+- [x] a selection is replaced by the link, and exactly that span
+- [x] a selection covering the whole text
+- [x] inserting into an empty text
+- [x] inserting beside an existing link leaves that link untouched, and the Line
   then reports two links in the order they appear
-- [ ] offsets past the end, negative offsets, and a start after its end, each
+- [x] offsets past the end, negative offsets, and a start after its end, each
   clamped to something sane rather than corrupting the text
-- [ ] the reported end offset is where the caret belongs, for a caret and for a
+- [x] the reported end offset is where the caret belongs, for a caret and for a
   selection
-- [ ] no wording, and no href, behave exactly as `addLink` and `setLink` already
+- [x] no wording, and no href, behave exactly as `addLink` and `setLink` already
   do — no new rule about emptiness
-- [ ] `addLink` is asserted unchanged, byte for byte, so appending has not moved
+- [x] `addLink` is asserted unchanged, byte for byte, so appending has not moved
 
 Then:
 
-- [ ] `php bin/test` green
-- [ ] `tests/js-inline.js` untouched and still passing
+- [x] `php bin/test` green
+- [x] `tests/js-inline.js` untouched and still passing
