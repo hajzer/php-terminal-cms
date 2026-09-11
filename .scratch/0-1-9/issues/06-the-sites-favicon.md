@@ -1,8 +1,10 @@
 # 06 — The site's favicon, beside the logo it already has
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 Commit: 4 of 8 — "brand: a logo and a favicon, both halves"
+Landed in 1 commit:
+  c39cddc brand: a logo and a favicon, both halves
 
 ## What
 
@@ -50,22 +52,22 @@ that is generated, resized or converted by the software. Any change to
 
 `php bin/test` covers, and passes:
 
-- [ ] a config naming a `favicon` emits one `<link rel="icon">` whose href is
+- [x] a config naming a `favicon` emits one `<link rel="icon">` whose href is
   what the media-path reduction returns
-- [ ] a local absolute path stands as it is; a bare name becomes `/media/<name>`
-- [ ] the four shapes the link allowlist already refuses — a protocol-relative
+- [x] a local absolute path stands as it is; a bare name becomes `/media/<name>`
+- [x] the four shapes the link allowlist already refuses — a protocol-relative
   URL, a climb, a backslash, a control character — are each reduced to the file
   they name, exactly as `logo` is
-- [ ] an `.svg` carries a type; an unknown extension emits the link without one
-- [ ] no `favicon` key emits the shipped default; an empty string emits no link
-- [ ] `logo` is unchanged, byte for byte, in every case `bin/test` already
+- [x] an `.svg` carries a type; an unknown extension emits the link without one
+- [x] no `favicon` key emits the shipped default; an empty string emits no link
+- [x] `logo` is unchanged, byte for byte, in every case `bin/test` already
   asserts for it
-- [ ] the shipped icon and logo files exist where the shell says they are
+- [x] the shipped icon and logo files exist where the shell says they are
 
 Then:
 
-- [ ] `php bin/test` green
-- [ ] a fresh unpack shows a logo in the brand link and an icon in the tab, with
+- [x] `php bin/test` green
+- [x] a fresh unpack shows a logo in the brand link and an icon in the tab, with
   no configuration edited
-- [ ] `docs/config.md` gains `favicon` in the key table and as a prose section,
+- [x] `docs/config.md` gains `favicon` in the key table and as a prose section,
   and the example block matches `site/site.php.example`
