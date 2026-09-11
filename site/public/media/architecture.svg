@@ -1,0 +1,170 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 712" width="1200" height="712" role="img" aria-labelledby="ttl dsc">
+<title id="ttl">php-terminal-cms — write, export, publish</title>
+<desc id="dsc">Two halves that never talk to each other. Lines are composed in a static editor page and exported as one markdown file; that file is copied to a server by hand; there PHP reads it and renders HTML on every request, through index.php, routing, the document classes and Page.</desc>
+<style>
+  text { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; fill: #cbd0d1; }
+  .h { fill: #e8ecec; }
+  .a { fill: #d9a05f; }
+  .p { fill: #7fb2d9; }
+  .s { fill: #7c8486; font-size: 11px; }
+  .f { fill: #5a6265; font-size: 11px; }
+  .cap { fill: #7c8486; font-size: 11px; }
+  .panel { fill: #1e2225; stroke: #2d3336; }
+  .win { fill: #21262a; stroke: #2d3336; }
+  .bar { fill: #2d3336; }
+  .arw { stroke: #7c8486; stroke-width: 1.5; fill: none; marker-end: url(#tip); }
+</style>
+<defs>
+  <marker id="tip" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M0 0 L10 5 L0 10 z" fill="#7c8486"/>
+  </marker>
+</defs>
+
+<rect width="1200" height="712" fill="#191c1e"/>
+
+<!-- header -->
+<rect x="24" y="26" width="44" height="34" rx="6" fill="#21262a" stroke="#d9a05f"/>
+<text class="a" x="46" y="50" font-size="16" text-anchor="middle">&gt;_</text>
+<text class="h" x="82" y="52" font-size="26">php-terminal-cms</text>
+<text class="s" x="352" y="52" letter-spacing="2.5">WRITE · EXPORT · PUBLISH</text>
+<text class="f" x="1176" y="52" text-anchor="end">a document is an ordered sequence of typed lines</text>
+
+<!-- ============================== 1 · WRITE ============================== -->
+<rect class="panel" x="24" y="100" width="496" height="320" rx="8"/>
+<text class="a" x="44" y="128">1 · WRITE</text>
+<text class="s" x="140" y="128">editor/index.html — a static page, opened from file://</text>
+
+<rect class="win" x="44" y="162" width="456" height="186" rx="6"/>
+<rect x="44" y="162" width="456" height="26" rx="6" fill="#2d3336"/>
+<rect x="44" y="180" width="456" height="8" fill="#2d3336"/>
+<circle cx="60" cy="175" r="4" fill="#5a6265"/><circle cx="74" cy="175" r="4" fill="#5a6265"/><circle cx="88" cy="175" r="4" fill="#5a6265"/>
+<text class="s" x="106" y="179">what-it-is.md</text>
+
+<text class="a" x="58" y="212">H1</text><text class="h" x="92" y="212">php-terminal-cms</text>
+<text class="a" x="58" y="234">¶</text><text x="92" y="234">A document is an ordered sequence of typed</text>
+<text class="a" x="58" y="256">¶</text><text x="92" y="256">lines, not a blob of text.</text>
+<text class="a" x="58" y="278">•</text><text x="92" y="278">fourteen types, one keystroke each</text>
+<text class="a" x="58" y="300">{}</text><text class="f" x="92" y="300">php</text><text class="p" x="134" y="300">echo Page::html($site, $result, $nonce);</text>
+<text class="a" x="58" y="322">$</text><text class="f" x="92" y="322">bash</text><text class="p" x="134" y="322">php -S localhost:8080 -t site/public</text>
+
+<text class="f" x="44" y="374">o new · j k move · p l q types · E export · : commands · ? keys</text>
+<text class="cap" x="44" y="398">Composed in the browser. The Document is never sent anywhere.</text>
+
+<!-- ============================ the transfer ============================ -->
+<path class="arw" d="M528 250 H568"/>
+<text class="f" x="548" y="238" text-anchor="middle">export</text>
+<rect x="578" y="222" width="64" height="56" rx="6" fill="#21262a" stroke="#d9a05f"/>
+<text class="a" x="610" y="246" text-anchor="middle">.md</text>
+<text class="f" x="610" y="264" text-anchor="middle">one file</text>
+<path class="arw" d="M650 250 H690"/>
+<text class="f" x="670" y="238" text-anchor="middle">copy</text>
+
+<text class="s" x="610" y="312" text-anchor="middle">git · rsync · scp</text>
+<text class="s" x="610" y="328" text-anchor="middle">WinSCP · a USB stick</text>
+<text class="f" x="610" y="352" text-anchor="middle">The two halves never</text>
+<text class="f" x="610" y="368" text-anchor="middle">talk to each other.</text>
+
+<!-- ============================= 2 · PUBLISH ============================ -->
+<rect class="panel" x="700" y="100" width="476" height="320" rx="8"/>
+<text class="a" x="720" y="128">2 · PUBLISH</text>
+<text class="s" x="820" y="128">site/public/index.php — PHP, per request</text>
+
+<rect class="win" x="720" y="162" width="436" height="186" rx="6"/>
+<rect x="720" y="162" width="436" height="26" rx="6" fill="#2d3336"/>
+<rect x="720" y="180" width="436" height="8" fill="#2d3336"/>
+<circle cx="736" cy="175" r="4" fill="#5a6265"/><circle cx="750" cy="175" r="4" fill="#5a6265"/><circle cx="764" cy="175" r="4" fill="#5a6265"/>
+<text class="s" x="782" y="179">example.com/about/what-it-is</text>
+
+<text class="a" x="738" y="214">about</text>
+<text class="s" x="738" y="236">guides</text>
+<path d="M826 198 V336" stroke="#2d3336" stroke-width="1"/>
+
+<text class="h" x="846" y="214">What php-terminal-cms is</text>
+<rect class="bar" x="846" y="228" width="264" height="6" rx="3"/>
+<rect class="bar" x="846" y="242" width="264" height="6" rx="3"/>
+<rect class="bar" x="846" y="256" width="186" height="6" rx="3"/>
+<rect x="846" y="272" width="284" height="26" rx="4" fill="#191c1e" stroke="#2d3336"/>
+<text class="a" x="858" y="290" font-size="12">$ php bin/test</text>
+<rect class="bar" x="846" y="312" width="240" height="6" rx="3"/>
+<rect class="bar" x="846" y="326" width="164" height="6" rx="3"/>
+
+<text class="f" x="720" y="374">no database · no session · no cookie · no build step</text>
+<text class="cap" x="720" y="398">PHP reads content/ and renders it again on every request.</text>
+
+<text class="s" x="600" y="444" text-anchor="middle">Or skip the copy: content/*.md on the server is an ordinary file, and vim, nano or any terminal editor edits it in place.</text>
+
+<!-- ========================= 3 · A REQUEST ============================== -->
+<rect x="24" y="462" width="1152" height="234" rx="8" fill="none" stroke="#2d3336" stroke-dasharray="4 4"/>
+<text class="a" x="44" y="488">3 · ONE REQUEST</text>
+<text class="s" x="192" y="488">site/src — where a request goes once it reaches PHP, and which class does what</text>
+
+<rect class="panel" x="44" y="504" width="157" height="172" rx="6"/>
+<text class="h" x="56" y="526" font-size="12">Web server</text>
+<text class="s" x="56" y="548">Apache, nginx, or</text>
+<text class="s" x="56" y="562">php -S while you</text>
+<text class="s" x="56" y="576">are writing.</text>
+<text class="s" x="56" y="604">Serves the files in</text>
+<text class="s" x="56" y="618">site/public/ and</text>
+<text class="s" x="56" y="632">hands the rest to</text>
+<text class="s" x="56" y="646">one PHP script.</text>
+<path class="arw" d="M209 590 H227"/>
+
+<rect class="panel" x="235" y="504" width="157" height="172" rx="6"/>
+<text class="h" x="247" y="526" font-size="12">index.php</text>
+<text class="f" x="247" y="540">site/public/</text>
+<text class="s" x="247" y="562">The only PHP entry</text>
+<text class="s" x="247" y="576">point there is.</text>
+<text class="s" x="247" y="604">Reads site.php,</text>
+<text class="s" x="247" y="618">loads the Dialect</text>
+<text class="s" x="247" y="632">tables, mints one</text>
+<text class="s" x="247" y="646">CSP nonce for this</text>
+<text class="s" x="247" y="660">request alone.</text>
+<path class="arw" d="M400 590 H418"/>
+
+<rect class="panel" x="426" y="504" width="157" height="172" rx="6"/>
+<text class="h" x="438" y="526" font-size="12">Routing</text>
+<text class="p" x="438" y="548" font-size="11">Router · Site</text>
+<text class="p" x="438" y="562" font-size="11">Language · Listing</text>
+<text class="s" x="438" y="590">Compares the URL</text>
+<text class="s" x="438" y="604">with the Category</text>
+<text class="s" x="438" y="618">list in site.php,</text>
+<text class="s" x="438" y="632">the second segment</text>
+<text class="s" x="438" y="646">with real filenames.</text>
+<text class="s" x="438" y="660">Never builds a path</text>
+<text class="s" x="438" y="674">from the request.</text>
+<path class="arw" d="M591 590 H609"/>
+
+<rect class="panel" x="617" y="504" width="157" height="172" rx="6"/>
+<text class="h" x="629" y="526" font-size="12">The document</text>
+<text class="p" x="629" y="548" font-size="11">Document</text>
+<text class="p" x="629" y="562" font-size="11">Markdown</text>
+<text class="p" x="629" y="576" font-size="11">Line</text>
+<text class="p" x="629" y="590" font-size="11">Renderer</text>
+<text class="p" x="629" y="604" font-size="11">Highlighter</text>
+<text class="s" x="629" y="632">Reads the .md back</text>
+<text class="s" x="629" y="646">into Lines, escapes</text>
+<text class="s" x="629" y="660">them, emits only</text>
+<text class="s" x="629" y="674">tags it chose.</text>
+<path class="arw" d="M782 590 H800"/>
+
+<rect class="panel" x="808" y="504" width="157" height="172" rx="6"/>
+<text class="h" x="820" y="526" font-size="12">The shell</text>
+<text class="p" x="820" y="548" font-size="11">Page</text>
+<text class="s" x="820" y="576">Wraps the article in</text>
+<text class="s" x="820" y="590">the navigation, the</text>
+<text class="s" x="820" y="604">tagline, the language</text>
+<text class="s" x="820" y="618">links and the footer,</text>
+<text class="s" x="820" y="632">and names the nonce.</text>
+<path class="arw" d="M973 590 H991"/>
+
+<rect class="panel" x="999" y="504" width="157" height="172" rx="6"/>
+<text class="h" x="1011" y="526" font-size="12">HTML</text>
+<text class="s" x="1011" y="548">One response,</text>
+<text class="s" x="1011" y="562">rendered just now.</text>
+<text class="s" x="1011" y="590">No file was written,</text>
+<text class="s" x="1011" y="604">no socket opened,</text>
+<text class="s" x="1011" y="618">no session started,</text>
+<text class="s" x="1011" y="632">no cookie read.</text>
+<text class="f" x="1011" y="660">docs/security.md</text>
+
+</svg>

@@ -1,3 +1,5 @@
+![php-terminal-cms](docs/media/logo.png)
+
 # php-terminal-cms
 
 A micro publishing platform built on one idea: **a document is an ordered
@@ -13,17 +15,21 @@ dialect, and the same handful of operations moves, retypes, duplicates and
 deletes every kind of them. You compose lines in a terminal-styled editor and
 move them around with the keyboard; the result is an ordinary markdown file.
 
-```
-AUTHOR                            SERVER
-
-editor/index.html                 site/public/index.php
-  static page, no endpoints         PHP renders content/*.md per request
-  drop a .md in, download one out   no database, no JS, no dependencies
-         │
-    export .md
-         │
-    git / rsync / WinSCP ──────────▶ content/
-```
+![The two halves of php-terminal-cms, side by side. On the left the editor, a
+static page holding a document as a list of typed lines — a heading, two
+paragraphs, a list item, a php line and a bash line — which leaves as one
+markdown file. In the middle that file is carried over by git, rsync, scp or
+WinSCP, a copy you perform yourself, because the two halves never talk to each
+other; or you skip the copy and edit the file on the server with any terminal
+editor. On the right the published page, drawn by PHP on every request. Along
+the bottom, where one request goes once it reaches PHP and which class does
+what: the web server, then site/public/index.php, then routing — Router, Site,
+Language and Listing comparing the URL with the category list and with the real
+filenames, never building a path out of the request — then Document, Markdown,
+Line, Renderer and Highlighter reading the file back into lines and out into
+HTML, then Page wrapping that in the navigation, the language links and the
+footer, and out as one response, with no file written, no socket opened and no
+session started.](docs/media/architecture.svg)
 
 Two halves that never talk to each other. The editor cannot write to the
 server; the server cannot be written to from the internet. Publishing is a file
@@ -174,26 +180,10 @@ write in it.
 
 ## Layout
 
-![The two halves of php-terminal-cms, side by side. On the left the editor, a
-static page holding a document as a list of typed lines — a heading, two
-paragraphs, a list item, a php line and a bash line — which leaves as one
-markdown file. In the middle that file is carried over by git, rsync, scp or
-WinSCP, a copy you perform yourself, because the two halves never talk to each
-other; or you skip the copy and edit the file on the server with any terminal
-editor. On the right the published page, drawn by PHP on every request. Along
-the bottom, where one request goes once it reaches PHP and which class does
-what: the web server, then site/public/index.php, then routing — Router, Site,
-Language and Listing comparing the URL with the category list and with the real
-filenames, never building a path out of the request — then Document, Markdown,
-Line, Renderer and Highlighter reading the file back into lines and out into
-HTML, then Page wrapping that in the navigation, the language links and the
-footer, and out as one response, with no file written, no socket opened and no
-session started.](docs/media/architecture.svg)
-
-The sketch at the top says which half is which. The tree below says what the
-files are. The picture says what happens between them — and, along its bottom
-row, where a request goes once it reaches PHP and which class in `site/src` does
-what, which neither the sketch nor the list can show.
+The picture at the top says which half is which and what happens between them
+— and, along its bottom row, where a request goes once it reaches PHP and which
+class in `site/src` does what, which the tree cannot show. The tree says what
+the files are.
 
 ```
 README.md  LICENSE  VERSION  CONTEXT.md  CHANGELOG.md  AGENTS.md

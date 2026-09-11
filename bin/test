@@ -102,6 +102,8 @@ $checks = [
     '/site/shared/langs.json' => (string) file_get_contents($root . '/shared/langs.json'),
     '/editor/theme.css'       => (string) file_get_contents($root . '/shared/theme.css'),
     '/site/public/theme.css'  => (string) file_get_contents($root . '/shared/theme.css'),
+    '/site/public/media/architecture.svg'
+                              => (string) file_get_contents($root . '/docs/media/architecture.svg'),
 ];
 /* the probe page is the editor page; undo the rewrites bin/build makes and
    what is left has to be byte-identical to editor/index.html */

@@ -8,6 +8,8 @@
  *                     -> site/shared/langs.json (the site reads it directly)
  *   shared/theme.css  -> editor/theme.css
  *                     -> site/public/theme.css
+ *   docs/media/architecture.svg -> site/public/media/architecture.svg
+ *                                  (the example site shows the diagram)
  *   editor/index.html -> tests/editor-probe.html  (the same page, with its
  *                                                  assets repathed and the
  *                                                  probe script appended)
@@ -52,6 +54,7 @@ $targets = [
     '/site/shared/langs.json' => $json,
     '/editor/theme.css'       => file_get_contents($root . '/shared/theme.css'),
     '/site/public/theme.css'  => file_get_contents($root . '/shared/theme.css'),
+    '/site/public/media/architecture.svg' => file_get_contents($root . '/docs/media/architecture.svg'),
     '/tests/editor-probe.html' => $probe,
 ];
 

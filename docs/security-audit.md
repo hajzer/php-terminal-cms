@@ -202,12 +202,17 @@ refused is a decision about what the preview is. It is issue 12.
   `bin/test` fails if either copy drifts. No `url()`, no `@import`, no font.
 - **The write pane's measure.** One token in two forms for two font bases; the
   probe measures the computed width. Nothing here reaches a request or a file.
-- **The assets.** `favicon.ico` is one ICO of two PNG frames and `logo.png`
-  one PNG, byte-identical between the Editor and the site. The diagram is an
-  SVG with one internal `url(#tip)` marker and no script, no external reference
-  and no `foreignObject`. `bin/package` copies directories with `cp -r` and
-  files with `copy()`, both binary-safe, and `bin/test` fails if a tracked file
-  is not named by the manifest — which is what covers `docs/media/`.
+- **The assets.** `favicon.ico` is one ICO of three PNG frames — 16, 32 and
+  48 — and `logo.png` one PNG, byte-identical between the Editor and the site;
+  `docs/media/logo.png` is the same mark beside the wordmark, one PNG, which
+  only the README shows. The diagram is an SVG with one internal `url(#tip)`
+  marker and no script, no external reference and no `foreignObject`; the
+  example site serves a copy of it from `site/public/media/`, which
+  `bin/build` writes from `docs/media/` and `bin/test` compares, the way the
+  two copies of `theme.css` are kept. `bin/package` copies directories with
+  `cp -r` and files with `copy()`, both binary-safe, and `bin/test` fails if a
+  tracked file is not named by the manifest — which is what covers
+  `docs/media/`.
 - **`bin/build`'s repathing.** It rewrites the `href` and `src` values that
   carry no scheme and no fragment and do not start with `/`, and appends the
   probe's own script after the rewrite. On the page as it stands that is seven

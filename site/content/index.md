@@ -12,17 +12,7 @@ A micro publishing platform built on one idea: a document is an **ordered sequen
 
 ## The two halves
 
-```diagram
-EDITOR                            SERVER
-
-editor/index.html                 site/public/index.php
-  a static page, no endpoints       renders content/*.md per request
-  drop a .md in, download one out   no database, no JS, no dependencies
-         |
-    export .md
-         |
-    git / rsync / WinSCP --------> content/
-```
+![The editor on the left, a static page; the published site on the right, PHP rendering each request; between them one markdown file, copied by hand. Along the bottom, where a request goes once it reaches PHP.](/media/architecture.svg)
 
 They never talk to each other. The editor cannot write to the server, and the server cannot be written to from the internet — publishing is a file copy you perform with a tool that already has your credentials.
 

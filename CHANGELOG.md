@@ -38,18 +38,26 @@ again.
 - The archive ships a logo and an icon, and `site.php.example` names both
   rather than commenting one out, so an unpacked instance has a face before
   anything is configured — the first binary content an archive has carried.
-  The editor's tab and top bar carry the same icon and the same mark, as files
-  beside it named by relative path so they load from the filesystem. It gains
-  no configuration: an instance has an identity of its own and the editor has
-  none to have.
+  The mark is a terminal window with a document leaving it, drawn once and
+  shipped at three sizes: the icon in the tab, the mark in the brand at the
+  size the bar's line allows, and beside the wordmark as the banner the README
+  opens with, in `docs/media/`. The editor's tab and top bar carry the same
+  icon and the same mark, as files beside it named by relative path so they
+  load from the filesystem. The editor gains no configuration: an instance
+  has an identity of its own and the editor has none to have.
 - The write pane has the read pane's measure. Both take it from the one
   `--page-measure` in `shared/theme.css`, so switching between writing and
   reading no longer re-flows the document and the two cannot drift. Split
   screen is unchanged, and so are the content size keys.
 - The README carries a diagram of the two halves and of where a request goes
   once it reaches PHP, with alt text that is the diagram rather than a label.
-  It lives in `docs/media/`, which `bin/manifest.php` now names, so the copy
-  in an unpacked archive is the copy that was written.
+  It stands where the text sketch of the two halves stood, in the README and
+  on the example site's home page, and the sketch is gone from both. It lives
+  in `docs/media/`, which `bin/manifest.php` now names, so the copy in an
+  unpacked archive is the copy that was written; the example site's copy under
+  `site/public/media/` is written from it by `bin/build` and checked by
+  `bin/test`, as the two copies of `theme.css` are, and is the first image
+  the example content has carried.
 - The editor's claim that it sends nothing is a test. `bin/test` scans
   `editor/editor.js` and `editor/ui.js` for every way a page opens a connection
   and fails naming the file and the call, the way it scans the site's PHP for
