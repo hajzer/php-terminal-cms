@@ -39,6 +39,17 @@ filesystem, that is the filesystem. An image that does not load falls back to
 the box with the file name in it, silently. The document is no part of any of
 this and still goes nowhere.
 
+That is checked, not asserted. The `source` section of `bin/test` — the one that
+scans the site's PHP for the calls that reach the system — reads
+`editor/editor.js` and `editor/ui.js` for the ways a page opens a connection:
+`fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `sendBeacon`, a dynamic
+`import`, the constructors that open one and `window.open`. The editor names
+none of them, and a change that added one would fail the suite naming the file
+and the call. The scan says the editor initiates no request; the picture that
+loads is the browser acting on the `<img>` the editor wrote, which no scan of
+the source can see and the paragraph above is what says. The same section checks
+that the page names `no-referrer`.
+
 ## The renderer
 
 `Renderer.php` never passes file bytes into its output. It matches a line to a

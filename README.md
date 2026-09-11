@@ -96,6 +96,7 @@ J K      move the line   D x      remove             t c s u table code cli out
 drag ⠿   reorder         y        duplicate          r f m   rule figure meta
 z        fold output     C        copy the block     Tab     cycle dialect
 a        link / image    Tab ⇧Tab next / prev table cell
+^K       link at caret   ^← ^→    move the table column
 ^Z ^⇧Z   undo / redo     N        new document       R       name the file
 E        export          T        theme              :       command line
 e v b    write/read/split         B  swap the panes  + - 0   content size
@@ -106,13 +107,20 @@ e v b    write/read/split         B  swap the panes  + - 0   content size
 in it, to pick between and edit as a **wording** and an **href**, or — on an
 image line — its **src** and **caption**, the caption being the alt text too.
 An href the published page would refuse to link is marked as such before you
-publish it, by the same allowlist the page uses.
+publish it, by the same allowlist the page uses. `^K` while editing a line is
+the same overlay from inside the box: what you selected becomes the wording and
+the link replaces it where it stands, and with nothing selected the link lands
+at the caret. `a` on a line you are not editing appends.
 
 A table is a run of table rows and a row is one line, so `J`/`K` reorders a row
 and `y` duplicates one. `Tab` while editing a row walks the caret from cell to
-cell and, past the last one, opens the next row. `:col add`, `del`, `left` and
-`right` work on a whole column across every row of the run — there is no table
-object and no grid, which is
+cell and, past the last one, opens the next row. In the write pane a table run
+carries a strip above it, one entry per column showing its heading cell: click
+an entry to select the column and `+` `×` `‹` `›` add, remove and move it —
+`^←` and `^→` move it from the keyboard — and click a cell to open that row
+with the caret already in it. `:col add`, `del`, `left` and `right` are the
+same four from the command line, on a whole column across every row of the run.
+There is no table object and no grid, which is
 [ADR-0015](docs/adr/0015-tables-are-lines-not-a-grid.md).
 
 The topbar has the three things that act on the document as a whole — **Open
@@ -203,10 +211,10 @@ bin/           build  test  fmt  package  manifest.php
 tests/         js-dump.js  js-model.js  js-tables.js  js-inline.js  editor-probe.html
 ```
 
-`site/site.php` — title, logo, tagline, languages, accent colour, footer, the
-category list, which index pages list the documents below them, how many the
-homepage lists, and whether a link that leaves the site opens in a new tab — is
-the only file that differs between two installations. Copy it from
+`site/site.php` — title, logo, favicon, tagline, languages, accent colour,
+footer, the category list, which index pages list the documents below them, how
+many the homepage lists, and whether a link that leaves the site opens in a new
+tab — is the only file that differs between two installations. Copy it from
 `site.php.example`; it is in neither the repository nor the package.
 
 ## Commands

@@ -27,6 +27,8 @@ again to write in it.
 | `Esc` (while editing) | commit and stop |
 | `o` `O` | new line below / above, straight into editing |
 | `Tab` / `⇧Tab` (editing a table row) | the next / previous cell |
+| `^K` (while editing) | a link at the caret, or over what is selected — the same overlay `a` opens, under Blocks |
+| `^←` `^→` | move the selected table column — the strip above a table selects one |
 | `D` or `x` | remove the line |
 | `y` | duplicate the line |
 | `^Z` | undo |
@@ -228,7 +230,9 @@ from 1, and it is worked out when you ask rather than stored anywhere. `col add`
 with no number puts an empty column on the right; `col add 2` puts one before
 the second. `col del 2` takes that one out, and `col left 2` · `col right 2`
 swap it with its neighbour. `Tab` offers the numbers with the heading row's
-words beside them, which is how you tell which number you want.
+words beside them, which is how you tell which number you want. The strip above
+the run is the same four operations without the number: select a column there
+and `+` `×` `‹` `›` are `add`, `del`, `left` and `right` on it.
 
 Every row of the run is rewritten by one such command, and rows shorter than the
 widest one are padded with empty cells first — so a ragged table comes out of

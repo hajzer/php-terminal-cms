@@ -146,10 +146,10 @@ git, rsync, scp, WinSCP. Deliberately outside the software.
 _Avoid_: deploy (that is the code), upload, sync, publish
 
 **Site Config**:
-The per-instance `site.php` — title, logo, tagline, Language list, Category
-list, accent colour, Listing switches, how many Documents the homepage Listing
-prints, where a leaving Link opens, and Footer. The only thing that differs
-between two installations of the same code.
+The per-instance `site.php` — title, logo, favicon, tagline, Language list,
+Category list, accent colour, Listing switches, how many Documents the homepage
+Listing prints, where a leaving Link opens, and Footer. The only thing that
+differs between two installations of the same code.
 _Avoid_: settings, options, env
 
 **Listing**:

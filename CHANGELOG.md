@@ -1,5 +1,87 @@
 # Changelog
 
+## 0.1.9
+
+A link lands where the caret is, a table has columns you can point at, both
+halves have a face, and everything added since the last review has been read
+again.
+
+- `^K` while editing a line opens the address overlay from inside the box and
+  puts the link where the writer is. Text selected in the box arrives as the
+  wording and the committed link replaces exactly that span; with nothing
+  selected the form opens empty and the link lands at the caret. The caret is
+  left after the link so typing carries on, one `^Z` takes the whole thing
+  back, and `Esc` leaves the line byte for byte as it was. `a` on a line that
+  is not open for editing appends, as it always has — there is no caret there
+  to speak of.
+- A table run in the write pane carries a strip above it, one entry per
+  column, each its number and that column's heading cell — so the columns are
+  something to look at rather than pipes to count. Clicking an entry selects
+  that column; clicking a cell puts the cursor on that row and opens it with
+  the caret already in that cell. The strip is drawn for the run the cursor is
+  in and for no other, and the selection is gone the moment the cursor leaves
+  the run, so there is never a selected column you cannot see. The read pane
+  and the exported markdown know nothing about it.
+- A selected column reveals `+` `×` `‹` `›` — add, remove, move left, move
+  right — and `^←` and `^→` move it from the keyboard. Each is `:col` with the
+  selected column's number, so a click and the command run the same operation,
+  refuse for the same reasons in the same words, and are one undo step. There
+  is still no table object and no grid: the strip is an affordance over lines,
+  which is what `docs/adr/0015-tables-are-lines-not-a-grid.md` left room for.
+- `favicon` in `site.php` names the icon in the reader's tab, read the way
+  `logo`'s src is: an absolute path addresses the document root and stands as
+  it is — so `/favicon.ico`, the file every browser asks for by habit, is
+  served as a static file with no PHP in the path — and anything else is a
+  file name under `/media/`. The link carries a `type` where the extension is
+  one this software knows. Leave the key out and a page carries the icon the
+  archive ships; name an empty string and it carries none.
+- The archive ships a logo and an icon, and `site.php.example` names both
+  rather than commenting one out, so an unpacked instance has a face before
+  anything is configured — the first binary content an archive has carried.
+  The editor's tab and top bar carry the same icon and the same mark, as files
+  beside it named by relative path so they load from the filesystem. It gains
+  no configuration: an instance has an identity of its own and the editor has
+  none to have.
+- The write pane has the read pane's measure. Both take it from the one
+  `--page-measure` in `shared/theme.css`, so switching between writing and
+  reading no longer re-flows the document and the two cannot drift. Split
+  screen is unchanged, and so are the content size keys.
+- The README carries a diagram of the two halves and of where a request goes
+  once it reaches PHP, with alt text that is the diagram rather than a label.
+  It lives in `docs/media/`, which `bin/manifest.php` now names, so the copy
+  in an unpacked archive is the copy that was written.
+- The editor's claim that it sends nothing is a test. `bin/test` scans
+  `editor/editor.js` and `editor/ui.js` for every way a page opens a connection
+  and fails naming the file and the call, the way it scans the site's PHP for
+  the calls that reach the system. The one request the editor causes — the
+  picture an image line names — is the browser acting on markup, which no scan
+  can see, and `docs/security.md` says so. The editor's page names
+  `no-referrer`, so that request carries the src and nothing about where the
+  editor was opened from.
+- A third security review, of everything added since the second one at 0.1.4:
+  0.1.6, 0.1.7, 0.1.8 and this release. Two findings, both low, both fixed. A
+  file whose name ends in the site's own language — `hello-en.md` on an `en`
+  site — answered at `/hello-en` as well as at `/hello`; it answers at the bare
+  address alone now. The address overlay judged the href as typed rather than
+  the href it writes, so it could mark as refused a link the page would make; it
+  judges what it will write now. `docs/security-audit.md` carries the scope, the
+  table, and what was looked at and left alone.
+- From the code read beside it, fixed where found: a relative media path that
+  climbs — `../x.png` — is the file it names under `/media/`, as the
+  documentation always said, and not `/x.png`; an image's src and caption
+  written from the overlay are cut down to what `![caption](src)` can hold, as
+  a link's two halves already were; a line break in an open edit box commits
+  as one character, so the offset `^K` reads off the box is the offset the
+  link lands at; and a `lang` or an `accent` that is not a string is its
+  default, quietly, as a malformed category entry already was. One thing it
+  found waits as its own issue: a link clicked in the read pane, or a URL
+  dropped outside the edit box, can carry the tab away and lose the document
+  without a word.
+- `bin/build` repaths every relative `href` and `src` of the editor's page into
+  the probe by shape rather than by a hand-written list, and `bin/test` checks
+  that every asset the probe references exists — so an asset added to the page
+  can no longer be one the probe silently asks for and does not get.
+
 ## 0.1.8
 
 The two addressed things — a link and an image — are written from the keyboard
