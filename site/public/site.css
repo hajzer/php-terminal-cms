@@ -32,11 +32,18 @@ main.reader-page { font-size: calc(var(--global-font-size) * var(--doc-scale)); 
 }
 .topbar nav a:hover { color: var(--fg-strong); background: transparent; }
 .topbar nav a.on { color: var(--accent); border-bottom-color: var(--accent); }
+/* the only three controls a reader is ever given: a resting box rather than
+   bare text, so that they are found without being hunted for */
 .topbar .host button {
-  all: unset; cursor: pointer; color: var(--faint); font: 11px/1 var(--mono);
-  padding: 4px 8px; border: 1px solid transparent;
+  all: unset; cursor: pointer; color: var(--ctl-fg); font: 11px/1 var(--mono);
+  padding: 4px 8px; border: 1px solid var(--ctl-line); background: var(--ctl-bg);
 }
-.topbar .host button:hover { color: var(--fg-strong); border-color: var(--border); }
+.topbar .host button:hover {
+  color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); border-color: var(--ctl-line-hover);
+}
+.topbar .host button:focus-visible {
+  outline: var(--ctl-ring); outline-offset: var(--ctl-ring-offset);
+}
 
 /* ---------- listings ---------- */
 /* one row is one document. The languages it exists in sit beside the row

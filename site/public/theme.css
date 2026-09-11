@@ -33,6 +33,29 @@
   --tk-com: #9a9386;
   --tk-bi:  #2f6f9f;
   --tk-var: #a34a3c;
+
+  /* ---------- controls ----------
+     One treatment for every control the reader and the writer can press, in
+     both halves: a resting state that can be seen, a hover that answers, and
+     a ring for the keyboard. Written in terms of the tokens above, so each
+     mode follows on its own and the page and the editor cannot drift.
+     --ctl-bg is one step away from the page and --ctl-bg-hover a step
+     further, whichever mode is on.
+
+     A control that has a border of its own colours it --ctl-line; one that
+     has not draws the same edge as --ctl-edge, a shadow. The ring is an
+     outline pulled back inside the edge. None of the three takes any room,
+     so a control's box stays the size it was. */
+  --ctl-fg:          var(--secondary);
+  --ctl-bg:          var(--block-bg);
+  --ctl-line:        var(--border);
+  --ctl-edge:        inset 0 0 0 1px var(--ctl-line);
+  --ctl-fg-hover:    var(--fg-strong);
+  --ctl-bg-hover:    var(--code-bg);
+  --ctl-line-hover:  var(--accent);
+  --ctl-edge-hover:  inset 0 0 0 1px var(--ctl-line-hover);
+  --ctl-ring:        2px solid var(--accent);
+  --ctl-ring-offset: -2px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -162,10 +185,12 @@ body.reader {
   letter-spacing: .14em; text-transform: uppercase;
 }
 .reader .block-bar .copy {
-  all: unset; cursor: pointer; color: var(--secondary); font: 11px/1 var(--mono);
-  padding: 3px 8px; border: 1px solid transparent;
+  all: unset; cursor: pointer; color: var(--ctl-fg); font: 11px/1 var(--mono);
+  padding: 3px 8px; border: 1px solid var(--ctl-line); background: var(--ctl-bg);
 }
-.reader .block-bar .copy:hover { color: var(--fg-strong); border-color: var(--border); }
+.reader .block-bar .copy:hover {
+  color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); border-color: var(--ctl-line-hover);
+}
 
 .reader pre {
   margin: 0; padding: var(--global-space) calc(var(--global-space) * 1.5);
@@ -182,12 +207,20 @@ body.reader {
 .reader .outsec { border: 1px solid var(--border); border-top: 0; background: var(--block-bg); }
 .reader .outsec > summary {
   cursor: pointer; list-style: none; padding: 3px 10px;
-  color: var(--secondary); font-size: 11px; display: flex; align-items: center; gap: 6px;
+  color: var(--ctl-fg); font-size: 11px; display: flex; align-items: center; gap: 6px;
+  box-shadow: var(--ctl-edge);
 }
 .reader .outsec > summary::-webkit-details-marker { display: none; }
 .reader .outsec > summary::before { content: "▸"; color: var(--faint); }
 .reader .outsec[open] > summary::before { content: "▾"; }
-.reader .outsec > summary:hover { color: var(--fg-strong); }
+.reader .outsec > summary:hover {
+  color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); box-shadow: var(--ctl-edge-hover);
+}
+/* the keyboard's own mark, on both of the document's controls at once */
+.reader .block-bar .copy:focus-visible,
+.reader .outsec > summary:focus-visible {
+  outline: var(--ctl-ring); outline-offset: var(--ctl-ring-offset);
+}
 .reader .outsec > summary i { font-style: normal; color: var(--faint); }
 .reader .outsec .outp {
   margin: 0; border: 0; border-top: 1px dashed var(--border);

@@ -22,15 +22,21 @@ body { overflow: hidden; font: 14px/1.6 var(--mono); }
 }
 .topbar .grow { flex: 1; }
 
-/* what the editor can do to the document as a whole */
+/* what the editor can do to the document as a whole, wearing the one control
+   treatment theme.css derives from the theme's own tokens */
 .topbar .acts { display: flex; align-items: stretch; height: 100%; }
 .topbar .acts button {
   all: unset; cursor: pointer; display: flex; align-items: center; padding: 0 12px;
-  color: var(--secondary); white-space: nowrap;
+  color: var(--ctl-fg); white-space: nowrap;
+  background: var(--ctl-bg); box-shadow: var(--ctl-edge);
 }
-.topbar .acts button:hover { color: var(--accent); background: var(--block-bg); }
-.topbar .acts button[disabled] { color: var(--faint); cursor: default; }
-.topbar .acts button[disabled]:hover { background: transparent; color: var(--faint); }
+.topbar .acts button:hover {
+  color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); box-shadow: var(--ctl-edge-hover);
+}
+/* a button that can do nothing is not a control, so it loses the box too */
+.topbar .acts button[disabled], .topbar .acts button[disabled]:hover {
+  color: var(--faint); cursor: default; background: transparent; box-shadow: none;
+}
 .topbar .acts .bar { width: 1px; background: var(--border); margin: 5px 8px; }
 
 /* ------------------------------------------------------------------ tabs */
@@ -64,9 +70,12 @@ body { overflow: hidden; font: 14px/1.6 var(--mono); }
 .tabs .zoom { display: flex; align-items: stretch; border-left: 1px solid var(--border); }
 .tabs .zoom button {
   all: unset; cursor: pointer; display: flex; align-items: center; padding: 0 9px;
-  color: var(--secondary); font-size: 11px;
+  color: var(--ctl-fg); font-size: 11px;
+  background: var(--ctl-bg); box-shadow: var(--ctl-edge);
 }
-.tabs .zoom button:hover { color: var(--accent); }
+.tabs .zoom button:hover {
+  color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); box-shadow: var(--ctl-edge-hover);
+}
 .tabs .zoom #zoomPct { color: var(--faint); min-width: 34px; justify-content: center; }
 
 /* ----------------------------------------------------------------- panes */
@@ -141,9 +150,11 @@ body { overflow: hidden; font: 14px/1.6 var(--mono); }
 }
 .run .runbar .lang { flex: 1; color: var(--faint); font-size: 10px;
   letter-spacing: .14em; text-transform: uppercase; }
-.run .runbar button { all: unset; cursor: pointer; color: var(--secondary);
-  font: 11px/1 var(--mono); padding: 3px 8px; }
-.run .runbar button:hover { color: var(--fg-strong); }
+.run .runbar button { all: unset; cursor: pointer; color: var(--ctl-fg);
+  font: 11px/1 var(--mono); padding: 3px 8px;
+  background: var(--ctl-bg); box-shadow: var(--ctl-edge); }
+.run .runbar button:hover {
+  color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); box-shadow: var(--ctl-edge-hover); }
 .run .runbar button.done { color: var(--tk-str); }
 .run .ln { padding-right: 8px; }
 .run .ln .txt { font-size: .93em; line-height: 1.5; white-space: pre; overflow-x: auto; }
@@ -157,8 +168,8 @@ body { overflow: hidden; font: 14px/1.6 var(--mono); }
   border-top: 1px dashed var(--border);
 }
 .foldrow .gut { color: var(--faint); font-size: 10px; text-align: right; padding: 4px 12px 0 0; }
-.foldrow .lbl { padding: 3px 4px; color: var(--secondary); font-size: 11px; }
-.foldrow:hover .lbl { color: var(--fg-strong); }
+.foldrow .lbl { padding: 3px 4px; color: var(--ctl-fg); font-size: 11px; }
+.foldrow:hover .lbl { color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); }
 .foldrow .lbl i { font-style: normal; color: var(--faint); }
 .run .ln.out { border-top: 1px dashed var(--border); }
 .run .ln.out .txt { color: var(--secondary); font-size: .93em; }
@@ -174,13 +185,20 @@ body { overflow: hidden; font: 14px/1.6 var(--mono); }
   display: flex; flex-wrap: wrap; padding: 3px 10px; font-size: 11px;
   border-top: 1px solid var(--border); color: var(--faint);
 }
-.legend b { font-weight: 400; padding: 1px 7px; cursor: pointer; }
-.legend b:hover { color: var(--fg); }
-.legend b.on { background: var(--accent); color: var(--bg); }
+/* the line types, then the writing loop as buttons — the same actions the keys
+   have. Every chip is its own box, so that on a screen with no keyboard the
+   strip reads as the row of buttons it is */
+.legend b {
+  font-weight: 400; padding: 1px 7px; cursor: pointer;
+  color: var(--ctl-fg); background: var(--ctl-bg); box-shadow: var(--ctl-edge);
+}
+.legend b:hover {
+  color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); box-shadow: var(--ctl-edge-hover);
+}
+/* the type this line already is, filled rather than outlined — it is a state,
+   not something to press, so the hover says nothing */
+.legend b.on, .legend b.on:hover { background: var(--accent); color: var(--bg); box-shadow: none; }
 .legend b i { font-style: normal; color: var(--secondary); margin-left: 5px; }
-/* the writing loop as buttons — the same actions the keys have */
-.legend b.do { color: var(--secondary); }
-.legend b.do:hover { color: var(--fg-strong); background: var(--block-bg); }
 .legend b.on i { color: var(--bg); opacity: .7; }
 .legend .sep { flex: 1; }
 .legend .act { color: var(--secondary); }
@@ -225,10 +243,13 @@ body { overflow: hidden; font: 14px/1.6 var(--mono); }
 }
 .ov .card h4 .grow { flex: 1; }
 .ov .card h4 button {
-  all: unset; cursor: pointer; color: var(--secondary); font-size: 11px;
-  letter-spacing: .06em; padding: 3px 9px; border: 1px solid var(--border);
+  all: unset; cursor: pointer; color: var(--ctl-fg); font-size: 11px;
+  letter-spacing: .06em; padding: 3px 9px;
+  border: 1px solid var(--ctl-line); background: var(--ctl-bg);
 }
-.ov .card h4 button:hover { color: var(--fg-strong); border-color: var(--accent); }
+.ov .card h4 button:hover {
+  color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); border-color: var(--ctl-line-hover);
+}
 .ov .body { overflow: auto; padding: 16px 18px; font-size: 13px; }
 .ov .row { display: grid; grid-template-columns: 150px 1fr; padding: 2px 0; color: var(--secondary); }
 .ov .row kbd { font: inherit; color: var(--fg-strong); }
@@ -285,6 +306,19 @@ body.dropping::after {
   border: 2px dashed var(--accent); color: var(--accent);
   display: grid; place-items: center; font-size: 14px;
   background: rgba(0,0,0,.35);
+}
+
+/* ------------------------------------------------- the keyboard's own mark
+   Every control in the chrome a tab can reach, in one rule, so that none is
+   left out of it. The file name while it is being edited is not in it: the
+   accent box it already wears is the same mark said once. */
+.topbar .acts button:focus-visible,
+.tabs button:focus-visible,
+.tabs .zoom button:focus-visible,
+.tabs .doc b:not([contenteditable]):focus-visible,
+.run .runbar button:focus-visible,
+.ov .card h4 button:focus-visible {
+  outline: var(--ctl-ring); outline-offset: var(--ctl-ring-offset);
 }
 
 /* ------------------------------------------------------------------ touch
