@@ -1039,19 +1039,28 @@ if ($temp) {
 
 /* ------------------------------------------------------- dangerous calls */
 echo "\nsource\n";
-$danger = ['eval(', 'exec(', 'shell_exec', 'system(', 'passthru', 'popen',
-           'unserialize(', 'extract(', 'assert(', '$_GET', '$_POST', '$_COOKIE',
-           'file_put_contents', 'fwrite', 'unlink', 'session_start'];
-$found = [];
-$scanned = array_merge(glob($root . '/site/src/*.php') ?: [], [$root . '/site/public/index.php']);
-foreach ($scanned as $f) {
-    $code = (string) file_get_contents($f);
-    foreach ($danger as $d) {
-        if (str_contains($code, $d)) {
-            $found[] = basename($f) . ': ' . $d;
+
+/* Every file, every term it must not contain, as "file: term" lines. */
+function scan(array $files, array $terms): array
+{
+    $found = [];
+    foreach ($files as $f) {
+        $code = (string) file_get_contents($f);
+        foreach ($terms as $t) {
+            if (str_contains($code, $t)) {
+                $found[] = basename($f) . ': ' . $t;
+            }
         }
     }
+    return $found;
 }
+
+$found = scan(
+    array_merge(glob($root . '/site/src/*.php') ?: [], [$root . '/site/public/index.php']),
+    ['eval(', 'exec(', 'shell_exec', 'system(', 'passthru', 'popen',
+     'unserialize(', 'extract(', 'assert(', '$_GET', '$_POST', '$_COOKIE',
+     'file_put_contents', 'fwrite', 'unlink', 'session_start']
+);
 ok($found === [], 'the site reads, and does nothing else', implode("\n", $found));
 
 /* The editor's one request is an <img src> the browser issues from markup, which
@@ -1061,17 +1070,10 @@ ok($found === [], 'the site reads, and does nothing else', implode("\n", $found)
    The two hand-written scripts are read. editor/langs.js is generated from
    shared/langs.json and is data, not code: its js table names fetch and eleven
    language tables name import, as words to colour. */
-$reach = ['fetch(', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'sendBeacon',
-          'import('];
-$found = [];
-foreach ([$root . '/editor/editor.js', $root . '/editor/ui.js'] as $f) {
-    $code = (string) file_get_contents($f);
-    foreach ($reach as $r) {
-        if (str_contains($code, $r)) {
-            $found[] = basename($f) . ': ' . $r;
-        }
-    }
-}
+$found = scan(
+    [$root . '/editor/editor.js', $root . '/editor/ui.js'],
+    ['fetch(', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'sendBeacon', 'import(']
+);
 ok($found === [], 'the editor opens no connection', implode("\n", $found));
 
 echo "\n$pass passed, $fail failed\n";
