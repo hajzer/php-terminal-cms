@@ -1054,5 +1054,25 @@ foreach ($scanned as $f) {
 }
 ok($found === [], 'the site reads, and does nothing else', implode("\n", $found));
 
+/* The editor's one request is an <img src> the browser issues from markup, which
+   a source scan cannot see; this says the other half, that the page opens no
+   connection itself. docs/security.md says what the markup causes.
+
+   The two hand-written scripts are read. editor/langs.js is generated from
+   shared/langs.json and is data, not code: its js table names fetch and eleven
+   language tables name import, as words to colour. */
+$reach = ['fetch(', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'sendBeacon',
+          'import('];
+$found = [];
+foreach ([$root . '/editor/editor.js', $root . '/editor/ui.js'] as $f) {
+    $code = (string) file_get_contents($f);
+    foreach ($reach as $r) {
+        if (str_contains($code, $r)) {
+            $found[] = basename($f) . ': ' . $r;
+        }
+    }
+}
+ok($found === [], 'the editor opens no connection', implode("\n", $found));
+
 echo "\n$pass passed, $fail failed\n";
 exit($fail === 0 ? 0 : 1);
