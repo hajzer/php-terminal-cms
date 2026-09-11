@@ -1,9 +1,18 @@
 # 10 — The third security review, and a deep code read
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 Blocked by: 01, 02, 03, 04, 05, 06, 07, 08, 09
 Commit: 7 of 8 — "docs: the third review"
+Landed in 8 commits, the findings and the hardening each on their own:
+  9aaf19b site: the site's own language is one address, the bare one
+  9e7b4bc site: a media path that climbs is a name under media/, however short the climb
+  2ebc747 site: a lang or an accent that is not a string is its default, quietly
+  4f645a6 editor: the overlay judges the href it writes, and cuts an image's halves too
+  a2fccf6 editor: a line break in the box commits as one character
+  a7e669a editor: the one request carries no referrer, and the scan names the constructors
+  bb94b6e docs: the third review
+  and the tracker commit that carries this line and issue 12
 
 ## What
 
@@ -85,18 +94,51 @@ always correct.
 
 ## Acceptance
 
-- [ ] `docs/security-audit.md` carries `## 0.1.9 — third review` in the house
+- [x] `docs/security-audit.md` carries `## 0.1.9 — third review` in the house
   shape, with its scope stated even where it found nothing
-- [ ] every item in "Scope — what is reviewed" is accounted for in the write-up,
+- [x] every item in "Scope — what is reviewed" is accounted for in the write-up,
   as a finding or as looked-at-and-left-alone with a reason
-- [ ] every finding is fixed here or has an issue number and a reason for
+- [x] every finding is fixed here or has an issue number and a reason for
   waiting
-- [ ] every fix has an assertion that fails without it
-- [ ] `## Residual risks` and `## Validation` reflect this release, updated in
+- [x] every fix has an assertion that fails without it
+- [x] `## Residual risks` and `## Validation` reflect this release, updated in
   place
-- [ ] the deep code read's findings are issues or fixes, and no second document
+- [x] the deep code read's findings are issues or fixes, and no second document
   was created
-- [ ] `docs/security.md` and CONTEXT.md still describe what the code does, and
+- [x] `docs/security.md` and CONTEXT.md still describe what the code does, and
   the Editor paragraph in particular was tested rather than taken on trust
-- [ ] `php bin/test` green, with the assertion count noted
-- [ ] the probe green in a browser, with its count noted
+- [x] `php bin/test` green, with the assertion count noted
+- [x] the probe green in a browser, with its count noted
+
+## Comments
+
+**Two findings, both `low`, both fixed; nothing above that.** A file suffixed
+with the site's own language answered at two addresses (Router), and the
+overlay warned about the href as typed rather than the href it writes, in the
+safe direction only (editor.js). Four hardening changes and two code-read fixes
+beside them, each with its assertion; every assertion was run against the code
+before its fix and seen to fail — `bin/test` went 7 red on the old PHP and
+scripts, the probe 2 red on the old scripts.
+
+**One code-read finding deferred, as issue 12:** a link clicked in the read
+pane, or a URL dropped outside the edit box, navigates the tab away and loses
+the Document. It waits because the three possible answers each change what
+the preview is, and that is a decision and not a fix.
+
+**Counts.** `php bin/test`: 548 passed, 0 failed (477 at 0.1.8). The probe:
+0 failed of 172 (170 before this issue), run in Firefox headless, since one is
+installed here — the maintainer's own run in a browser is still the last step
+issue 11 says to stop at.
+
+**For issue 11's changelog**, what this issue changed that a reader of a
+release note would want: the second address is gone; the overlay's warning is
+now right about a href with a space or a `)` in it; an image's src and caption
+cannot break the round trip any more; `../x.png` is `/media/x.png`; a
+non-string `lang` or `accent` is silently its default; the editor page names
+`no-referrer`; the network scan is longer. `docs/security.md` already carries
+the referrer and the media-path sentences — issue 11's edit to its Editor
+paragraph (that the claim is now tested) is still to do and is not done here.
+
+**The 0.1.8 tag** was not moved. Finding 1 belongs to 0.1.7's Router and the
+rest to 0.1.8 and later, but nothing is public and 0.1.9 sits on top; the
+maintainer's call, as the spec says.
