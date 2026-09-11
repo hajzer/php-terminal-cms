@@ -244,6 +244,62 @@
     return /\s$/.test(text) ? text + link : text + ' ' + link;
   }
 
+  /* ---------------------------------------------------------------- cells */
+
+  /* A Table Line holds its Cells as one pipe-separated string: there is no
+     grid anywhere, only Lines. Splitting one, joining it back, and finding
+     where its Cells sit in the text the writer typed is everything the rest of
+     the editor needs to know about the inside of a row. */
+
+  /** Where each Cell of a Table Line begins and ends in the raw text. The
+   *  caret walks between Cells, so the edges are the ones that were written,
+   *  spacing and all — not the ones the trimmed Cells would have. */
+  function cellSpans(text) {
+    var s = asText(text), out = [], at = 0, i;
+    for (i = 0; i <= s.length; i++) {
+      if (i === s.length || s.charAt(i) === '|') {
+        out.push({ at: at, end: i });
+        at = i + 1;
+      }
+    }
+    return out;
+  }
+
+  /** The Cells of a Table Line, trimmed, in the order they were written. A
+   *  Line with no pipe in it is one Cell; an empty Line is one empty Cell. */
+  function cells(text) {
+    var s = asText(text);
+    return cellSpans(s).map(function (c) { return s.slice(c.at, c.end).trim(); });
+  }
+
+  /** Which Cell of a Table Line the character at `at` belongs to. Past the end
+   *  of the text, that is the last Cell. */
+  function cellAt(text, at) {
+    var spans = cellSpans(text), i;
+    for (i = 0; i < spans.length; i++) if (at <= spans[i].end) return i;
+    return spans.length - 1;
+  }
+
+  /** Where the nth Cell's content ends in the raw text — after the last
+   *  character it holds, which is where a writer walking into it carries on
+   *  typing. -1 when the Line has no such Cell. */
+  function cellEnd(text, n) {
+    var s = asText(text), c = cellSpans(s)[n];
+    return c ? c.at + s.slice(c.at, c.end).replace(/\s+$/, '').length : -1;
+  }
+
+  /** Cells back into the text of a Line. */
+  function joinCells(list) {
+    return (list || []).map(function (c) { return asText(c).trim(); }).join(' | ');
+  }
+
+  /* A row of that many empty Cells — what a new row of a Run is born as. */
+  function blankRow(width) {
+    var out = [], i;
+    for (i = 0; i < Math.max(1, width | 0); i++) out.push('');
+    return joinCells(out);
+  }
+
   /* ----------------------------------------------------------------- runs */
 
   function joins(a, b) {
@@ -292,9 +348,9 @@
         lines.push(mk('img', m[2].trim(), m[1] || null)); continue;
       }
       if ((m = /^\|(.+)\|$/.exec(t))) {
-        var cells = m[1].trim();
-        if (!/^[\s:|-]+$/.test(cells)) {
-          lines.push(mk('table', cells.split('|').map(function (c) { return c.trim(); }).join(' | ')));
+        var row = m[1].trim();
+        if (!/^[\s:|-]+$/.test(row)) {
+          lines.push(mk('table', joinCells(cells(row))));
         }
         continue;
       }
@@ -401,13 +457,11 @@
           out.push('```', '');
           break;
         case 'table': {
-          var rows = run.map(function (l) {
-            return l.text.split('|').map(function (c) { return c.trim(); });
-          });
+          var rows = run.map(function (l) { return cells(l.text); });
           var width = Math.max.apply(null, rows.map(function (r) { return r.length; }));
-          rows.forEach(function (cells, k) {
-            while (cells.length < width) cells.push('');
-            out.push('| ' + cells.join(' | ') + ' |');
+          rows.forEach(function (row, k) {
+            while (row.length < width) row.push('');
+            out.push('| ' + row.join(' | ') + ' |');
             if (k === 0) out.push('|' + new Array(width + 1).join(' --- |'));
           });
           out.push('');
@@ -484,16 +538,14 @@
             run.map(function (x) { return inline(x.text); }).join(' ') + '</div>');
           break;
         case 'table': {
-          var rows = run.map(function (l) {
-            return l.text.split('|').map(function (c) { return c.trim(); });
-          });
+          var rows = run.map(function (l) { return cells(l.text); });
           var w = Math.max.apply(null, rows.map(function (r) { return r.length; }));
           var t = '<div class="tablewrap"><table>';
-          rows.forEach(function (cells, k2) {
-            while (cells.length < w) cells.push('');
+          rows.forEach(function (row, k2) {
+            while (row.length < w) row.push('');
             var tag = k2 === 0 ? 'th' : 'td';
             t += k2 === 0 ? '<thead><tr>' : '<tr>';
-            cells.forEach(function (c) { t += '<' + tag + '>' + inline(c) + '</' + tag + '>'; });
+            row.forEach(function (c) { t += '<' + tag + '>' + inline(c) + '</' + tag + '>'; });
             t += k2 === 0 ? '</tr></thead><tbody>' : '</tr>';
           });
           html.push(t + '</tbody></table></div>');
@@ -653,6 +705,9 @@
     var born = type || (l.type === 'meta' || l.type === 'rule' ? 'p' : l.type);
     var n = mk(born, '', born === l.type ? l.sub : null);
     if (born === 'out' && l.type === 'out') n.fold = l.fold === true;
+    /* a row is written Cell by Cell, so a row opened in a Table Run arrives
+       the Run's width wide — there is nowhere to walk to in a row of one */
+    if (born === 'table' && l.type === 'table') n.text = blankRow(this.tableRun(this.cur).width);
     var at = where === 'above' ? this.cur : this.cur + 1;
     this.lines.splice(at, 0, n);
     this.cur = at;
@@ -673,6 +728,18 @@
     this.lines.splice(this.cur + 1, 0, c);
     this.cur++;
     return c;
+  };
+  /** The Table Run that Line `i` belongs to — where it starts, where it ends,
+   *  and how many Columns wide it is, which is its widest Line. A Line that is
+   *  not a Table Line belongs to no Run and gets null. The bounds stop at the
+   *  Run: a second Table further down the document is a Run of its own. */
+  Doc.prototype.tableRun = function (i) {
+    var a = this.lines, start = i, end = i, width = 0, j;
+    if (!a[i] || a[i].type !== 'table') return null;
+    while (start > 0 && a[start - 1].type === 'table') start--;
+    while (end < a.length - 1 && a[end + 1].type === 'table') end++;
+    for (j = start; j <= end; j++) width = Math.max(width, cells(a[j].text).length);
+    return { start: start, end: end, width: width };
   };
   Doc.prototype.outRunStart = function (i) {
     if (!this.lines[i] || this.lines[i].type !== 'out') return -1;
@@ -856,6 +923,7 @@
   var API = {
     TYPES: TYPES, byId: byId, byKey: byKey, PROMPTS: PROMPTS,
     esc: esc, highlight: highlight, inline: inline, runs: runs,
+    cells: cells, joinCells: joinCells, cellAt: cellAt, cellEnd: cellEnd,
     safeLinkHref: safeLinkHref, links: links, setLink: setLink, unlink: unlink, addLink: addLink,
     today: today, blank: blank,
     parse: parse, toMarkdown: toMarkdown, renderDoc: renderDoc,

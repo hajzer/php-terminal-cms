@@ -265,6 +265,55 @@
     s.removeAllRanges();
     s.addRange(r);
   }
+  /* Where the caret is in the open box, counted in characters of its text —
+     and how to put it back at a place counted the same way. */
+  function caretOffset(span) {
+    var sel = getSelection(), r = document.createRange();
+    if (!sel || !sel.rangeCount) return span.textContent.length;
+    r.selectNodeContents(span);
+    try { r.setEnd(sel.getRangeAt(0).endContainer, sel.getRangeAt(0).endOffset); }
+    catch (e) { return span.textContent.length; }
+    return r.toString().length;
+  }
+  function caretTo(span, at) {
+    var walk = document.createTreeWalker(span, NodeFilter.SHOW_TEXT);
+    var r = document.createRange(), node, seen = 0;
+    while ((node = walk.nextNode())) {
+      if (seen + node.length >= at) { r.setStart(node, at - seen); r.collapse(true); break; }
+      seen += node.length;
+    }
+    if (!node) { r.selectNodeContents(span); r.collapse(false); }
+    var sel = getSelection();
+    sel.removeAllRanges();
+    sel.addRange(r);
+  }
+
+  /* A Table Line is edited as the one string it is; Tab is what makes it feel
+     like a row. Which Cell an offset is in, and where a Cell's text ends, are
+     editor.js's business — this is only the caret that lands there. */
+  function caretToCell(span, n) {
+    var at = L.cellEnd(span.textContent, n);
+    if (at > -1) caretTo(span, at);
+  }
+  /** Walk the caret one Cell along. Past the last Cell this commits the row and
+   *  opens the next one with the caret in its first Cell — the writing loop,
+   *  sideways. Back from the first Cell there is nowhere to go. */
+  function tabCell(span, back) {
+    var text = span.textContent;
+    var to = L.cellAt(text, caretOffset(span)) + (back ? -1 : 1);
+    if (to < 0) return;
+    if (to >= L.cells(text).length) {
+      /* the Run's width is read off the model, so the row being typed has to
+         be in it before the next one is sized from it */
+      commitEdit();
+      render();
+      openLine('below');
+      if (editing) caretToCell(editing.span, 0);
+      return;
+    }
+    caretToCell(span, to);
+  }
+
   function editable(el) {
     el.setAttribute('contenteditable', 'plaintext-only');
     if (el.contentEditable !== 'plaintext-only') el.setAttribute('contenteditable', 'true');
@@ -290,6 +339,11 @@
 
     span.addEventListener('keydown', function (ev) {
       ev.stopPropagation();
+      if (ev.key === 'Tab' && line.type === 'table') {
+        ev.preventDefault();
+        tabCell(span, ev.shiftKey);
+        return;
+      }
       if (ev.key !== 'Escape' && !(ev.key === 'Enter' && !ev.shiftKey)) return;
       ev.preventDefault();
       var enter = ev.key === 'Enter';

@@ -215,6 +215,85 @@
   ok('folding is not a step to undo — ^Z takes back the text instead',
      rows().length === withPrinted - 1, rows().length + ' of ' + withPrinted);
 
+  /* --- tables: a row the width of its Run, and Tab between its Cells ---- */
+  function cellsIn(b) { return window.TerminalCms.cells(b.textContent); }
+  /* the caret in the open box, counted in characters, read and written */
+  function caret() {
+    var b = box(), s = getSelection(), r = document.createRange();
+    if (!b || !s.rangeCount) return -1;
+    r.selectNodeContents(b);
+    r.setEnd(s.getRangeAt(0).endContainer, s.getRangeAt(0).endOffset);
+    return r.toString().length;
+  }
+  function putCaret(at) {
+    var b = box(), r = document.createRange();
+    if (b.firstChild) r.setStart(b.firstChild, at); else r.selectNodeContents(b);
+    r.collapse(true);
+    var s = getSelection();
+    s.removeAllRanges();
+    s.addRange(r);
+  }
+
+  document.getElementById('actClear').click();
+  key('t');                          /* the one line becomes a Table Line */
+  key('i');
+  type('one | two | three');
+  key('Escape', box());
+  key('o');
+  ok('o on a Line of a three-Column Run opens a three-Cell row',
+     !!box() && cellsIn(box()).length === 3, box() && box().textContent);
+
+  type('a | b | c');
+  putCaret(0);
+  key('Tab', box());
+  ok('Tab moves the caret to the next Cell',
+     caret() === box().textContent.indexOf('b') + 1, caret());
+  key('Tab', box());
+  ok('and on to the Cell after that',
+     caret() === box().textContent.indexOf('c') + 1, caret());
+  var nt = rows().length;
+  key('Tab', box());
+  ok('Tab on the last Cell opens the next row', rows().length === nt + 1, rows().length);
+  ok('with the caret in its first Cell', !!box() && caret() === 0, caret());
+  ok('and that row is the width of the Run too',
+     cellsIn(box()).length === 3, box().textContent);
+  ok('the row Tab left behind was committed',
+     rows().join('|').indexOf('a | b | c') > -1, rows().join('|'));
+  key('Tab', box(), true);
+  ok('Shift-Tab on the first Cell does nothing',
+     !!box() && caret() === 0 && rows().length === nt + 1, caret() + ' of ' + rows().length);
+  key('Escape', box());
+
+  document.getElementById('actClear').click();
+  key('t');
+  key('i');
+  type('x | y');
+  key('Enter', box());
+  ok('Enter while editing a Table Line still commits and opens the next Line',
+     !!box() && rows().join('|').indexOf('x | y') > -1, rows().join('|'));
+  key('Escape', box());
+
+  /* the bug the probe first missed: Tab out of the very first row of a table,
+     whose text was still only in the box when the next row was sized */
+  document.getElementById('actClear').click();
+  key('t');
+  key('i');
+  type('p | q | r');
+  putCaret(box().textContent.length);
+  key('Tab', box());
+  ok('Tab out of the first row of a new table commits it before measuring it',
+     !!box() && cellsIn(box()).length === 3, box() && box().textContent);
+  ok('and the row it came from is in the document',
+     rows().join('|').indexOf('p | q | r') > -1, rows().join('|'));
+  key('Escape', box());
+
+  document.getElementById('actClear').click();
+  key('c');
+  key('Tab');
+  ok('Tab outside the box still cycles the Dialect',
+     msg() === 'js' && document.querySelector('#sheet .run.code .lang').textContent === 'js',
+     msg() + ' :: ' + document.querySelector('#sheet .run.code .lang').textContent);
+
   /* --- the address overlay: the links in a line, and an image's two halves -- */
   function addrOn()  { return document.getElementById('addr').classList.contains('on'); }
   function picking() { return addrOn() && !document.getElementById('addrPick').hidden; }

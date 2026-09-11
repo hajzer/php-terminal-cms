@@ -1,6 +1,6 @@
 # 03 — Cells: a row that is the right width, and Tab between Cells
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 Commit: 2 of 5 — "editor: table cells and columns"
 
@@ -35,17 +35,17 @@ work is `editor/ui.js`.
 
 `node tests/js-model.js`:
 
-- [ ] split and join, including empty Cells and a Line shorter than its Run
-- [ ] a Run's bounds from a cursor inside it, not crossing into a second Run further
+- [x] split and join, including empty Cells and a Line shorter than its Run
+- [x] a Run's bounds from a cursor inside it, not crossing into a second Run further
   down the document
 
 `tests/editor-probe.js`, green in a browser:
 
-- [ ] `o` on a Table Line in a three-Column Run opens a three-Cell row
-- [ ] `Tab` while editing moves Cell to Cell
-- [ ] `Tab` on the last Cell opens the next row, caret in Cell 1
-- [ ] `Shift-Tab` on the first Cell does nothing
-- [ ] `Tab` outside editing still cycles Dialects
-- [ ] `Enter` while editing a Table Line still commits and opens the next Line
+- [x] `o` on a Table Line in a three-Column Run opens a three-Cell row
+- [x] `Tab` while editing moves Cell to Cell
+- [x] `Tab` on the last Cell opens the next row, caret in Cell 1
+- [x] `Shift-Tab` on the first Cell does nothing
+- [x] `Tab` outside editing still cycles Dialects
+- [x] `Enter` while editing a Table Line still commits and opens the next Line
 
-- [ ] `php bin/test` green
+- [x] `php bin/test` green

@@ -139,6 +139,54 @@ ok('and the cursor is visible afterwards', d.foldedAt(d.cur) === false);
 ok('the whole run came back, not just that line', d.foldedAt(1) === false);
 ok('reveal() on a visible line is a no-op', d.reveal() === false);
 
+/* ---------------------------------------------------------------- cells */
+/* A Table Line holds its Cells as one pipe-separated string. Splitting it,
+   joining it back, and finding the Run it belongs to are what the row editor
+   and the column operations both stand on. */
+eq('a Line splits into its Cells', L.cells('a | b | c'), ['a', 'b', 'c']);
+eq('however the pipes were spaced', L.cells('a|b  |   c'), ['a', 'b', 'c']);
+eq('a Line with no pipe in it is one Cell', L.cells('only'), ['only']);
+eq('an empty Line is one empty Cell', L.cells(''), ['']);
+eq('an empty Cell between two others is a Cell', L.cells('a || c'), ['a', '', 'c']);
+eq('a trailing pipe ends in an empty Cell', L.cells('a | b |'), ['a', 'b', '']);
+eq('Cells join back with a pipe between them', L.joinCells(['a', 'b', 'c']), 'a | b | c');
+eq('joining trims what it is given', L.joinCells(['a ', ' b']), 'a | b');
+eq('a row of empty Cells is still that many Cells',
+   L.cells(L.joinCells(['', '', ''])).length, 3);
+eq('split and join is a round trip', L.joinCells(L.cells('a|b |  c')), 'a | b | c');
+eq('a Line shorter than its Run splits into what it holds', L.cells('a | b').length, 2);
+
+/* the caret walks between Cells, so where one ends is counted in the raw text
+   the writer typed — not in the trimmed Cells it splits into */
+eq('an offset in the first Cell is in Cell 1', L.cellAt('a | b | c', 0), 0);
+eq('and one just before a pipe is still in that Cell', L.cellAt('a | b | c', 2), 0);
+eq('an offset after a pipe is in the Cell after it', L.cellAt('a | b | c', 3), 1);
+eq('an offset past the end of the Line is in the last Cell', L.cellAt('a | b', 99), 1);
+eq('a Cell ends after the last character it holds', L.cellEnd('a | b | c', 1), 5);
+eq('the first Cell of a row of empty Cells ends where it starts',
+   L.cellEnd(L.joinCells(['', '', '']), 0), 0);
+eq('a Cell the Line does not have ends nowhere', L.cellEnd('a | b', 5), -1);
+
+/* ------------------------------------------------------------ table runs */
+d = docOf(['p:before', 'table:a | b | c', 'table:d | e', 'p:between', 'table:x | y']);
+eq('a Table Run is found from a cursor inside it', d.tableRun(1),
+   { start: 1, end: 2, width: 3 });
+eq('and from any other Line of it', d.tableRun(2), { start: 1, end: 2, width: 3 });
+ok('a Line that is not a Table Line belongs to no Run', d.tableRun(0) === null);
+ok('nor does a Line off the end of the document', d.tableRun(9) === null);
+eq('a second Run further down is a Run of its own', d.tableRun(4),
+   { start: 4, end: 4, width: 2 });
+
+/* a row is written Cell by Cell — a row of one Cell has nowhere to walk to */
+d = docOf(['table:a | b | c', 'table:d | e']);
+d.cur = 1;
+eq('a row opened in a Table Run arrives the Run\'s width wide',
+   L.cells(d.insert('below').text).length, 3);
+ok('and it joins the Run it was opened in', d.tableRun(d.cur).width === 3);
+d = docOf(['p:a']);
+ok('a row opened elsewhere is no wider than the Line it came from',
+   d.insert('below').text === '');
+
 /* ---------------------------------------------------------------- links */
 /* What the overlay stands on: finding the addressed thing in a Line's text and
    rewriting it, with no DOM anywhere near it. */
