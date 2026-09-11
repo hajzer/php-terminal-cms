@@ -4,6 +4,10 @@ site/site.php
 # Build output
 dist/
 
+# Source files the brand was cut from: kept beside the tracker, never
+# committed — the images the software ships are the derived ones
+.scratch/*/assets/
+
 # Local Claude Code settings (machine-specific)
 .claude/settings.local.json
 

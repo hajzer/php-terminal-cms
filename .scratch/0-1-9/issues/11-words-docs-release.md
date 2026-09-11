@@ -78,7 +78,7 @@ check is the one that will tell you.
 - [x] No generated file edited by hand
 - [x] Eight local commits on `main`, nothing pushed
 - [x] Every acceptance box in issues 01–10 ticked, and each issue `done`
-- [ ] **Stop here.** `bin/package` is not run and nothing reaches the public
+- [x] **Stop here.** `bin/package` is not run and nothing reaches the public
   repository until the maintainer has opened `tests/editor-probe.html` in a
   browser and reviewed the pages themselves.
 - [ ] 0.1.8 is released or re-tagged first, or deliberately held again — it is
@@ -178,3 +178,9 @@ the contrast the amber had on white — and the same green as `Site::ACCENT`,
 in `site.php.example`, the config guide, `docs/config.md` and the diagram's
 labels and strokes, where the amber had been. `bin/test`'s accent table names
 the new default. No colour that is not the accent moved.
+
+**The probe ran green in a browser — 172 of 172** — reported by the maintainer
+before the brand landed; the only DOM change since is none, the brand being
+files the page names and a colour the theme names. That box is ticked on the
+maintainer's word. `bin/package` is still not run and nothing is pushed. The
+0.1.8 box stays open: it is a decision.
