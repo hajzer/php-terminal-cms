@@ -275,6 +275,18 @@ Object.keys(targets).forEach(function (t) {
 });
 ok('an empty href is nothing to point at', L.safeLinkHref('') === false);
 
+/* a row whose Cells are all empty is a row: it is what `o` opens in a Run, and
+   the alignment row it exports next to is the one written out of dashes */
+var emptyRow = L.toMarkdown([L.mk('table', 'a | b | c'), L.mk('table', L.joinCells(['', '', '']))]);
+eq('an empty row exports beside the alignment row',
+   emptyRow, '| a | b | c |\n| --- | --- | --- |\n|  |  |  |\n');
+eq('and reads back as a row, not as an alignment row',
+   L.parse(emptyRow).map(function (l) { return l.type + ':' + l.text; }),
+   ['table:a | b | c', 'table: |  | ']);
+eq('a table with an empty row round trips', L.toMarkdown(L.parse(emptyRow)), emptyRow);
+eq('the alignment row itself is still not a Line',
+   L.parse('| a |\n| :-: |\n').length, 1);
+
 /* ------------------------------------------------------- markdown still ok */
 var md = '---\ntitle: t\n---\n\n# h\n\n```console\n$ ls\n```\n\n```output\nfile\n```\n';
 var round = L.toMarkdown(L.parse(md));

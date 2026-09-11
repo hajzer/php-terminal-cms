@@ -349,7 +349,9 @@
       }
       if ((m = /^\|(.+)\|$/.exec(t))) {
         var row = m[1].trim();
-        if (!/^[\s:|-]+$/.test(row)) {
+        /* the alignment row is the one written out of dashes — a row whose
+           Cells are all empty is a row, and has to read back as one */
+        if (!/^[\s:|-]*-[\s:|-]*$/.test(row)) {
           lines.push(mk('table', joinCells(cells(row))));
         }
         continue;

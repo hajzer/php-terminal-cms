@@ -209,6 +209,19 @@ foreach (Line::PROMPTS as $dialect => $prompt) {
 ok($wrong === [], 'every CLI prompt reads back as the dialect that wrote it',
    implode("\n", $wrong));
 
+/* a table row whose cells are all empty is a row — the editor opens one every
+   time `o` adds a row to a run, and it has to survive the trip through a file */
+$emptyRow = "| a | b | c |\n| --- | --- | --- |\n|  |  |  |\n";
+[, $rowLines] = Markdown::parse($emptyRow);
+ok(count($rowLines) === 2, 'an empty table row reads back as a row', (string) count($rowLines));
+ok($rowLines[1]->text === ' |  | ', 'and keeps the cells it was written with',
+   var_export($rowLines[1]->text ?? null, true));
+ok(Markdown::toMarkdown($rowLines) === $emptyRow,
+   'a table with an empty row round trips', diff($emptyRow, Markdown::toMarkdown($rowLines)));
+[, $alignLines] = Markdown::parse("| a |\n| :-: |\n");
+ok(count($alignLines) === 1, 'the alignment row itself is still not a line',
+   (string) count($alignLines));
+
 /* --------------------------------------------------- the editor's own model */
 if ($node === '') {
     echo "\neditor model\n  -- node not installed, skipping tests/js-model.js\n";

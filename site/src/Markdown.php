@@ -85,10 +85,11 @@ final class Markdown
                 continue;
             }
 
-            /* table row — the alignment row carries no content */
+            /* table row — the alignment row is the one written out of dashes.
+               A row whose cells are all empty is a row, and reads back as one. */
             if (preg_match('~^\|(.+)\|$~', $t, $m)) {
                 $cells = trim($m[1]);
-                if (!preg_match('~^[\s:|-]+$~', $cells)) {
+                if (!preg_match('~^[\s:|-]*-[\s:|-]*$~', $cells)) {
                     $lines[] = new Line('table', self::normaliseRow($cells));
                 }
                 continue;
