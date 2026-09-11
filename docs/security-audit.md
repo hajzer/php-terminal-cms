@@ -85,8 +85,12 @@ is the Editor's one outbound request; the Cell and Column rewrites and the Table
 strip that drives them; the control treatment in `shared/theme.css` and its two
 generated copies; the write pane's measure; the assets the archive now ships and
 the manifest line for `docs/media/`; and `bin/build`'s repathing, by shape now
-rather than by list. The public path's shape was re-read as context and not
-re-audited. A deep code read ran beside the review over the same surface, for
+rather than by list. The four things 0.1.8's own closing note asked a fresh
+audit to look at — the Editor's first outbound request, `logo` through the
+media-path reduction, `target="_blank"` beside the `rel` that was already
+there, and the allowlist's second reader — are the four the middle of that
+list is. The public path's shape was re-read as context and not re-audited. A
+deep code read ran beside the review over the same surface, for
 correctness and drift rather than exposure; its findings are fixes below, and
 one issue, not a second document.
 
@@ -100,24 +104,27 @@ found. Two findings, both fixed.
 
 Also changed, as hardening rather than as findings:
 
-- A relative media path that climbs — `../x.png` — is a name under `/media/`,
-  as `docs/config.md` and this file both said it was. It reduced to `/x.png`:
-  a local absolute path, on the allowlist either way, but not the file the rule
-  says it names. Only a leading `./` comes off now, and `bin/test` reduces seven
-  shapes of relative path, with the absolute one beside them.
 - A `lang` or an `accent` that is not a string is its default and raises no
   warning, as a malformed category entry already did not.
 - The Editor's page names `no-referrer`, so the one request it causes carries
   the src the Line names and nothing about where the Editor was opened from.
 - The scan that says the Editor opens no connection names the constructors
-  that open one — `Image`, `Worker`, `RTCPeerConnection`, `WebTransport` — and
-  `window.open`, beside the six calls it named. Setting `location` and clicking
-  an anchor are navigations, and the export overlay clicks an anchor to hand
-  over a download, so neither is on the list; the comment where the scan lives
-  says so.
+  that open one — `Image`, `Worker`, `serviceWorker`, `importScripts`,
+  `RTCPeerConnection`, `WebTransport` — and `window.open`, beside the six calls
+  it named. Setting `location` and clicking an anchor are navigations, and the
+  export overlay clicks an anchor to hand over a download, so neither is on the
+  list; the comment where the scan lives says so.
 
 And from the code read, fixed where found:
 
+- A relative media path that climbs — `../x.png` — is a name under `/media/`,
+  as `docs/config.md` and this file both said it was. It reduced to `/x.png`:
+  a local absolute path, on the allowlist either way, but not the file the rule
+  says it names, because every leading dot came off before the path was judged.
+  The reduction is 0.1.4's code and was not re-audited; this is the one place
+  the code read found it and its three descriptions apart, and the code is what
+  moved. Only a leading `./` comes off now, and `bin/test` reduces seven shapes
+  of relative path, with the absolute one beside them.
 - An image's src and caption written from the overlay are cut down to what
   `![caption](src)` can hold, as a link's two halves already were. A `)` in the
   src or a `]` in the caption exported a Line that read back as a Paragraph, on
@@ -234,7 +241,8 @@ refused is a decision about what the preview is. It is issue 12.
   line, and the request carries no referrer — but it is a request, and a file
   opened from somebody else is a file whose image lines somebody else wrote.
 - The editor holds the document in the browser tab and nowhere else. Anything
-  that navigates the tab away loses it — see issue 12 until it is settled.
+  that navigates the tab away loses it: a link clicked in the preview, or a URL
+  dropped on the page, does today. Export before either.
 
 ## Validation
 
