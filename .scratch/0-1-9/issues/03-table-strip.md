@@ -1,6 +1,6 @@
 # 03 — The Table strip: drawing it, and pointing at things
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 Commit: 2 of 8 — "editor: a table you can point at"
 
@@ -47,22 +47,22 @@ exported markdown.
 
 `tests/editor-probe.js`, run in a browser, covers and passes:
 
-- [ ] a Table Run draws a strip with one entry per Column, carrying the heading
+- [x] a Table Run draws a strip with one entry per Column, carrying the heading
   row's text
-- [ ] a Run whose rows are ragged draws entries for the widest row, and drawing
+- [x] a Run whose rows are ragged draws entries for the widest row, and drawing
   the strip does not itself change any Line
-- [ ] a document with no Table draws no strip
-- [ ] two Table Runs separated by a Paragraph draw the strip for the one the
+- [x] a document with no Table draws no strip
+- [x] two Table Runs separated by a Paragraph draw the strip for the one the
   cursor is in, and its Column count is that Run's
-- [ ] clicking an entry selects it and the selection is visible
-- [ ] moving the cursor out of the Run clears the selection and the strip
-- [ ] moving the cursor to the other Run clears the selection rather than
+- [x] clicking an entry selects it and the selection is visible
+- [x] moving the cursor out of the Run clears the selection and the strip
+- [x] moving the cursor to the other Run clears the selection rather than
   carrying it across
-- [ ] clicking a Cell opens that row with the caret in that Cell
-- [ ] clicking the first and the last Cell of a row both land correctly
-- [ ] the strip does not appear in the read pane, and `export` is unchanged
+- [x] clicking a Cell opens that row with the caret in that Cell
+- [x] clicking the first and the last Cell of a row both land correctly
+- [x] the strip does not appear in the read pane, and `export` is unchanged
 
 Then:
 
-- [ ] `php bin/test` green
-- [ ] the probe green in a browser, with its count noted in the comments
+- [x] `php bin/test` green
+- [x] the probe green in a browser, with its count noted in the comments

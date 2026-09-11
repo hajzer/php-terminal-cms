@@ -1009,7 +1009,8 @@
   var API = {
     TYPES: TYPES, byId: byId, byKey: byKey, PROMPTS: PROMPTS,
     esc: esc, highlight: highlight, inline: inline, runs: runs,
-    cells: cells, joinCells: joinCells, cellAt: cellAt, cellEnd: cellEnd,
+    cells: cells, cellSpans: cellSpans, joinCells: joinCells,
+    cellAt: cellAt, cellEnd: cellEnd,
     COL_OPS: COL_OPS,
     safeLinkHref: safeLinkHref, links: links, setLink: setLink, unlink: unlink,
     addLink: addLink, addLinkAt: addLinkAt,

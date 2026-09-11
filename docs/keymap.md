@@ -42,6 +42,15 @@ cell — the same writing loop, sideways. `⇧Tab` walks back, and on the first
 cell there is nowhere to go. `o` on a table row opens a row as wide as the run
 it is in, so the pipes are typed for you.
 
+A table run in the write pane carries a strip above it, one entry per column,
+each its number and that column's heading cell — so the columns are something
+to look at rather than pipes to count. Clicking an entry selects that column;
+clicking a cell puts the cursor on that row and opens it with the caret already
+in that cell. The strip is drawn for the run the cursor is in and for no other,
+and the selection lives as long as the strip does: leave the run and nothing is
+selected. It is write-pane chrome — the read pane and the exported markdown
+know nothing about it.
+
 ## Styles
 
 One key each. Applies to the line under the cursor.

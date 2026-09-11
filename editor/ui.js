@@ -54,6 +54,13 @@
   var tab = 'write', swapped = false, scale = 1, prefix = false;
   var flash = 0, exportMd = '', dragFrom = -1;
 
+  /* The selected Column, counted from 1, and the Line the writer chose it on —
+     the Line *object*, the way the open edit box holds one, because a Run has
+     no id of its own and the id of its first Line is not one: it changes under
+     every edit at the top of the Run. This is pane state, like the tab and the
+     swap — not on the Doc, not in the history. */
+  var colSel = 0, colOn = null;
+
   /* ------------------------------------------------------- settings */
   function stored(key, fallback) {
     try {
@@ -106,13 +113,29 @@
   }
 
   /* ------------------------------------------------------ write surface */
+
+  /* A Table Line drawn one span per Cell, so that a click can say which Cell
+     it landed in. Everything between the spans — the pipes and the spacing the
+     writer typed — is the Line's own text, put back untouched, so the row
+     reads exactly as it was written. */
+  function cellsHTML(text) {
+    var out = '', at = 0;
+    L.cellSpans(text).forEach(function (c, n) {
+      out += L.esc(text.slice(at, c.at)) +
+        '<span class="cell" data-c="' + n + '">' + L.esc(text.slice(c.at, c.end)) + '</span>';
+      at = c.end;
+    });
+    return out + L.esc(text.slice(at));
+  }
+
   function rowHTML(l, i, inRun) {
     var t = L.byId[l.type], txt;
     if (l.type === 'code') txt = L.highlight(l.text, l.sub);
     else if (l.type === 'cli') {
       txt = '<span class="pr">' + L.esc(L.PROMPTS[l.sub] || '$') + '</span> ' +
             L.highlight(l.text, l.sub);
-    } else txt = L.esc(l.text);
+    } else if (l.type === 'table') txt = cellsHTML(l.text);
+    else txt = L.esc(l.text);
     if (!l.text && l.type !== 'rule') txt = '<i class="ph">write…</i>';
 
     return '<div class="ln ' + l.type + (i === doc.cur ? ' cur' : '') +
@@ -134,10 +157,39 @@
       run.map(function (x) { return rowHTML(x, idx.get(x), true); }).join('');
   }
 
+  /* The strip above a Table Run: one entry per Column, numbered, each showing
+     that Column's heading Cell. The Columns are the model's own, already
+     padded to the Run's width, so a ragged Run draws the entries its widest
+     Line asks for without anything having rewritten a Line to say so. */
+  function stripHTML(here) {
+    return '<div class="colstrip">' + doc.columns(here.start).map(function (head, i) {
+      return '<b class="col' + (colSel === i + 1 ? ' on' : '') + '" data-col="' +
+        (i + 1) + '"><i>' + (i + 1) + '</i>' + L.esc(head) + '</b>';
+    }).join('') + '</div>';
+  }
+
+  /* The selection lives exactly as long as the strip that shows it: a Column
+     stays selected while the Line it was chosen on is still in the Run the
+     cursor is in, and is dropped the moment it is not — the cursor left, the
+     Run changed underneath it, or the Column is past the Run's width. So there
+     is never a selected Column that is not on screen. */
+  function keepColumn(here, idx) {
+    var on = colOn ? idx.get(colOn) : undefined;
+    if (!here || on === undefined || on < here.start || on > here.end ||
+        colSel > here.width) {
+      colSel = 0;
+      colOn = null;
+    }
+  }
+
   function drawSheet() {
     var idx = new Map();
     doc.lines.forEach(function (l, i) { idx.set(l, i); });
     var rs = L.runs(doc.lines), html = '';
+
+    /* the strip belongs to the Run the cursor is in and to no other */
+    var here = doc.tableRun(doc.cur);
+    keepColumn(here, idx);
 
     for (var k = 0; k < rs.length; k++) {
       var run = rs[k], f = run[0];
@@ -151,7 +203,9 @@
       } else if (f.type === 'out') {
         html += '<div class="run out">' + foldHTML(run, idx) + '</div>';
       } else if (f.type === 'table') {
+        var cursorHere = !!here && idx.get(f) === here.start;
         html += '<div class="run table"><div class="runbar"><span class="lang">table</span></div>' +
+          (cursorHere ? stripHTML(here) : '') +
           run.map(function (x) { return rowHTML(x, idx.get(x), true); }).join('') + '</div>';
       } else {
         html += run.map(function (x) { return rowHTML(x, idx.get(x), false); }).join('');
@@ -1142,6 +1196,28 @@
     if (fr) {
       doc.toggleFold(doc.indexOfId(+fr.dataset.fold));
       render();
+      return;
+    }
+    /* the strip: an entry names a Column, and choosing one is not a change to
+       the document — render() is here for the edit the mousedown committed */
+    var ce = e.target.closest('.colstrip b');
+    if (ce) {
+      colSel = +ce.dataset.col;
+      colOn = doc.line();
+      render();
+      return;
+    }
+    /* A Cell is the row and the place in it at once: the cursor lands on the
+       row, it opens, and the caret walks to the Cell that was clicked. A
+       finger gets the same one step rather than the tap-to-select above,
+       because a Cell names where in the row to write and a Line does not — the
+       second tap would have nothing left to say. */
+    var cell = e.target.closest('.ln.table .cell');
+    if (cell) {
+      doc.cur = +cell.closest('.ln').dataset.i;
+      render();
+      startEdit();
+      if (editing) caretToCell(editing.span, +cell.dataset.c);
       return;
     }
     var r = e.target.closest('.ln');

@@ -339,6 +339,159 @@
      input.value.indexOf('col del 1 three') === 0, input.value);
   key('Escape', input);
 
+  /* --- the strip: a Table that says what its Columns are ---------------- */
+  /* one entry per Column, each its number and its heading Cell, and a `*` on
+     the one that is selected */
+  function strip() {
+    return [].map.call(document.querySelectorAll('#sheet .colstrip b'), function (b) {
+      return b.textContent + (b.classList.contains('on') ? '*' : '');
+    }).join(' / ');
+  }
+  /* the drawn Cells of the nth Table row on the sheet */
+  function cellsOf(n) {
+    var r = document.querySelectorAll('#sheet .ln.table')[n];
+    return r ? r.querySelectorAll('.cell') : [];
+  }
+
+  document.getElementById('actClear').click();
+  key('t');
+  key('i');
+  type('one | two | three');
+  key('Escape', box());
+  key('o');
+  type('a | b | c');
+  key('Escape', box());
+  ok('a Table Run draws one strip entry per Column, carrying the heading row',
+     strip() === '1one / 2two / 3three', strip());
+
+  document.getElementById('actClear').click();
+  key('t');
+  key('i');
+  type('one | two');
+  key('Escape', box());
+  key('o');
+  type('a | b | c');
+  key('Escape', box());
+  ok('a ragged Run draws the entries its widest row asks for',
+     strip() === '1one / 2two / 3', strip());
+  ok('and drawing the strip changed no Line',
+     tableRows().join(' / ') === 'one | two / a | b | c', tableRows().join(' / '));
+
+  document.getElementById('actClear').click();
+  ok('a document with no Table draws no strip', strip() === '', strip());
+
+  /* two Runs, a Paragraph between them, so the bounds have something to stop at */
+  document.getElementById('actClear').click();
+  key('t');
+  key('i');
+  type('a1 | a2');
+  key('Escape', box());
+  key('o');
+  key('Escape', box());
+  key('p');
+  key('i');
+  type('between');
+  key('Escape', box());
+  key('o');
+  key('Escape', box());
+  key('t');
+  key('i');
+  type('b1 | b2 | b3');
+  key('Escape', box());
+  ok('with two Tables the strip is the Run the cursor is in',
+     strip() === '1b1 / 2b2 / 3b3', strip());
+  key('k');
+  ok('a cursor out of the Run draws no strip', strip() === '', strip());
+  key('k');
+  ok('and in the Run above, the strip is that Run and its Column count',
+     strip() === '1a1 / 2a2', strip());
+
+  document.querySelectorAll('#sheet .colstrip b')[1].click();
+  ok('clicking an entry selects that Column, visibly',
+     strip() === '1a1 / 2a2*', strip());
+  key('j');
+  ok('the cursor leaving the Run clears the selection with the strip',
+     strip() === '', strip());
+  key('k');
+  ok('and coming back in, nothing is selected', strip() === '1a1 / 2a2', strip());
+
+  document.querySelectorAll('#sheet .colstrip b')[1].click();
+  key('G');
+  ok('the selection does not travel to the other Run',
+     strip() === '1b1 / 2b2 / 3b3', strip());
+
+  /* the selection is the Run's, not the Line's: walking the Run keeps it, and
+     it is anchored on a Line object, so an edit above cannot re-point it */
+  document.getElementById('actClear').click();
+  key('t');
+  key('i');
+  type('one | two | three');
+  key('Escape', box());
+  key('o');
+  type('a | b | c');
+  key('Escape', box());
+  document.querySelectorAll('#sheet .colstrip b')[2].click();
+  key('k');
+  ok('moving within the Run keeps the Column selected',
+     strip() === '1one / 2two / 3three*', strip());
+  run('col del 3');
+  ok('and a Column that is no longer there is no longer selected',
+     strip() === '1one / 2two', strip());
+
+  /* --- a Cell is a place to click: the row, and the caret inside it ----- */
+  document.getElementById('actClear').click();
+  key('t');
+  key('i');
+  type('a | b | c');
+  key('Escape', box());
+  ok('a Table row draws one span per Cell', cellsOf(0).length === 3, cellsOf(0).length);
+
+  cellsOf(0)[0].click();
+  ok('clicking the first Cell opens the row with the caret in that Cell',
+     !!box() && caret() === 1, caret());
+  key('Escape', box());
+  cellsOf(0)[2].click();
+  ok('and clicking the last Cell lands in the last Cell',
+     !!box() && caret() === 9, caret());
+  key('Escape', box());
+
+  key('o');
+  type('d | e | f');
+  key('Escape', box());
+  cellsOf(0)[1].click();
+  ok('clicking a Cell of another row puts the cursor on that row',
+     !!box() && box().textContent === 'a | b | c', box() && box().textContent);
+  ok('with the caret in the Cell that was clicked', caret() === 5, caret());
+  key('Escape', box());
+  ok('and the rows are as they were typed',
+     tableRows().join(' / ') === 'a | b | c / d | e | f', tableRows().join(' / '));
+
+  /* a tap is a click with a finger behind it: a Cell names a place, so one tap
+     is the way in, where a Line still takes the second */
+  document.dispatchEvent(new PointerEvent('pointerdown',
+    { pointerType: 'touch', bubbles: true }));
+  cellsOf(1)[0].click();
+  ok('a tap on a Cell opens it the same way a click does',
+     !!box() && box().textContent === 'd | e | f' && caret() === 1,
+     (box() && box().textContent) + ' @ ' + caret());
+  key('Escape', box());
+  document.dispatchEvent(new PointerEvent('pointerdown',
+    { pointerType: 'mouse', bubbles: true }));
+
+  document.querySelectorAll('#sheet .colstrip b')[0].click();
+  var readTbl = document.querySelector('#read table');
+  ok('the read pane still renders the Table, and nothing of the strip',
+     !!readTbl && readTbl.textContent.replace(/\s+/g, '') === 'abcdef' &&
+     document.querySelectorAll('#read .colstrip, #read .cell').length === 0,
+     (readTbl && readTbl.textContent.replace(/\s+/g, '')) + ' :: ' +
+     document.querySelectorAll('#read .colstrip, #read .cell').length);
+  run('export');
+  var stripMd = document.getElementById('expMd').textContent;
+  key('Escape');
+  ok('and export is the table it always was',
+     stripMd.indexOf('| a | b | c |\n| --- | --- | --- |\n| d | e | f |') > -1 &&
+     stripMd.indexOf('colstrip') < 0, stripMd);
+
   document.getElementById('actClear').click();
   key('c');
   key('Tab');
