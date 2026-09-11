@@ -1,6 +1,6 @@
 # 11 — Words, docs and the version
 
-Status: ready-for-human
+Status: done
 Spec: ../spec.md
 Blocked by: 01, 02, 03, 04, 05, 06, 07, 08, 09, 10
 Commit: 8 of 8 — "0.1.9"
@@ -81,7 +81,7 @@ check is the one that will tell you.
 - [x] **Stop here.** `bin/package` is not run and nothing reaches the public
   repository until the maintainer has opened `tests/editor-probe.html` in a
   browser and reviewed the pages themselves.
-- [ ] 0.1.8 is released or re-tagged first, or deliberately held again — it is
+- [x] 0.1.8 is released or re-tagged first, or deliberately held again — it is
   tagged locally and unpushed, and this release sits on top of it.
 
 ## Comments
@@ -182,5 +182,13 @@ the new default. No colour that is not the accent moved.
 **The probe ran green in a browser — 172 of 172** — reported by the maintainer
 before the brand landed; the only DOM change since is none, the brand being
 files the page names and a colour the theme names. That box is ticked on the
-maintainer's word. `bin/package` is still not run and nothing is pushed. The
-0.1.8 box stays open: it is a decision.
+maintainer's word.
+
+**Released.** The maintainer's decision was 0.1.8 as it stood: `v0.1.8` at
+`a968c8c`, pushed as tagged, with its archives built from that tree in a
+scratch checkout and its own suite green at 477. Then `v0.1.9` at `ae17201`,
+`bin/package` run there — build, 549 passed, two archives — and `main` and
+both tags pushed by the maintainer; this machine holds no credential, so the
+push was theirs. `origin/main` was `v0.1.7` before and is `v0.1.9` now. The
+repository has never carried a GitHub Release, so a release here is the tag
+and `main`, and both are up. This closing note lands after the tag.
