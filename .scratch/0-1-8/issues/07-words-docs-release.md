@@ -1,6 +1,6 @@
 # 07 — Words, docs, ADR and the version
 
-Status: ready-for-human
+Status: done
 Spec: ../spec.md
 Blocked by: 01, 02, 03, 04, 05, 06
 Commit: 5 of 5 — "0.1.8"
@@ -69,7 +69,7 @@ shipped.
 - [x] `php bin/test` green, including the version check and the derived-files check
 - [x] No generated file edited by hand
 - [x] Five local commits on `main`, nothing pushed
-- [ ] **Stop here.** `bin/package` is not run and nothing reaches the public
+- [x] **Stop here.** `bin/package` is not run and nothing reaches the public
   repository until the maintainer has opened `tests/editor-probe.html` in a
   browser and reviewed the pages themselves.
 
@@ -104,3 +104,21 @@ made 0.1.7's claim about the legend false for the release that followed it, so
 
 **The browser review is the one box left**, and it now covers `341b75d` as well:
 the legend's seventh chip is new DOM.
+
+**The browser review passed: 94 of 94, 0 failed**, after the legend work that
+followed the first pass — `341b75d` put the address action in the Legend,
+`384a4ed` moved it to the types half, `9f47edd` stood it beside Image with Meta
+left last. `v0.1.8` is tagged locally.
+
+**The release is held, not shipped.** `bin/package` has not been run and nothing
+is pushed — the maintainer's decision, not an outstanding task. 0.1.9 is to
+carry a deep code review and a fresh security audit, and 0.1.8 goes public no
+earlier than those. The tag is local and moves if either turns up something
+that belongs in 0.1.8 rather than after it.
+
+**New surface an audit should look at**, all of it added here: the Editor's one
+outbound request (an Image Line's src, fetched to preview it — the first time
+the Editor has fetched anything), `logo` reaching the page shell through
+`Renderer::mediaUrl`, `link_open` adding `target="_blank"` beside the `rel` that
+was already there, and the href allowlist now being read by the Editor's overlay
+as well as the Renderer.

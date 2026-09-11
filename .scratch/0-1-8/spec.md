@@ -1,6 +1,6 @@
 # 0.1.8 — addressed things, table columns, and three viewer settings
 
-Status: ready-for-agent
+Status: done
 
 ## Problem Statement
 
