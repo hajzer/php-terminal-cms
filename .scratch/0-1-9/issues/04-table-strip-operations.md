@@ -1,6 +1,6 @@
 # 04 — The Table strip: the four operations and the two keys
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 Blocked by: 03
 Commit: 2 of 8 — "editor: a table you can point at"
@@ -41,23 +41,23 @@ same operation and can come later if one step proves tedious.
 
 `tests/editor-probe.js`, run in a browser, covers and passes:
 
-- [ ] add from the strip puts an empty Cell in every Line of the Run, at the
+- [x] add from the strip puts an empty Cell in every Line of the Run, at the
   selected Column
-- [ ] remove takes that Column out of every Line
-- [ ] move left and move right swap it with its neighbour, in every Line
-- [ ] a Run with ragged rows is padded to its width by the first operation, and
+- [x] remove takes that Column out of every Line
+- [x] move left and move right swap it with its neighbour, in every Line
+- [x] a Run with ragged rows is padded to its width by the first operation, and
   the rows that were already full width are byte-identical afterwards
-- [ ] the Run's bounds hold: a second table further down the document is
+- [x] the Run's bounds hold: a second table further down the document is
   untouched by any of the four
-- [ ] remove on a Run one Column wide is refused, says why, and changes nothing
-- [ ] move left on Column 1 and move right on the last are refused the same way
-- [ ] `^←` and `^→` move the selected Column
-- [ ] `^←` with nothing selected does nothing and changes nothing
-- [ ] one `^Z` takes back a strip operation entirely, in every Line of the Run
-- [ ] the strip redraws after each operation with the Run's new width
-- [ ] `:col` still does all four, unchanged
+- [x] remove on a Run one Column wide is refused, says why, and changes nothing
+- [x] move left on Column 1 and move right on the last are refused the same way
+- [x] `^←` and `^→` move the selected Column
+- [x] `^←` with nothing selected does nothing and changes nothing
+- [x] one `^Z` takes back a strip operation entirely, in every Line of the Run
+- [x] the strip redraws after each operation with the Run's new width
+- [x] `:col` still does all four, unchanged
 
 Then:
 
-- [ ] `php bin/test` green
-- [ ] the probe green in a browser, with its count noted in the comments
+- [x] `php bin/test` green
+- [x] the probe green in a browser, with its count noted in the comments

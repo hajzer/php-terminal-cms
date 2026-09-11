@@ -187,6 +187,17 @@ body { overflow: hidden; font: 14px/1.6 var(--mono); }
   background: var(--accent); color: var(--bg); box-shadow: none;
 }
 .colstrip b.on i { color: var(--bg); opacity: .7; }
+/* the four, drawn only while a Column is selected — `:col` with a place to be
+   clicked, set apart from the entries so they cannot be read as one more */
+.colstrip .colops { display: flex; gap: 4px; margin-left: 8px; }
+.colstrip .colops button {
+  font: 400 12px/1 var(--mono); min-width: 24px; padding: 4px 6px;
+  color: var(--ctl-fg); background: var(--ctl-bg); box-shadow: var(--ctl-edge);
+  border: 0; cursor: pointer;
+}
+.colstrip .colops button:hover {
+  color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); box-shadow: var(--ctl-edge-hover);
+}
 
 .foldrow {
   display: grid; grid-template-columns: 50px 1fr; cursor: pointer;
@@ -361,6 +372,7 @@ body.dropping::after {
   .foldrow .lbl { padding: 10px 4px; }
   .run .runbar button { padding: 9px 10px; }
   .colstrip b { padding: 9px 10px; }  /* the strip is why a finger can reach a Column */
+  .colstrip .colops button { padding: 9px 10px; }
   .legend { padding: 4px 6px; }
   .legend b { padding: 9px 10px; }
   .legend .act { display: none; }     /* keys nobody can press on a screen */

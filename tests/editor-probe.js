@@ -492,6 +492,168 @@
      stripMd.indexOf('| a | b | c |\n| --- | --- | --- |\n| d | e | f |') > -1 &&
      stripMd.indexOf('colstrip') < 0, stripMd);
 
+  /* --- the strip's four: every :col operation with a place to be clicked --- */
+  /* the strip draws its four only while a Column is selected, and each one is
+     the command it is named after, on the Column that is drawn as chosen */
+  function ops() {
+    return [].map.call(document.querySelectorAll('#sheet .colstrip button'),
+      function (b) { return b.dataset.op; }).join(' ');
+  }
+  function pick(n) { document.querySelectorAll('#sheet .colstrip b')[n - 1].click(); }
+  function op(o) { document.querySelector('#sheet .colstrip button[data-op="' + o + '"]').click(); }
+  /* two rows of three, the cursor on the second */
+  function table3() {
+    document.getElementById('actClear').click();
+    key('t');
+    key('i');
+    type('one | two | three');
+    key('Escape', box());
+    key('o');
+    type('a | b | c');
+    key('Escape', box());
+  }
+
+  table3();
+  ok('an unselected strip offers no operations', ops() === '', ops());
+  pick(2);
+  ok('a selected Column reveals the four', ops() === 'add del left right', ops());
+
+  var kept = tableRows().join(' / ');
+  op('add');
+  ok('add from the strip puts an empty Cell in every Line, at that Column',
+     tableRows().join(' / ') === 'one |  | two | three / a |  | b | c',
+     tableRows().join(' / '));
+  ok('and the strip is redrawn at the Run\'s new width, the Column carried along',
+     strip() === '1one / 2 / 3two* / 4three', strip());
+  key('z', document, false, true);
+  ok('one ^Z takes back a strip operation, in every Line of the Run',
+     tableRows().join(' / ') === kept, tableRows().join(' / '));
+
+  table3();
+  pick(2);
+  op('del');
+  ok('remove from the strip takes that Column out of every Line',
+     tableRows().join(' / ') === 'one | three / a | c', tableRows().join(' / '));
+  ok('and with the Column gone nothing is selected and nothing is offered',
+     strip() === '1one / 2three' && ops() === '', strip() + ' :: ' + ops());
+  key('z', document, false, true);
+  ok('one ^Z takes back the removal in every Line',
+     tableRows().join(' / ') === kept, tableRows().join(' / '));
+
+  table3();
+  pick(2);
+  op('left');
+  ok('move left swaps it with its neighbour, in every Line',
+     tableRows().join(' / ') === 'two | one | three / b | a | c',
+     tableRows().join(' / '));
+  ok('and the selection follows the Column that moved',
+     strip() === '1two* / 2one / 3three', strip());
+  op('right');
+  ok('move right puts it back, in every Line',
+     tableRows().join(' / ') === kept, tableRows().join(' / '));
+  ok('and the selection came back with it', strip() === '1one / 2two* / 3three', strip());
+
+  /* a ragged Run: the first operation squares it, and the rows that were
+     already the Run's width are rewritten to exactly what they said */
+  document.getElementById('actClear').click();
+  key('t');
+  key('i');
+  type('one | two');
+  key('Escape', box());
+  key('o');
+  type('a | b | c');
+  key('Escape', box());
+  pick(3);
+  op('left');
+  ok('a ragged Run is padded to its width by the first operation',
+     tableRows().join(' / ') === 'one |  | two / a | c | b', tableRows().join(' / '));
+
+  /* the Run's bounds hold: a second Table is a Run of its own */
+  document.getElementById('actClear').click();
+  key('t');
+  key('i');
+  type('a1 | a2');
+  key('Escape', box());
+  key('o');
+  key('Escape', box());
+  key('p');
+  key('i');
+  type('between');
+  key('Escape', box());
+  key('o');
+  key('Escape', box());
+  key('t');
+  key('i');
+  type('b1 | b2');
+  key('Escape', box());
+  pick(1);
+  op('add');
+  ok('an operation stops at the Run the strip belongs to',
+     tableRows().join(' / ') === 'a1 | a2 /  | b1 | b2', tableRows().join(' / '));
+
+  /* a refusal is the operation's own sentence, and nothing happens */
+  document.getElementById('actClear').click();
+  key('t');
+  key('i');
+  type('only');
+  key('Escape', box());
+  pick(1);
+  op('del');
+  ok('remove on a Run one Column wide is refused, in the command\'s words',
+     msg() === 'a table is at least one column wide', msg());
+  ok('and the Line is exactly as it was',
+     tableRows().join(' / ') === 'only', tableRows().join(' / '));
+
+  table3();
+  pick(1);
+  op('left');
+  ok('move left on Column 1 is refused',
+     msg() === 'column 1 has no neighbour on the left', msg());
+  ok('and nothing moved', tableRows().join(' / ') === kept, tableRows().join(' / '));
+  pick(3);
+  op('right');
+  ok('move right on the last Column is refused the same way',
+     msg() === 'column 3 has no neighbour on the right', msg());
+  ok('and nothing moved there either',
+     tableRows().join(' / ') === kept, tableRows().join(' / '));
+
+  /* the same two operations, on the keyboard */
+  table3();
+  pick(3);
+  key('ArrowLeft', document, false, true);
+  ok('^← moves the selected Column left, in every Line',
+     tableRows().join(' / ') === 'one | three | two / a | c | b',
+     tableRows().join(' / '));
+  key('ArrowRight', document, false, true);
+  ok('^→ moves it back', tableRows().join(' / ') === kept, tableRows().join(' / '));
+  ok('and the selection is still on it, drawn', strip() === '1one / 2two / 3three*', strip());
+
+  /* out of the Run: a new line below the last row, made a Paragraph */
+  key('o');
+  key('Escape', box());
+  key('p');
+  ok('leaving the Run drops the selection', ops() === '' && strip() === '',
+     ops() + ' :: ' + strip());
+  var quiet = tableRows().join(' / ');
+  key('ArrowLeft', document, false, true);
+  ok('^← with nothing selected does nothing and changes nothing',
+     tableRows().join(' / ') === quiet, tableRows().join(' / '));
+
+  /* :col is unchanged and still the complete path — all four of it */
+  table3();
+  run('col right 1');
+  ok(':col right still swaps a Column with the one after it',
+     tableRows().join(' / ') === 'two | one | three / b | a | c',
+     tableRows().join(' / '));
+  run('col left 2');
+  ok(':col left still puts it back', tableRows().join(' / ') === kept, tableRows().join(' / '));
+  run('col add 1');
+  ok(':col add still puts an empty Column where it is told',
+     tableRows().join(' / ') === ' | one | two | three /  | a | b | c',
+     tableRows().join(' / '));
+  run('col del 1');
+  ok(':col del still takes it out again', tableRows().join(' / ') === kept, tableRows().join(' / '));
+
   document.getElementById('actClear').click();
   key('c');
   key('Tab');

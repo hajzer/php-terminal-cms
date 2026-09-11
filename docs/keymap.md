@@ -51,6 +51,16 @@ and the selection lives as long as the strip does: leave the run and nothing is
 selected. It is write-pane chrome — the read pane and the exported markdown
 know nothing about it.
 
+A selected column reveals four controls in the strip — `+` `×` `‹` `›`, which
+are add, remove, move left and move right. Each one is `col add|del|left|right`
+with the selected column's number, so a click and the command run the same
+operation, refuse for the same reasons in the same words, and count as one undo
+step. `^←` and `^→` are `‹` and `›` on the keyboard, and with no column
+selected they do nothing. After an operation the strip is redrawn from the run
+as it now is and the selection follows the column it was on: `add` puts an
+empty column in front of it, `left` and `right` carry it along, and `del`
+leaves nothing to point at, so nothing is selected.
+
 ## Styles
 
 One key each. Applies to the line under the cursor.

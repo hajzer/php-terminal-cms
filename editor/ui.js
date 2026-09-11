@@ -165,7 +165,55 @@
     return '<div class="colstrip">' + doc.columns(here.start).map(function (head, i) {
       return '<b class="col' + (colSel === i + 1 ? ' on' : '') + '" data-col="' +
         (i + 1) + '"><i>' + (i + 1) + '</i>' + L.esc(head) + '</b>';
-    }).join('') + '</div>';
+    }).join('') + (colSel ? opsHTML() : '') + '</div>';
+  }
+
+  /* The four operations, which exist only while a Column is selected: the
+     thing being operated on is the thing the writer pointed at, and with
+     nothing pointed at there is nothing to offer. Each is `:col <op>` with the
+     selected number, so a button and the command are one path. */
+  var COL_ACTS = [
+    { op: 'add',   sym: '+', label: 'add a column before this one' },
+    { op: 'del',   sym: '×', label: 'remove this column' },
+    { op: 'left',  sym: '‹', label: 'move this column left (Ctrl+←)' },
+    { op: 'right', sym: '›', label: 'move this column right (Ctrl+→)' }
+  ];
+  function opsHTML() {
+    return '<span class="colops">' + COL_ACTS.map(function (a) {
+      return '<button type="button" data-op="' + a.op + '" title="' + a.label +
+        '">' + a.sym + '</button>';
+    }).join('') + '</span>';
+  }
+
+  /* One Column operation on the selected Column. The model judges it and the
+     model does it — a refusal is the operation's own sentence, said and
+     nothing else. The selection follows the Column it was on where that still
+     means something: `add` puts a Column in front of it, so it is one further
+     right; `left` and `right` carry it along; `del` leaves nothing to point
+     at, so the selection goes with it. */
+  function columnOp(op) {
+    if (!colSel) return;
+    var at = colSel, dirty = commitEdit(), why = doc.column(op, at);
+    if (why) {
+      if (dirty) render();
+      say(why);
+      return;
+    }
+    /* `add` puts a Column in front of the selected one and `right` moves it
+       past its neighbour: either way it ends up one to the right */
+    if (op === 'del') { colSel = 0; colOn = null; }
+    else colSel = op === 'left' ? at - 1 : at + 1;
+    render();
+    say(colDone(op, at));
+  }
+
+  /* What a Column operation says when it worked — the strip and `:col` say the
+     same sentence because they read it from here. A refusal has no such place:
+     it is the model's own sentence, relayed by whichever path asked. */
+  function colDone(op, at) {
+    return op === 'add' ? 'column added'
+      : op === 'del' ? 'column ' + at + ' removed'
+      : 'column ' + at + ' moved ' + op;
   }
 
   /* The selection lives exactly as long as the strip that shows it: a Column
@@ -973,9 +1021,7 @@
            and a command's trailing words are its own business to ignore */
         var why = doc.column(a[1], a[2]);
         if (why) return say(why);
-        say(a[1] === 'add' ? 'column added'
-          : a[1] === 'del' ? 'column ' + a[2] + ' removed'
-          : 'column ' + a[2] + ' moved ' + a[1]);
+        say(colDone(a[1], a[2]));
       } },
 
     { name: 'go', arg: '<line|top|end>', help: 'put the cursor on a line by number',
@@ -1198,6 +1244,9 @@
       render();
       return;
     }
+    /* the strip's four: the selected Column, operated on */
+    var co = e.target.closest('.colstrip button');
+    if (co) { columnOp(co.dataset.op); return; }
     /* the strip: an entry names a Column, and choosing one is not a change to
        the document — render() is here for the edit the mousedown committed */
     var ce = e.target.closest('.colstrip b');
@@ -1356,6 +1405,15 @@
     if ((e.ctrlKey || e.metaKey) && !e.altKey && (k === 'y' || k === 'Y')) {
       e.preventDefault();
       redo();
+      return;
+    }
+    /* the two keys the strip's `‹` and `›` are: a selected Column is
+       drawn on screen, so there is always something visible to move, and with
+       none selected these say nothing and do nothing */
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && tab !== 'read' &&
+        (k === 'ArrowLeft' || k === 'ArrowRight') && colSel) {
+      e.preventDefault();
+      columnOp(k === 'ArrowLeft' ? 'left' : 'right');
       return;
     }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
