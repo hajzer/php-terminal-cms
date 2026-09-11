@@ -1,6 +1,6 @@
 # 07 — Words, docs, ADR and the version
 
-Status: ready-for-agent
+Status: ready-for-human
 Spec: ../spec.md
 Blocked by: 01, 02, 03, 04, 05, 06
 Commit: 5 of 5 — "0.1.8"
@@ -66,9 +66,41 @@ shipped.
 
 ## Acceptance
 
-- [ ] `php bin/test` green, including the version check and the derived-files check
-- [ ] No generated file edited by hand
-- [ ] Five local commits on `main`, nothing pushed
+- [x] `php bin/test` green, including the version check and the derived-files check
+- [x] No generated file edited by hand
+- [x] Five local commits on `main`, nothing pushed
 - [ ] **Stop here.** `bin/package` is not run and nothing reaches the public
   repository until the maintainer has opened `tests/editor-probe.html` in a
   browser and reviewed the pages themselves.
+
+## Comments
+
+**The commit count.** The third box says five; the release is eight commits of
+work plus two of housekeeping. The link model landed on its own in `93d6112`
+before the tracker commit, which split what this issue counted as one, and the
+table work landed as three rather than one. Nothing is missing and nothing was
+pushed — the constraint the box exists for holds. The number was written before
+the split and is left as it was written.
+
+**`docs/config.md` needed no work.** `listing_max`, `link_open` and `logo` were
+already in the key table, already had prose sections, and the example block
+already matched `site/site.php.example` — commit `72a660d` did that with the
+code. Verified against the example file rather than assumed.
+
+**Two sentences corrected beyond the brief.** `docs/config.md` and
+`site/site.php.example` both said a link to this site never opens a new tab
+under `link_open => 'tab'`. The test is the scheme, not the host — the site is
+never told its own name — so a full `https://` address back to the same site
+does open a new tab. `Renderer.php`'s own docblock had it right and those two
+had drifted from it. Corrected here because this issue owns the release's
+documentation.
+
+**One defect found and folded in: `341b75d`.** The address overlay was
+unreachable on a touch screen — the legend carried six actions and none of them
+was the address, and `a`, `:link`, `:img` and `:col` are all keyboard-only. That
+made 0.1.7's claim about the legend false for the release that followed it, so
+`link` joined `ACTS` as a seventh action before tagging rather than waiting for
+0.1.9. The probe grew the assertion that was missing.
+
+**The browser review is the one box left**, and it now covers `341b75d` as well:
+the legend's seventh chip is new DOM.
