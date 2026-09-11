@@ -954,16 +954,82 @@ foreach ($logos as $given => $want) {
        . $site['title'] . '">' . $site['title'] . '</a>',
        sprintf('logo %-28s -> %s', var_export($given, true), $want), brand($logoed, $home));
 }
-$bare = brand($site, $home);
+
+/* the example instance names a picture and an icon of its own, and these
+   cases are about an instance that names neither */
+$noBrand = $site;
+unset($noBrand['logo'], $noBrand['favicon']);
+
+$bare = brand($noBrand, $home);
 ok($bare === '<a class="brand" href="/">' . $site['title'] . '</a>',
    'an instance with no logo has the brand link it always had', $bare);
-$shell = TerminalCms\Page::html($site, $home);
+$shell = TerminalCms\Page::html($noBrand, $home);
 foreach (['' => 'an empty one', '   ' => 'a blank one', 'true' => 'one that is not a path',
           'array' => 'one that is not even a string'] as $none => $what) {
-    $blank = $site;
+    $blank = $noBrand;
     $blank['logo'] = $none === 'array' ? ['/media/logo.svg'] : ($none === 'true' ? true : $none);
     ok(TerminalCms\Page::html($blank, $home) === $shell,
        'and ' . $what . ' leaves the whole page byte-identical to it');
+}
+
+/* the favicon: the icon in the reader's tab, read the way the logo's src is */
+/** The icon link of a page, or '' when the page emits none. */
+function icon(array $site, array $route): string
+{
+    $html = TerminalCms\Page::html($site, $route);
+    return preg_match('~<link rel="icon"[^>]*>~', $html, $m) === 1 ? $m[0] : '';
+}
+$icons = [
+    '/favicon.ico'      => '<link rel="icon" href="/favicon.ico" type="image/x-icon">',
+    '  /favicon.ico  '  => '<link rel="icon" href="/favicon.ico" type="image/x-icon">',
+    '/media/icon.png'   => '<link rel="icon" href="/media/icon.png" type="image/png">',
+    './media/icon.SVG'  => '<link rel="icon" href="/media/icon.SVG" type="image/svg+xml">',
+    'icon.gif'          => '<link rel="icon" href="/media/icon.gif" type="image/gif">',
+    '/media/icon.weird' => '<link rel="icon" href="/media/icon.weird">',
+    '/media/icon'       => '<link rel="icon" href="/media/icon">',
+];
+foreach ($icons as $given => $want) {
+    $iconed = $site;
+    $iconed['favicon'] = $given;
+    ok(icon($iconed, $home) === $want,
+       sprintf('favicon %-20s -> %s', var_export($given, true), $want), icon($iconed, $home));
+}
+
+/* the four shapes the href allowlist refuses, each reduced to the file it
+   names — by the one media-path rule, so the icon and the logo agree */
+foreach ([
+    'a protocol-relative URL' => '//evil.example/x.ico',
+    'a backslash'             => '\\\\evil.example\\x.ico',
+    'a climb'                 => '/media/../../etc/x.ico',
+    'a control character'     => "\x01/media/x.ico",
+] as $shape => $given) {
+    $both = $site;
+    $both['favicon'] = $given;
+    $both['logo']    = $given;
+    ok(TerminalCms\Site::favicon($both) === '/media/x.ico'
+       && TerminalCms\Site::logo($both) === TerminalCms\Site::favicon($both),
+       sprintf('a favicon naming %-23s is the file it names, as the logo is', $shape),
+       TerminalCms\Site::favicon($both));
+}
+
+/* saying nothing and saying none are different answers */
+ok(icon($noBrand, $home)
+   === '<link rel="icon" href="' . TerminalCms\Site::FAVICON . '" type="image/x-icon">',
+   'an instance that names no favicon gets the icon the archive ships', icon($noBrand, $home));
+foreach ([['', 'an empty favicon'], ['   ', 'a blank one'], [true, 'one that is not a path'],
+          [['/favicon.ico'], 'one that is not even a string']] as [$none, $what]) {
+    $noIcon = $noBrand;
+    $noIcon['favicon'] = $none;
+    ok(icon($noIcon, $home) === '', $what . ' emits no icon link at all', icon($noIcon, $home));
+}
+
+/* the two assets the archive ships, where the shell says they are */
+ok(is_file($root . '/site/public' . TerminalCms\Site::FAVICON),
+   'the icon a page names by default is a file in public/');
+foreach (['logo' => TerminalCms\Site::logo($site), 'favicon' => TerminalCms\Site::favicon($site)]
+         as $key => $named) {
+    ok($named !== '' && is_file($root . '/site/public' . $named),
+       'the ' . $key . ' the example instance names is a file in public/', $named);
 }
 
 unlink($scratch . '/notes/links.md');
@@ -1017,7 +1083,8 @@ if (!$up) {
 } else {
     /* the bug this exists for: a router script sees every request, including
        real files, so index.php has to hand static assets back to the server */
-    foreach (['/theme.css' => 'text/css', '/site.css' => 'text/css'] as $path => $type) {
+    foreach (['/theme.css' => 'text/css', '/site.css' => 'text/css',
+              '/favicon.ico' => 'image/'] as $path => $type) {
         $body = @file_get_contents($base . $path);
         $head = implode(' ', $http_response_header ?? []);
         ok(is_string($body) && !str_contains($body, '<!doctype html'),

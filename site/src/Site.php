@@ -29,6 +29,23 @@ final class Site
      *  that is not a code, gets. */
     public const LANG = 'en';
 
+    /** The icon a page carries for an instance that names none: a real file in
+     *  public/, at the path a browser asks for without being told. */
+    public const FAVICON = '/favicon.ico';
+
+    /** What a file name says an icon's type is. An extension nobody
+     *  recognises has no entry, and the link is emitted without a type
+     *  rather than with a guess at one. */
+    private const ICON_TYPES = [
+        'ico'  => 'image/x-icon',
+        'png'  => 'image/png',
+        'svg'  => 'image/svg+xml',
+        'gif'  => 'image/gif',
+        'jpg'  => 'image/jpeg',
+        'jpeg' => 'image/jpeg',
+        'webp' => 'image/webp',
+    ];
+
     /**
      * The language the site is written in — the one a document with no suffix
      * on its name is in, and the one the pages declare.
@@ -149,6 +166,39 @@ final class Site
         $logo = $site['logo'] ?? '';
         $logo = is_string($logo) ? trim($logo) : '';
         return $logo === '' ? '' : Renderer::mediaUrl($logo);
+    }
+
+    /**
+     * The icon in the reader's tab, or '' for an instance that wants none. The
+     * src is reduced exactly as the logo's is, so a value that is not a safe
+     * local path names a file under the media directory — and an absolute path
+     * stands, which is how /favicon.ico at the document root is expressible.
+     *
+     * Naming nothing and naming none are different answers: a config without
+     * the key gets the icon the archive ships, and one that names an empty
+     * string — or anything that is not a path, as the logo reads it — gets no
+     * icon link at all.
+     *
+     * @param array<string,mixed> $site
+     */
+    public static function favicon(array $site): string
+    {
+        if (!array_key_exists('favicon', $site)) {
+            return self::FAVICON;
+        }
+        $icon = is_string($site['favicon']) ? trim($site['favicon']) : '';
+        return $icon === '' ? '' : Renderer::mediaUrl($icon);
+    }
+
+    /**
+     * The type the icon link declares, or '' when the file's extension is one
+     * nothing here knows. An SVG icon wants the attribute; nothing wants a
+     * type that was guessed from a name.
+     */
+    public static function faviconType(string $icon): string
+    {
+        $ext = strtolower(pathinfo($icon, PATHINFO_EXTENSION));
+        return self::ICON_TYPES[$ext] ?? '';
     }
 
     /**

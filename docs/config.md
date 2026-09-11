@@ -15,7 +15,8 @@ return [
     'listing'     => true,
     'listing_max' => 15,
     'link_open'   => 'here',
-    // 'logo'     => '/media/logo.svg',
+    'logo'        => '/media/logo.png',
+    'favicon'     => '/favicon.ico',
     'footer'      => [
         '[php-terminal-cms](https://example.com/) · [write to me](mailto:you@example.com)',
         'Written in the editor, published by copying a file.',
@@ -38,6 +39,7 @@ return [
 | `listing_max` | how many documents the homepage lists — see below |
 | `link_open` | whether a link that leaves the site opens in a new tab — see below |
 | `logo` | a picture in the brand link, in front of the title — see below |
+| `favicon` | the icon in the reader's tab — see below |
 | `footer` | the whole footer — see below |
 | `categories` | see below |
 
@@ -162,7 +164,7 @@ is the same markup with one attribute fewer.
 `logo` puts a picture in the brand link, in front of the title:
 
 ```php
-'logo' => '/media/logo.svg',
+'logo' => '/media/logo.png',
 ```
 
 The file lives in `site/public/media/`, and the src is read the way a document's
@@ -180,6 +182,38 @@ loads. The height is capped in CSS to the top bar's line, so a file of any size
 fits.
 
 Leave `logo` out and the brand link is the title alone, byte for byte as before.
+
+## The favicon
+
+`favicon` is the icon a browser shows in the tab:
+
+```php
+'favicon' => '/favicon.ico',
+```
+
+The src is read the way `logo`'s is, by the one rule this software has about
+what a configured path may be: an absolute path addresses the document root and
+stands as it is, and anything else — a relative path, another origin, a climb
+out of the root — is reduced to the file it names under `/media/`. That is why
+`/favicon.ico` is expressible: it is the file every browser asks for whether or
+not a page names one, it sits at the document root, and the web server hands it
+back as a static file with no PHP in the path.
+
+The link carries a `type` when the file's extension is one of `.ico`, `.png`,
+`.svg`, `.gif`, `.jpg`, `.jpeg` or `.webp` — an SVG icon wants one. An extension
+this software does not know emits the link without a type rather than guessing
+at one.
+
+Saying nothing and saying none are different answers:
+
+- leave `favicon` out and a page carries `/favicon.ico`, the icon the archive
+  ships in `site/public/`, so a fresh installation has one without being
+  configured;
+- name an empty string and a page carries no `<link rel="icon">` at all.
+
+One icon, one link. There are no touch icons, no manifest and no per-page
+override, and the software never generates, resizes or converts the file — the
+icon a page names is the file you put there.
 
 ## The footer
 

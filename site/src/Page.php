@@ -47,13 +47,25 @@ final class Page
         $brand = ($logo !== '' ? '<img class="logo" src="' . e($logo) . '" alt="' . e($name) . '">' : '')
                . e($name);
 
+        /* the icon in the reader's tab, which a browser asks for whether or
+           not the page names one — so naming it is how the answer stops being
+           a rendered 404. The type is the file's where the extension says so */
+        $iconLink = '';
+        $icon = Site::favicon($site);
+        if ($icon !== '') {
+            $type = Site::faviconType($icon);
+            $iconLink = "\n" . '<link rel="icon" href="' . e($icon) . '"'
+                      . ($type !== '' ? ' type="' . e($type) . '"' : '') . '>';
+        }
+
         return '<!doctype html>
 <html lang="' . e($lang) . '">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>' . e($title) . '</title>' .
-($tagline !== '' ? "\n" . '<meta name="description" content="' . e($tagline) . '">' : '') . '
+($tagline !== '' ? "\n" . '<meta name="description" content="' . e($tagline) . '">' : '') .
+$iconLink . '
 <link rel="stylesheet" href="/theme.css">
 <link rel="stylesheet" href="/site.css">
 <style' . self::nonceAttr($nonce) . '>:root{--accent:' . e($accent) . '}</style>

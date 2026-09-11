@@ -53,7 +53,20 @@ return [
      * is still the writing beside it. Leave it out and the brand is the title
      * alone.
      */
-    // 'logo' => '/media/logo.svg',
+    'logo' => '/media/logo.png',
+
+    /**
+     * The icon in the reader's tab, read exactly the way the logo above is: an
+     * absolute path addresses the document root, so the file browsers ask for
+     * by habit is served without PHP in the path, and anything else is a file
+     * name under public/media/. The link's type follows the extension where
+     * that is a type this software knows.
+     *
+     * Leave it out and a page carries the icon the archive ships. Name an
+     * empty string and a page carries none — saying nothing and saying none
+     * are different answers.
+     */
+    'favicon' => '/favicon.ico',
 
     /**
      * The site footer, and the only thing that appears in it. One string is one
