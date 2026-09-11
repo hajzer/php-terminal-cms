@@ -2,7 +2,7 @@
 
 Status: ready-for-agent
 Spec: ../spec.md
-Commit: 2 of 7 — "editor: a table you can point at"
+Commit: 2 of 8 — "editor: a table you can point at"
 
 ## What
 

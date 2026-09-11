@@ -1,9 +1,9 @@
-# 10 — Words, docs and the version
+# 11 — Words, docs and the version
 
 Status: ready-for-agent
 Spec: ../spec.md
-Blocked by: 01, 02, 03, 04, 05, 06, 07, 08, 09
-Commit: 7 of 7 — "0.1.9"
+Blocked by: 01, 02, 03, 04, 05, 06, 07, 08, 09, 10
+Commit: 8 of 8 — "0.1.9"
 
 ## CONTEXT.md
 
@@ -74,8 +74,8 @@ tracked file has fallen off it, and that check is the one that will tell you.
 - [ ] `php bin/test` green, including the version check and the derived-files
   check
 - [ ] No generated file edited by hand
-- [ ] Seven local commits on `main`, nothing pushed
-- [ ] Every acceptance box in issues 01–09 ticked, and each issue `done`
+- [ ] Eight local commits on `main`, nothing pushed
+- [ ] Every acceptance box in issues 01–10 ticked, and each issue `done`
 - [ ] **Stop here.** `bin/package` is not run and nothing reaches the public
   repository until the maintainer has opened `tests/editor-probe.html` in a
   browser and reviewed the pages themselves.

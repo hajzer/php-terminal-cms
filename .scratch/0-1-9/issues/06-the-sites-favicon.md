@@ -2,7 +2,7 @@
 
 Status: ready-for-agent
 Spec: ../spec.md
-Commit: 4 of 7 — "brand: a logo and a favicon, both halves"
+Commit: 4 of 8 — "brand: a logo and a favicon, both halves"
 
 ## What
 

@@ -1,9 +1,9 @@
-# 09 — The third security review, and a deep code read
+# 10 — The third security review, and a deep code read
 
 Status: ready-for-agent
 Spec: ../spec.md
-Blocked by: 01, 02, 03, 04, 05, 06, 07, 08
-Commit: 6 of 7 — "docs: the third review"
+Blocked by: 01, 02, 03, 04, 05, 06, 07, 08, 09
+Commit: 7 of 8 — "docs: the third review"
 
 ## What
 
@@ -16,7 +16,7 @@ code read** asks about correctness, drift and dead ends, and produces issues and
 fixes rather than a second document.
 
 **This is written last.** It reviews the release it ships in, so it runs after
-01–08 have landed.
+01–09 have landed.
 
 ## Scope — what is reviewed
 

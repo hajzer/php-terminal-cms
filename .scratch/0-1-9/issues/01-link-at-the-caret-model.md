@@ -2,7 +2,7 @@
 
 Status: ready-for-agent
 Spec: ../spec.md
-Commit: 1 of 7 — "editor: a link where the caret is"
+Commit: 1 of 8 — "editor: a link where the caret is"
 
 ## What
 

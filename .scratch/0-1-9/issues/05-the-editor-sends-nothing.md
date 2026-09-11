@@ -2,7 +2,7 @@
 
 Status: ready-for-agent
 Spec: ../spec.md
-Commit: 3 of 7 — "test: the editor sends nothing"
+Commit: 3 of 8 — "test: the editor sends nothing"
 
 ## What
 

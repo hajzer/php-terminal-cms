@@ -2,7 +2,7 @@
 
 Status: ready-for-agent
 Spec: ../spec.md
-Commit: 5 of 7 — "docs: the diagrams"
+Commit: 5 of 8 — "docs: the diagrams"
 
 ## What
 

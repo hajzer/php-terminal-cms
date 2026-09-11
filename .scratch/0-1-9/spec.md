@@ -53,6 +53,13 @@ picture in the brand link, but Site Config cannot name an icon, the shipped
 example Instance leaves `logo` commented out so a fresh unpack demonstrates
 neither, and the Editor spells its name out in text with nothing in its tab.
 
+**Write mode is narrower than read mode, for no reason anybody chose.** The
+write surface is capped at 80 characters and the read pane at `--page-width`,
+which at each pane's own font size is about 670px against about 930px. Switching
+between them re-flows the document and moves every Line the eye was resting on.
+Split mode already uncaps the write surface entirely, so the narrow measure
+applies only in the one mode with the most room for it.
+
 **The README explains a visual idea in prose.** Two halves that never talk to
 each other, and a document that is an ordered sequence of typed Lines, carried
 by one ASCII sketch and a lot of words.
@@ -83,6 +90,12 @@ commenting one out, so an unpacked Instance has a face before anything is
 configured. The Editor gets the same mark and the same icon as **files beside
 it**, because the Editor is never told any configuration and does not start now:
 an Instance has an identity of its own and the Editor has none to have.
+
+**The write pane takes the read pane's measure.** One token governs both, so
+they cannot drift, and moving between the two modes stops moving the words. It
+is still a measure and not the absence of one: an ultrawide window should not
+produce a line of text a metre long, which is why this matches the read pane
+rather than uncapping the way split mode does.
 
 **Diagrams in the README, and room kept for them.** The files come from the
 maintainer later. What does not depend on having them — where they live, the
@@ -196,47 +209,60 @@ makes this one allowed.
 32. As a maintainer, I want the diagrams to be the one droppable commit, so that
     a release is not held up by an image that has not been drawn.
 
+### The write pane's measure
+
+33. As a writer, I want the write pane as wide as the read pane, so that the
+    document does not re-flow when I switch between looking and writing.
+34. As a writer, I want the two measures to come from one value, so that moving
+    one can never leave the other behind.
+35. As a writer on a very wide screen, I want the write pane still to have a
+    measure, so that a Line is not a metre long.
+36. As a writer, I want split screen unchanged, since each pane filling its half
+    is already what I want there.
+37. As a writer, I want the content size keys to behave exactly as they do now,
+    so that one change does not quietly become two.
+
 ### The review and the audit
 
-33. As a maintainer, I want everything added since the last review looked at
+38. As a maintainer, I want everything added since the last review looked at
     once, so that four releases of new surface are not carried into a public
     release unexamined.
-34. As a maintainer, I want the review's scope written down even where it finds
+39. As a maintainer, I want the review's scope written down even where it finds
     nothing, so that "nobody looked" and "somebody looked and it was clean" are
     told apart later.
-35. As a maintainer, I want the findings in a severity table in the shape the
+40. As a maintainer, I want the findings in a severity table in the shape the
     first two reviews used, so that the record reads as one document and not as
     three.
-36. As a maintainer, I want each finding fixed in this release or written up as
+41. As a maintainer, I want each finding fixed in this release or written up as
     its own issue with a reason for deferring it, so that a finding cannot be
     recorded and then quietly lost.
-37. As a maintainer, I want a surface that was looked at and deliberately left
+42. As a maintainer, I want a surface that was looked at and deliberately left
     alone to say so and say why, as 0.1.4's review did.
-38. As a maintainer, I want every fix to arrive with the assertion that would
+43. As a maintainer, I want every fix to arrive with the assertion that would
     have caught it, so that the same defect cannot return unnoticed.
-39. As a maintainer, I want the Language suffix reaching the Router reviewed,
+44. As a maintainer, I want the Language suffix reaching the Router reviewed,
     since a request slug becoming a file name is the oldest boundary here and it
     gained a new shape in 0.1.7.
-40. As a maintainer, I want `logo` reviewed as a config string that becomes a
+45. As a maintainer, I want `logo` reviewed as a config string that becomes a
     path in the page shell, since that is the newest way `site.php` reaches the
     page as something other than writing.
-41. As a maintainer, I want `link_open` reviewed for what `target="_blank"` adds
+46. As a maintainer, I want `link_open` reviewed for what `target="_blank"` adds
     beside the `rel` that was already there, and for whether the scheme test is
     the right test.
-42. As a maintainer, I want the href allowlist reviewed now that the Editor's
+47. As a maintainer, I want the href allowlist reviewed now that the Editor's
     overlay reads it as well as the Renderer, since the two halves disagreeing
     is exactly the 0.1.4 finding that the parity test exists to prevent.
-43. As a maintainer, I want the Editor's one outbound request reviewed as the
+48. As a maintainer, I want the Editor's one outbound request reviewed as the
     new thing it is, and the documentation about it checked against what the
     code does.
-44. As a person who cares what my Editor talks to, I want the claim that it
+49. As a person who cares what my Editor talks to, I want the claim that it
     sends nothing to be a test rather than a sentence, so that a future change
     that adds a request fails the suite instead of quietly making the
     documentation wrong.
-45. As a maintainer, I want the deep code review's findings to become issues or
+50. As a maintainer, I want the deep code review's findings to become issues or
     fixes rather than a second document, so that there is one record of security
     and one backlog of everything else.
-46. As a maintainer, I want the suite green and the probe run in a browser at
+51. As a maintainer, I want the suite green and the probe run in a browser at
     the end of the review, so that the review's own changes are held to what
     every other change here is held to.
 
@@ -307,6 +333,18 @@ makes this one allowed.
 - The diagram commit is the one in this release that may be dropped. Nothing
   else depends on it, and the release does not wait for it.
 
+### The write pane's measure
+
+- The write surface takes the read pane's measure from the same token, in write
+  mode only. Split mode and read mode are untouched.
+- The two panes sit on different font bases — the sheet is 14px, the reader page
+  is `--global-font-size` — so a value in `em` or `ch` resolves differently in
+  each. The **computed width** is what has to match; the declaration is whatever
+  achieves that.
+- `--page-width` itself does not move. It is the published page's measure too,
+  and this is the Editor catching up to it, not a redefinition of it.
+- `--doc-scale` continues to apply as it does in each pane today.
+
 ### The review and the audit
 
 - One section appended to `docs/security-audit.md`: `## 0.1.9 — third review`,
@@ -367,6 +405,10 @@ Everything else here is DOM, which is what the probe is for and what
 - Clicking a Cell opens that row with the caret in that Cell.
 - Moving the cursor out of the Run clears the selection and the strip.
 - One undo takes back a strip operation entirely.
+- In write mode the write surface's computed width equals the read pane's,
+  within a pixel; write → read → write leaves both unchanged; split still fills
+  each half. A computed style is an observable fact about the page, which is
+  what the probe is for — the rest of the look is a thing to be looked at.
 
 ### 3. `php bin/test` — the source scan, extended to the Editor
 
@@ -457,6 +499,8 @@ audit changes there arrives with the assertion that would have caught it.
   does everything it does, and the Editor is still named in text.
 - **Any change to the media-path reduction**, which is audited code already
   doing what a favicon needs.
+- **Making either pane full-bleed or uncapped**, changing `--page-width` itself,
+  a per-pane width setting, or a draggable divider.
 - **Diagrams anywhere but the README** — not in `docs/`, not in the published
   site, not in the Editor — and no diagram of something the code does not do.
 
