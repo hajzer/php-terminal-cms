@@ -1074,6 +1074,24 @@ foreach (['//evil.example/x.png', '\\\\evil.example/x.png', '/media/../../etc/pa
        sprintf('%-30s is a name under media/', $src), $out);
 }
 
+/* the one rule, in every form a relative path takes: ./ is the document's own
+   directory and comes off, and anything else that is not an absolute path is
+   a name under media/ — a climb included, however short */
+$relative = [
+    './media/x.png'  => '/media/x.png',
+    'media/x.png'    => '/media/x.png',
+    'x.png'          => '/media/x.png',
+    '../x.png'       => '/media/x.png',
+    '../../x.png'    => '/media/x.png',
+    './../x.png'     => '/media/x.png',
+    '.hidden.png'    => '/media/.hidden.png',
+    '/x.png'         => '/x.png',
+];
+foreach ($relative as $src => $want) {
+    ok(Renderer::mediaUrl($src) === $want,
+       sprintf('%-16s -> %s', $src, $want), Renderer::mediaUrl($src));
+}
+
 /* ------------------------------------------- the built-in server serves assets */
 echo "\ndev server\n";
 $port = 8100 + (getmypid() % 400);

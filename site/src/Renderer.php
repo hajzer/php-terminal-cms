@@ -273,9 +273,10 @@ final class Renderer
      */
     public static function mediaUrl(string $src): string
     {
-        /* a query or a fragment is not part of a file name */
+        /* a query or a fragment is not part of a file name, and ./ is the
+           document's own directory — the one prefix that names nowhere else */
         $src = preg_replace('~[?#].*$~', '', $src) ?? $src;
-        $src = ltrim($src, '.');
+        $src = preg_replace('~^\./~', '', $src) ?? $src;
 
         /* An absolute path addresses the document root. Everything else — a
            relative path, a protocol-relative URL, a backslash, a control
