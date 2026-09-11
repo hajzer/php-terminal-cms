@@ -106,6 +106,10 @@
     <div class="row"><kbd>+ − 0</kbd><span>content bigger · smaller · back to 100%</span></div>
     <div class="row"><kbd>T</kbd><span>theme normal ⇄ dark</span></div>
     <div class="row"><kbd>?</kbd><span>this help</span></div>
+    <h5>addressing</h5>
+    <div class="row"><kbd>a</kbd><span>the links in this line — or an image's file and caption</span></div>
+    <div class="row"><kbd>1…9 · j k</kbd><span>pick a link, Enter opens it — <i>new link</i> is the last entry</span></div>
+    <div class="row"><kbd>Tab</kbd><span>between the two fields — Enter commits, Esc leaves the line alone</span></div>
     <h5>command line — <kbd>:</kbd> opens it, Tab completes, Enter runs, Esc cancels</h5>
     <div class="cmds" id="cmdlist"></div>
   </div>
@@ -120,6 +124,22 @@
     <pre id="expMd"></pre>
     <h5>then move it — the editor never touches the server</h5>
     <pre id="expShip"></pre>
+  </div>
+</div></div>
+
+<div class="ov" id="addr"><div class="card">
+  <h4><span id="addrWhat">link</span><span class="grow"></span>
+    <button type="button" id="addrClose">esc</button></h4>
+  <div class="body">
+    <div class="pick" id="addrPick"></div>
+    <div class="form" id="addrForm">
+      <div class="fld"><label id="addrLab1" for="addrA">wording</label>
+        <input id="addrA" spellcheck="false" autocomplete="off"></div>
+      <div class="fld"><label id="addrLab2" for="addrB">href</label>
+        <input id="addrB" spellcheck="false" autocomplete="off"></div>
+      <div class="warn" id="addrWarn"></div>
+      <div class="hint">Tab between the fields · Enter commits · Esc leaves the line as it is</div>
+    </div>
   </div>
 </div></div>
 

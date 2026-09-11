@@ -136,8 +136,9 @@ Key `r`. Markdown `---`, renders `<hr>`. Carries no text.
 
 Key `f`. Markdown `![alt](/media/name.png)`. The alt text is stored in the
 line's dialect slot. Paths are normalised to `/media/<basename>`, which is
-`site/public/media/` on disk — see [deploy.md](deploy.md). The editor shows a placeholder
-box, since it has no server to fetch the image from.
+`site/public/media/` on disk — see [deploy.md](deploy.md). The editor's read pane shows
+the picture itself, fetched from the src as written; a src that does not load falls
+back to a box with the file name in it.
 
 ### `meta` — metadata
 

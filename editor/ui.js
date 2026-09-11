@@ -31,6 +31,15 @@
   var prefixEl = document.getElementById('prefix');
   var help     = document.getElementById('help');
   var exp      = document.getElementById('exp');
+  var addrOv   = document.getElementById('addr');
+  var pickEl   = document.getElementById('addrPick');
+  var formEl   = document.getElementById('addrForm');
+  var fldA     = document.getElementById('addrA');
+  var fldB     = document.getElementById('addrB');
+  var labA     = document.getElementById('addrLab1');
+  var labB     = document.getElementById('addrLab2');
+  var warnEl   = document.getElementById('addrWarn');
+  var whatEl   = document.getElementById('addrWhat');
   var nameEl   = document.getElementById('docname');
   var undoBtn  = document.getElementById('actUndo');
   var redoBtn  = document.getElementById('actRedo');
@@ -521,6 +530,158 @@
     fr.readAsText(f);
   });
 
+  /* -------------------------------------------------- the address overlay
+   *
+   * The addressed thing in a Line, reached with `a`. One card with two states:
+   * the picker, which is the links the Line already has, and the form, which is
+   * the two halves of the one that was picked. Every rewrite of the text itself
+   * comes from editor.js — what is here is DOM, keys and focus.
+   *
+   * addr is null, or { line, kind, n }: the *line object*, so a commit lands
+   * where the overlay opened even if the document moved underneath it, and n
+   * says which link is being written — -1 for one that is not there yet. */
+
+  var LINKABLE = ['h1', 'h2', 'h3', 'p', 'list', 'quote', 'note', 'table'];
+  var REJECTED = 'not a link the page will make; it will print as text';
+  var addr = null, pickAt = 0;
+
+  function openAddr() {
+    commitEdit();
+    render();
+    var l = doc.line();
+    if (l.type === 'img') return addrForm(l, 'img', -1);
+    if (LINKABLE.indexOf(l.type) < 0) {
+      return say('a ' + L.byId[l.type].name.toLowerCase() + ' line has nothing to address');
+    }
+    /* nothing to pick between is not a question worth asking: no links opens an
+       empty form, one link opens that one */
+    var found = L.links(l.text);
+    if (found.length > 1) return addrPicker(l, found);
+    addrForm(l, 'link', found.length ? 0 : -1);
+  }
+
+  function showAddr(kind, picking) {
+    whatEl.textContent = kind === 'img' ? 'image' : 'link';
+    pickEl.hidden = !picking;
+    formEl.hidden = picking;
+    addrOv.classList.add('on');
+  }
+
+  function addrPicker(l, found) {
+    addr = { line: l, kind: 'link', n: -1 };
+    pickAt = 0;
+    /* the number beside an entry is the digit that picks it, so past the ninth
+       there is none to show — j k and Enter still reach them */
+    function entry(n, at, label) {
+      return '<b data-n="' + n + '"><u>' + (at < 9 ? at + 1 : '·') + '</u>' + label + '</b>';
+    }
+    pickEl.innerHTML = found.map(function (x, i) {
+      return entry(i, i, L.esc(x.wording) + ' <i>' + L.esc(x.href) + '</i>');
+    }).join('') + entry(-1, found.length, 'new link');
+    showAddr('link', true);
+    markPick();
+    say('pick a link — a digit, or j k and Enter');
+  }
+
+  function picks() { return pickEl.querySelectorAll('b'); }
+  function markPick() {
+    var bs = picks();
+    for (var i = 0; i < bs.length; i++) bs[i].classList.toggle('on', i === pickAt);
+  }
+  function pick(i) {
+    var b = picks()[i];
+    if (b) addrForm(addr.line, 'link', +b.dataset.n);
+  }
+
+  function addrForm(l, kind, n) {
+    addr = { line: l, kind: kind, n: n };
+    var img = kind === 'img', hit = img ? null : L.links(l.text)[n];
+    labA.textContent = img ? 'src' : 'wording';
+    labB.textContent = img ? 'caption' : 'href';
+    fldA.value = img ? l.text : (hit ? hit.wording : '');
+    fldB.value = img ? (l.sub || '') : (hit ? hit.href : '');
+    showAddr(kind, false);
+    warnAddr();
+    fldA.focus();
+    fldA.select();
+  }
+
+  /* An href the allowlist refuses is still committed — it is the writer's
+     line — but it says here what the page will do with it instead. */
+  function warnAddr() {
+    var href = fldB.value.trim();
+    var bad = addr && addr.kind === 'link' && href && !L.safeLinkHref(href);
+    warnEl.textContent = bad ? REJECTED : '';
+  }
+
+  function closeAddr() {
+    addr = null;
+    addrOv.classList.remove('on');
+    fldA.blur();
+    fldB.blur();
+  }
+
+  /* One committed overlay is one change: the line is rewritten once, and the
+     render() that follows is the single state the history keeps. */
+  function commitAddr() {
+    var l = addr.line, n = addr.n;
+    var first = fldA.value.trim(), second = fldB.value.trim();
+
+    if (addr.kind === 'img') {
+      l.text = first;                                        /* src */
+      l.sub = second || null;                                /* caption */
+      closeAddr();
+      render();
+      return say(first ? 'image ' + first : 'image cleared');
+    }
+    var wording = first, href = second;
+    if (!wording) return say('a link needs its wording — Esc leaves the line as it is');
+    if (!href && n < 0) return say('a new link needs something to point at');
+
+    /* Nothing to point at unlinks, and the wording that comes back is the one
+       in the field — byte for byte when it was not touched, so a wording the
+       syntax would trim survives a link it was never asked to change. */
+    var had = L.links(l.text)[n];
+    if (!href) {
+      l.text = (had && wording === had.wording) ? L.unlink(l.text, n)
+                                                : L.setLink(l.text, n, wording, '');
+    } else if (n < 0) l.text = L.addLink(l.text, wording, href);
+    else l.text = L.setLink(l.text, n, wording, href);
+    closeAddr();
+    render();
+    say(!href ? 'unlinked — the wording stays'
+              : (L.safeLinkHref(href) ? 'link set' : REJECTED));
+  }
+
+  /* The picker has no input to type into, so its keys arrive at the document;
+     the form's two fields stop their own. */
+  function addrKey(e) {
+    var k = e.key;
+    if (k === 'Escape') { e.preventDefault(); closeAddr(); return; }
+    if (pickEl.hidden) return;
+    if (k === 'Enter') pick(pickAt);
+    else if (/^[1-9]$/.test(k)) pick(+k - 1);
+    else if (k === 'j' || k === 'ArrowDown') { pickAt = Math.min(picks().length - 1, pickAt + 1); markPick(); }
+    else if (k === 'k' || k === 'ArrowUp') { pickAt = Math.max(0, pickAt - 1); markPick(); }
+    else return;
+    e.preventDefault();
+  }
+
+  [fldA, fldB].forEach(function (el) {
+    el.addEventListener('input', warnAddr);
+    el.addEventListener('keydown', function (e) {
+      e.stopPropagation();
+      if (e.key === 'Tab') { e.preventDefault(); (el === fldA ? fldB : fldA).focus(); }
+      else if (e.key === 'Enter') { e.preventDefault(); commitAddr(); }
+      else if (e.key === 'Escape') { e.preventDefault(); closeAddr(); }
+    });
+  });
+  pickEl.addEventListener('click', function (e) {
+    var b = e.target.closest('b');
+    if (b) pick([].indexOf.call(picks(), b));
+  });
+  document.getElementById('addrClose').addEventListener('click', closeAddr);
+
   /* ------------------------------------------------------ command line
    *
    * One table: it is what runs, what Tab completes, and what the help overlay
@@ -642,6 +803,12 @@
         doc.setMeta(a[1], a.slice(2).join(' '));
         say(a[1] + ' ' + doc.meta(a[1]));
       } },
+
+    { name: 'link', help: 'the links in this line — pick one, or write a new one (a)',
+      run: function () { openAddr(); } },
+
+    { name: 'img', help: "an image's file and caption — the same overlay (a)",
+      run: function () { openAddr(); } },
 
     { name: 'export', help: 'show the markdown — copy it or download it',
       run: function () { openExport(); } },
@@ -899,6 +1066,7 @@
     if (editing) return;
     if (!cmd.classList.contains('hidden')) return;
     var k = e.key;
+    if (addr) { addrKey(e); return; }
 
     if (prefix) {
       prefix = false;
@@ -958,6 +1126,7 @@
     if (actByKey[k]) { e.preventDefault(); actByKey[k].run(); return; }
     if (k === 'O') { openLine('above'); e.preventDefault(); return; }
     if (k === 'y') { doc.duplicate(); render(); say('duplicated'); return; }
+    if (k === 'a') { openAddr(); e.preventDefault(); return; }
     if (k === 'C') { copyBlock(); return; }
     if (k === 'Tab') {
       e.preventDefault();

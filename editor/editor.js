@@ -457,10 +457,20 @@
         case 'h3': html.push('<h3>' + inline(f.text) + '</h3>'); break;
         case 'p':  html.push('<p>' + inline(f.text) + '</p>'); break;
         case 'rule': html.push('<hr>'); break;
-        case 'img':
-          html.push('<figure><div class="imgbox">' + esc(f.text) + '</div>' +
+        case 'img': {
+          /* The real picture, so the writer can see whether it is the right
+             one. The box with the file name in it is what an src that does not
+             load falls back to — the caption is the alt either way. */
+          var box = '<div class="imgbox"' + (f.text ? ' hidden' : '') + '>' +
+            esc(f.text) + '</div>';
+          var pic = f.text
+            ? '<img src="' + esc(f.text) + '" alt="' + esc(f.sub || '') + '" onerror="' +
+              'this.hidden=true;this.nextElementSibling.hidden=false">'
+            : '';
+          html.push('<figure>' + pic + box +
             '<figcaption>' + esc(f.sub || 'figure') + '</figcaption></figure>');
           break;
+        }
         case 'list':
           html.push('<ul>' + run.map(function (x) {
             return '<li>' + inline(x.text) + '</li>'; }).join('') + '</ul>');

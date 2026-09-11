@@ -215,6 +215,170 @@
   ok('folding is not a step to undo — ^Z takes back the text instead',
      rows().length === withPrinted - 1, rows().length + ' of ' + withPrinted);
 
+  /* --- the address overlay: the links in a line, and an image's two halves -- */
+  function addrOn()  { return document.getElementById('addr').classList.contains('on'); }
+  function picking() { return addrOn() && !document.getElementById('addrPick').hidden; }
+  function fa()      { return document.getElementById('addrA'); }
+  function fb()      { return document.getElementById('addrB'); }
+  function warn()    { return document.getElementById('addrWarn').textContent; }
+  /* a fresh document holding one line of the given text */
+  function oneLine(text) {
+    document.getElementById('actClear').click();
+    key('i');
+    type(text);
+    key('Escape', box());
+  }
+
+  oneLine('see [one](https://a.example/) and [two](https://b.example/)');
+  key('a');
+  ok('a on a line with two links opens the picker', picking());
+  ok('the picker offers both links and a new one',
+     document.querySelectorAll('#addrPick b').length === 3,
+     document.querySelectorAll('#addrPick b').length);
+  key('2');
+  ok('picking the second fills the form with the second link',
+     fa().value === 'two' && fb().value === 'https://b.example/',
+     fa().value + ' / ' + fb().value);
+  key('Escape', fa());
+  key('a');
+  key('j');
+  key('Enter');
+  ok('j and Enter reach the same link the digit does',
+     !picking() && fa().value === 'two' && fb().value === 'https://b.example/',
+     fa().value + ' / ' + fb().value);
+  key('Escape', fa());
+  key('a');
+  key('j');
+  key('k');
+  key('Enter');
+  ok('k comes back up the list', fa().value === 'one', fa().value);
+  key('Escape', fa());
+  key('a');
+  key('2');
+  fa().focus();
+  key('Tab', fa());
+  ok('Tab moves to the other field', document.activeElement === fb(),
+     document.activeElement && document.activeElement.id);
+  fa().value = 'TWO';
+  fb().value = 'https://c.example/';
+  key('Enter', fb());
+  ok('Enter commits and closes the overlay', !addrOn());
+  ok('and the line carries the link that was typed',
+     rows().join('|').indexOf('see [one](https://a.example/) and [TWO](https://c.example/)') > -1,
+     rows().join('|'));
+
+  var kept2 = rows().join('|');
+  key('a');
+  key('1');
+  fa().value = 'thrown away';
+  key('Escape', fa());
+  ok('Esc leaves the line exactly as it was',
+     !addrOn() && rows().join('|') === kept2, rows().join('|'));
+
+  run('link');
+  ok(': link opens the same overlay as a', addrOn());
+  key('Escape', fa());
+  run('img');
+  ok(': img opens it too', addrOn());
+  key('Escape', fa());
+
+  oneLine('one [only](https://a.example/) here');
+  key('a');
+  ok('one link goes straight to a filled form',
+     addrOn() && !picking() && fa().value === 'only', fa().value);
+  key('Escape', fa());
+
+  oneLine('no links here');
+  key('a');
+  ok('no links goes straight to an empty form',
+     addrOn() && !picking() && !fa().value && !fb().value, fa().value + ' / ' + fb().value);
+  fa().value = 'fresh';
+  fb().value = 'https://d.example/';
+  key('Enter', fa());
+  ok('a new link is appended to the line',
+     rows().join('|').indexOf('no links here [fresh](https://d.example/)') > -1, rows().join('|'));
+
+  key('a');
+  fb().value = '';
+  key('Enter', fa());
+  ok('an empty href unlinks and keeps the wording',
+     rows().join('|').indexOf('no links here fresh') > -1 &&
+     rows().join('|').indexOf('[fresh]') < 0, rows().join('|'));
+
+  oneLine('a [word](https://a.example/) here');
+  var before2 = rows().join('|');
+  key('a');
+  fa().value = '';
+  key('Enter', fa());
+  ok('an empty wording is refused, with a message and no change',
+     addrOn() && msg().indexOf('wording') > -1 && rows().join('|') === before2,
+     msg() + ' :: ' + rows().join('|'));
+
+  fa().value = 'word';
+  fb().value = 'javascript:alert';
+  fb().dispatchEvent(new Event('input', { bubbles: true }));
+  ok('an href the allowlist refuses is marked in the overlay',
+     warn().indexOf('print as text') > -1, warn());
+  key('Enter', fb());
+  ok('and Enter commits it anyway',
+     !addrOn() && rows().join('|').indexOf('[word](javascript:alert)') > -1, rows().join('|'));
+
+  key('z', document, false, true);
+  ok('one committed overlay is one ^Z',
+     rows().join('|') === before2, rows().join('|'));
+
+  document.getElementById('actClear').click();
+  key('c');
+  var kept3 = rows().join('|');
+  key('a');
+  ok('a on a code line says so and changes nothing',
+     !addrOn() && msg().indexOf('nothing to address') > -1 && rows().join('|') === kept3,
+     msg() + ' :: ' + rows().join('|'));
+
+  document.getElementById('actClear').click();
+  key('f');
+  key('a');
+  ok('a on an image line offers src and caption',
+     addrOn() && document.getElementById('addrLab1').textContent === 'src' &&
+     document.getElementById('addrLab2').textContent === 'caption',
+     document.getElementById('addrLab1').textContent);
+  fa().value = 'diagram.png';
+  fb().value = 'how it fits together';
+  key('Enter', fb());
+  run('export');
+  var md = document.getElementById('expMd').textContent;
+  key('Escape');
+  ok('a committed caption reaches the export',
+     md.indexOf('![how it fits together](diagram.png)') > -1, md);
+  var fig = document.querySelector('#read figure');
+  ok('and the read pane shows the picture itself',
+     !!document.querySelector('#read figure img[src="diagram.png"]'),
+     fig && fig.innerHTML);
+  ok('with the box holding the file name behind it, for an src that will not load',
+     !!fig && !!fig.querySelector('.imgbox[hidden]') &&
+     fig.querySelector('.imgbox').textContent === 'diagram.png',
+     fig && fig.innerHTML);
+  ok('and the caption is the alt as well as the figcaption',
+     !!fig && fig.querySelector('img').alt === 'how it fits together' &&
+     fig.querySelector('figcaption').textContent === 'how it fits together',
+     fig && fig.innerHTML);
+
+  oneLine('[kept  wording](https://a.example/)');
+  key('a');
+  fb().value = '';
+  key('Enter', fa());
+  ok('unlinking keeps the wording the field shows',
+     rows().join('|').indexOf('kept  wording') > -1 &&
+     rows().join('|').indexOf('[') < 0, rows().join('|'));
+
+  oneLine('[old](https://a.example/)');
+  key('a');
+  fa().value = 'new wording';
+  fb().value = '';
+  key('Enter', fa());
+  ok('and a wording edited on the way out is not thrown away',
+     rows().join('|').indexOf('new wording') > -1, rows().join('|'));
+
   var bad = out.filter(function (l) { return l.indexOf('FAIL') === 0; }).length;
   var pre = document.createElement('pre');
   pre.style.cssText = 'position:fixed;inset:0;z-index:999;background:#111;color:#ddd;' +
