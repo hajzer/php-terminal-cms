@@ -3,6 +3,10 @@
 Status: done
 Spec: ../spec.md
 Commit: 3 of 8 — "test: the editor sends nothing"
+Landed in 3 commits:
+  bbf3bcf test: the editor sends nothing
+  ec7a014 tracker: 05 is done, and its boxes say so
+  be886f4 test: one scan, two lists of terms
 
 ## What
 
