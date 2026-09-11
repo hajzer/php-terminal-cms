@@ -6,9 +6,9 @@ are.
 ## What is reachable from the internet
 
 On the public origin: Apache (or nginx), the PHP runtime, one entry point of
-seventy lines and about thirteen hundred lines of renderer, router and page
-shell in `site/src/`. That is the whole of it — there is no other code, and
-none of it is somebody else's.
+seventy lines and the renderer, router, listing and page shell in `site/src/`
+— under two thousand lines in all. That is the whole of it — there is no other
+code, and none of it is somebody else's.
 
 ## What does not exist
 
@@ -31,11 +31,13 @@ emits it by download. It does make one request on the author's behalf.
 Previewing an image line shows the actual picture, so the browser fetches
 whatever that line names as its src — an author who writes an `https://` src is
 telling their own browser to contact that host, and that host learns a request
-was made from that browser. Any other src is resolved against wherever the
-editor page itself was opened from — for a page opened off the filesystem, that
-is the filesystem. An image that does not load falls back to the box with the
-file name in it, silently. The document is no part of any of this and still
-goes nowhere.
+was made from that browser. It learns nothing else the page could have kept
+back: the editor's page names `no-referrer`, so where the editor was opened
+from does not travel with the request. Any other src is resolved against
+wherever the editor page itself was opened from — for a page opened off the
+filesystem, that is the filesystem. An image that does not load falls back to
+the box with the file name in it, silently. The document is no part of any of
+this and still goes nowhere.
 
 ## The renderer
 
@@ -81,7 +83,9 @@ Two headings with the same words get two ids, so an in-page link cannot be
 made ambiguous by a document repeating itself. An `img` path is either a local
 absolute path or a name under `/media/`; a protocol-relative URL, a backslash,
 a control character and a path trying to climb out of the document root are all
-reduced to the file they name.
+reduced to the file they name. The `logo` and the `favicon` in `site.php` are
+two more paths that reach the page, and they take the same reduction before
+they are escaped into the page shell.
 
 ## The router
 
