@@ -8,6 +8,7 @@ Issues and specs (you may know a spec as a PRD) for this repo live as markdown f
 - The spec is `.scratch/<feature-slug>/spec.md`
 - Implementation issues are one file per ticket at `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01` — never a single combined tickets file
 - Triage state is recorded as a `Status:` line near the top of each issue file (see `triage-labels.md` for the role strings)
+- Every criterion under an issue's `## Acceptance` heading is a task-list checkbox — `- [ ]` while it is open, `- [x]` once it holds. An issue whose boxes are all ticked is the issue that may be set to `done`, and one with an unticked box is not finished however green the suite is
 - Comments and conversation history append to the bottom of the file under a `## Comments` heading
 
 ## When a skill says "publish to the issue tracker"
