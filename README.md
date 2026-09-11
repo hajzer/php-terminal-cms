@@ -166,10 +166,28 @@ write in it.
 
 ## Layout
 
+![The two halves of php-terminal-cms, side by side. On the left the editor, a
+static page holding a document as a list of typed lines — a heading, two
+paragraphs, a list item, a php line and a bash line — which leaves as one
+markdown file. In the middle that file is carried over by git, rsync, scp or
+WinSCP, a copy you perform yourself, because the two halves never talk to each
+other; or you skip the copy and edit the file on the server with any terminal
+editor. On the right the published page, drawn by PHP on every request. Along
+the bottom, the order one request walks through site/src: the web server, then
+site/public/index.php, then Router comparing the URL with the category list,
+then Document, Markdown, Line, Renderer and Highlighter turning the file back
+into lines and out into HTML, then Site, Listing, Language and Page putting the
+navigation, the listing and the shell around it — and out as one HTML response,
+with no file written, no socket opened and no session started.](docs/media/architecture.svg)
+
+The tree below says what the files are. The picture says what happens between
+them, and in particular the order the classes in `site/src` are reached — which
+is a thing the list cannot show.
+
 ```
 README.md  LICENSE  VERSION  CONTEXT.md  CHANGELOG.md  AGENTS.md
 docs/          line-types · keymap · format · config · deploy
-               security · security-audit · adr/ · agents/
+               security · security-audit · adr/ · agents/ · media/
 shared/        langs.json   theme.css          ← single sources
 editor/        index.html  editor.js  ui.js    ← the static editor
 site/
