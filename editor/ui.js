@@ -1,4 +1,7 @@
-/* php-terminal-cms editor — the browser half. Talks to no server, ever.
+/* php-terminal-cms editor — the browser half. A document is never sent
+   anywhere; the one thing this page fetches is an image a line names, to show
+   it in the preview.
+
    The model lives in editor.js; this file is only keyboard, mouse and DOM.
 
    Three invariants hold after every single mutation, and render() is the one

@@ -40,8 +40,8 @@ return [
     /**
      * Where a link that leaves this site opens: 'here' in the tab the reader
      * is in, or 'tab' in a new one. Only a link that names http or https can
-     * open a new tab — a link to this site, a fragment and a mailto: address
-     * stay where they are either way. Leave it out and every link opens here.
+     * open a new tab — a local path, a fragment and a mailto: address stay
+     * where they are either way. Leave it out and every link opens here.
      */
     'link_open' => 'here',
 

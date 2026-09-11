@@ -147,10 +147,12 @@ A link that leaves the site can open in the reader's tab or in a new one:
 ```
 
 `'tab'` puts `target="_blank"` on every link whose target names `http` or
-`https` — the same links that already carry `rel="noopener noreferrer"`. A link
-to this site, a fragment and a `mailto:` address never open a new tab, whatever
-the setting says, because they are not leaving. Any value other than `'tab'`,
-named or not, is `'here'`.
+`https` — the same links that already carry `rel="noopener noreferrer"`. A local
+path, a fragment and a `mailto:` address never open a new tab, whatever the
+setting says. It is the scheme that is judged and not the host, because the site
+is never told its own name: a link written as a full `https://` address to this
+very site is a link that leaves, and opens like one. Any value other than
+`'tab'`, named or not, is `'here'`.
 
 The editor is never told this. Its preview shows the `'here'` rendering, which
 is the same markup with one attribute fewer.

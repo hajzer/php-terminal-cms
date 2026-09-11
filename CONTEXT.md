@@ -41,6 +41,18 @@ block's result. Folded by default everywhere — editor, page and exported
 markdown.
 _Avoid_: result, stdout, response
 
+**Cell**:
+One of the `|`-separated parts of a Table Line. A Line's text is the whole row,
+and its Cells are what that one string is read as.
+_Avoid_: field, box, entry
+
+**Column**:
+The nth Cell of every Line in a Table Run. Derived when it is asked for and
+never stored: adding one rewrites every Line in the Run, and there is no Table
+object for it to belong to. The only structure in the model that spans Lines
+and is not a Run.
+_Avoid_: field, axis
+
 **Meta**:
 A Line holding one `key: value` pair, exported as YAML frontmatter. `title`,
 `category` and `date` are the ones the system reads; anything else is carried
@@ -103,11 +115,12 @@ segment that is not a Category is a 404.
 _Avoid_: section, folder, tag, collection
 
 **Editor**:
-The static page on which Lines are composed. Has no server: it holds one
-Document in the browser tab, opens markdown from a file picker or a drop, and
-emits it by download. It never writes to a server. It knows nothing of the
-Category list — a Document's Category is a Meta Line like any other, and the
-Editor only reads it to say which directory the file belongs in.
+The static page on which Lines are composed. It holds one Document in the
+browser tab, opens markdown from a file picker or a drop, and emits it by
+download — the Document is never sent anywhere. The one thing it fetches is an
+image a Line names, so that the preview shows the picture. It knows nothing
+of the Category list — a Document's Category is a Meta Line like any other, and
+the Editor only reads it to say which directory the file belongs in.
 _Avoid_: CMS, admin, backend, dashboard
 
 **Renderer**:
@@ -133,9 +146,10 @@ git, rsync, scp, WinSCP. Deliberately outside the software.
 _Avoid_: deploy (that is the code), upload, sync, publish
 
 **Site Config**:
-The per-instance `site.php` — title, tagline, Category list, accent colour,
-Listing switches and Footer. The only thing that differs between two
-installations of the same code.
+The per-instance `site.php` — title, logo, tagline, Language list, Category
+list, accent colour, Listing switches, how many Documents the homepage Listing
+prints, where a leaving Link opens, and Footer. The only thing that differs
+between two installations of the same code.
 _Avoid_: settings, options, env
 
 **Listing**:

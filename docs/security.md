@@ -26,6 +26,17 @@ cannot write to `content/`, which means **a compromise of the web tier cannot
 alter published content** — publishing requires credentials to the transport
 (SSH, git), which the software never handles.
 
+The editor never sends a document anywhere: it holds one in the browser tab and
+emits it by download. It does make one request on the author's behalf.
+Previewing an image line shows the actual picture, so the browser fetches
+whatever that line names as its src — an author who writes an `https://` src is
+telling their own browser to contact that host, and that host learns a request
+was made from that browser. Any other src is resolved against wherever the
+editor page itself was opened from — for a page opened off the filesystem, that
+is the filesystem. An image that does not load falls back to the box with the
+file name in it, silently. The document is no part of any of this and still
+goes nowhere.
+
 ## The renderer
 
 `Renderer.php` never passes file bytes into its output. It matches a line to a

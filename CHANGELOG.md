@@ -1,5 +1,66 @@
 # Changelog
 
+## 0.1.8
+
+The two addressed things — a link and an image — are written from the keyboard
+rather than counted out in brackets, a table has columns, and an instance has
+three more things it can say about itself.
+
+- `a` on the line under the cursor opens what that line addresses. On a line
+  that carries links it lists them to pick between; one link opens straight for
+  editing and none opens an empty form, so writing the first link in a line is
+  also one key. The two fields are the **wording** and the **href**, `Tab`
+  between them, `Enter` commits and `Esc` leaves the line as it was. `:link` is
+  the same overlay.
+- Clearing the href unlinks and leaves the wording as writing; clearing the
+  wording is refused, because `[](…)` is not a link a page can make. An href
+  the published page would refuse is marked in the overlay with what will happen
+  to it — by the same allowlist the page itself uses, so the warning cannot be
+  wrong in either direction. It does not stop you committing it.
+- The same key on an image line offers `src` and `caption`, and `:img` opens
+  the same overlay. An image's caption could not be written from the keyboard at
+  all before this; it is the figure's caption and the image's alt text both, so
+  a captioned figure is an accessible one.
+- The editor's read pane shows the actual picture for an image line, so you can
+  see whether you named the right file. One that does not load falls back,
+  silently, to the box with the file name in it that was there before. That is
+  the one request the editor makes on your behalf, and it is written down in
+  `docs/security.md`: the document itself still goes nowhere.
+- A table row is edited as a row. `Tab` and `⇧Tab` while editing walk the caret
+  from cell to cell, and `Tab` past the last cell commits the row and opens the
+  next one with the caret in its first cell — the writing loop, sideways. `o` on
+  a table row opens a row as wide as the run it is in, instead of a row one cell
+  wide.
+- A table has columns: `:col add`, `:col del`, `:col left` and `:col right`,
+  counted from 1 and applied across every row of the run at once. `Tab` offers
+  the numbers with the heading row's words beside them. Rows shorter than the
+  widest are padded first, so a ragged table comes out of its first column
+  command square; the run's bounds are where it stops, and one column command is
+  one undo step.
+- There is still no table object and no grid. A column is the nth cell of every
+  row, worked out when asked and never stored, which is why reordering a row is
+  `J`/`K` like every other line and undo needed nothing new. See
+  `docs/adr/0015-tables-are-lines-not-a-grid.md`.
+- `listing_max` in `site.php` is how many documents the homepage lists — a whole
+  number, or `0` for all of them. It was a hardcoded fifteen, which is still
+  what a site that does not name it gets. A category page is never capped: it
+  prints its whole category.
+- `link_open => 'tab'` opens links that leave the site in a new tab. Only a
+  target naming `http` or `https` qualifies — it is the scheme that is judged,
+  not the host, so a local path, a fragment and a `mailto:` address stay where
+  they are whatever the setting says. Leave it out and every link opens here,
+  as before.
+- `logo` puts a picture in the brand link, in front of the title. The src is
+  read the way a document's image src is read, so it is always a file under
+  `/media/`. `title` is unchanged and does everything it did, including being
+  the logo's alt text — an instance is named whether or not the picture loads.
+- Controls look like controls. The reader's `A−` `A+` and `theme`, the editor's
+  top bar buttons and legend, and the fold arrow and copy button both halves
+  share, all get one resting background, one hover and one focus ring —
+  written once in `shared/theme.css` in terms of the theme's own tokens, so
+  both themes follow and the two halves cannot drift. Nothing moved and nothing
+  changed size: it is detailing, not a redesign.
+
 ## 0.1.7
 
 A document can be written in more than one language, and both halves work under

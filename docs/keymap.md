@@ -26,6 +26,7 @@ it.
 | `Enter` (while editing) | commit and open a new line below — the writing loop |
 | `Esc` (while editing) | commit and stop |
 | `o` `O` | new line below / above, straight into editing |
+| `Tab` / `⇧Tab` (editing a table row) | the next / previous cell |
 | `D` or `x` | remove the line |
 | `y` | duplicate the line |
 | `^Z` | undo |
@@ -33,6 +34,13 @@ it.
 
 A new line inherits the type and dialect of the one it follows, so writing a
 list or a code block is `o`, type, `Enter`, type, `Enter`.
+
+A table row is one line and its cells are the `|`-separated parts of it, so
+`Tab` while editing walks the caret along the row a cell at a time. Past the
+last cell it commits the row and opens the next one with the caret in its first
+cell — the same writing loop, sideways. `⇧Tab` walks back, and on the first
+cell there is nowhere to go. `o` on a table row opens a row as wide as the run
+it is in, so the pipes are typed for you.
 
 ## Styles
 
@@ -61,6 +69,19 @@ One key each. Applies to the line under the cursor.
 | --- | --- |
 | `z` | fold / unfold this block's output section |
 | `C` | copy this code, CLI or output block to the clipboard |
+| `a` | the links in this line — or an image's file and caption |
+
+`a` opens the overlay on whatever the cursor is on. On a line that carries
+links it shows them to pick between — one link opens straight for editing, and
+none opens an empty form, so writing the first link in a line is also one key.
+On an image line the two fields are `src` and `caption` instead. A line
+that carries no inline markup at all — code, CLI, output, rule, meta — says so
+and is left alone.
+
+Clearing the href unlinks, leaving the wording as writing; clearing the wording
+is refused, because `[](…)` is not a link. An href the published page would
+refuse is marked in the overlay with what will happen to it, by the same
+allowlist the page uses — but it does not stop you committing it.
 
 ## Document and session
 
@@ -168,8 +189,27 @@ drift apart.
 | `del` | remove this line |
 | `dup` | duplicate this line |
 | `move up\|down\|top\|bottom` | move this line within the document |
+| `col add\|del\|left\|right [n]` | a column of this table — counted from 1, across every row |
+| `link` | the links in this line — pick one, or write a new one; the same as `a` |
+| `img` | an image's file and caption — the same overlay |
 | `go <line\|top\|end>` | put the cursor on a line by number |
 | `copy` | copy this code, CLI or output block to the clipboard |
+
+A column is the nth cell of every row in the table run the cursor is in, counted
+from 1, and it is worked out when you ask rather than stored anywhere. `col add`
+with no number puts an empty column on the right; `col add 2` puts one before
+the second. `col del 2` takes that one out, and `col left 2` · `col right 2`
+swap it with its neighbour. `Tab` offers the numbers with the heading row's
+words beside them, which is how you tell which number you want.
+
+Every row of the run is rewritten by one such command, and rows shorter than the
+widest one are padded with empty cells first — so a ragged table comes out of
+its first column command square. The run's bounds are where it stops: a second
+table further down the document is untouched. `col del` on a table one column
+wide is refused. One column command is one undo step.
+
+Rows need no commands of their own: a row is a line, so `J`/`K` move one, `D`
+removes one and `y` duplicates one, exactly as they do everywhere else.
 
 ### Output sections
 
