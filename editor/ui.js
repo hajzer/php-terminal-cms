@@ -187,16 +187,24 @@
     x.keys.forEach(function (k) { actByKey[k] = x; });
   });
 
+  function chip(x) {
+    return '<b class="do" data-a="' + x.a + '">' + x.label + '<i>' + L.esc(x.key) + '</i></b>';
+  }
+
+  /* The types on the left, the writing loop on the right — and `link` on the
+     left with the types, because it is a thing you do to what the Line says
+     rather than to the Line's place in the document. It is still an action and
+     never lights up: a Line has a Type and may have a link, which is why it
+     stands a little apart from the fourteen. */
   function drawLegend() {
     var cl = doc.line();
     legend.innerHTML = L.TYPES.map(function (t) {
       return '<b data-t="' + t.id + '" class="' + (t.id === cl.type ? 'on' : '') + '">' +
         t.name.replace('Heading ', 'H') + '<i>' + t.key + '</i></b>';
     }).join('') +
+      chip(byAct.addr) +
       '<span class="sep"></span>' +
-      ACTS.map(function (x) {
-        return '<b class="do" data-a="' + x.a + '">' + x.label + '<i>' + L.esc(x.key) + '</i></b>';
-      }).join('') +
+      ACTS.filter(function (x) { return x !== byAct.addr; }).map(chip).join('') +
       '<span class="act"><kbd>^Z</kbd> undo · <kbd>:</kbd> commands · <kbd>?</kbd> keys</span>';
   }
 

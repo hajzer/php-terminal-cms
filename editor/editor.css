@@ -200,6 +200,8 @@ body { overflow: hidden; font: 14px/1.6 var(--mono); }
 .legend b.on, .legend b.on:hover { background: var(--accent); color: var(--bg); box-shadow: none; }
 .legend b i { font-style: normal; color: var(--secondary); margin-left: 5px; }
 .legend b.on i { color: var(--bg); opacity: .7; }
+/* the address action stands with the types but is not one of them */
+.legend b[data-a="addr"] { margin-left: 9px; }
 .legend .sep { flex: 1; }
 .legend .act { color: var(--secondary); }
 .legend .act kbd { font: inherit; color: var(--fg); }

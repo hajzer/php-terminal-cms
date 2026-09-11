@@ -4,10 +4,10 @@ Everything in the editor is reachable from the keyboard. The mouse is supported
 where it is genuinely better — dragging a line, clicking a type in the legend.
 
 On a touch screen there is no keyboard to run the writing loop from, so the
-legend along the bottom is it: the line types on the left, and `edit` `new`
-`remove` `↑` `↓` `fold` `link` on the right, each doing exactly what the key
-printed beside it does. Tap a line to put the cursor on it; tap it again to
-write in it.
+legend along the bottom is it: the line types on the left with `link` beside
+them, and `edit` `new` `remove` `↑` `↓` `fold` on the right, each doing exactly
+what the key printed beside it does. Tap a line to put the cursor on it; tap it
+again to write in it.
 
 ## Moving
 
