@@ -13,6 +13,9 @@ dialect, and the same handful of operations moves, retypes, duplicates and
 deletes every kind of them. You compose lines in a terminal-styled editor and
 move them around with the keyboard; the result is an ordinary markdown file.
 
+- [DEMO - Page](https://php-terminal-cms.linuxor.sk/)
+- [DEMO - Editor](https://editor.linuxor.sk/)
+
 ![The two halves of php-terminal-cms, side by side. On the left the editor, a
 static page holding a document as a list of typed lines — a heading, two
 paragraphs, a list item, a php line and a bash line — which leaves as one
