@@ -240,7 +240,7 @@ halves agree.
 - [keymap.md](docs/keymap.md) — every key and `:` command
 - [format.md](docs/format.md) — the markdown contract and its limits
 - [config.md](docs/config.md) — `site.php`
-- [deploy.md](docs/deploy.md) — installing both halves, upgrading, publishing
+- [deploy.md](docs/deploy.md) — installing both halves, publishing (also as static pages on GitLab or GitHub), upgrading
 - [security.md](docs/security.md) — what a deployment exposes, and what it does not
 - [security-audit.md](docs/security-audit.md) — what the reviews looked at and found
 - [CHANGELOG.md](CHANGELOG.md) — what changed in each release
