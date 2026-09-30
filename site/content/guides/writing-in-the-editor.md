@@ -29,7 +29,7 @@ The whole writing loop is **o**, type, **Enter**, type, **Enter** — never leav
 | c s u | code, CLI, output |
 | r f m | rule, figure, meta |
 
-Tab cycles the dialect of a code or CLI line, and `:lang php` picks one by name, which is quicker once you know there are fifty-eight of them. A CLI dialect also picks the prompt the line is drawn with — `$` for bash, `PS>` for PowerShell, `>>>` for a Python session.
+Tab cycles the dialect of a code or CLI line, and `:lang php` picks one by name, which is quicker once you know there are fifty-nine of them. A CLI dialect also picks the prompt the line is drawn with — `$` for bash, `PS>` for PowerShell, `>>>` for a Python session.
 
 ## The document, and what it is called
 

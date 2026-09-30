@@ -626,6 +626,12 @@ ok('no dialect is a fence word that means something else',
    }));
 ok('every dialect is a legal fence info string',
    codeSubs.concat(cliSubs).every(function (s) { return /^[a-z0-9_-]+$/.test(s); }));
+/* a Diagram is a Code Run in the mermaid Dialect, so Tab has to get there */
+d = docOf(['code:A --> B']);
+var reached = [];
+for (var n = 0; n < codeSubs.length; n++) { d.cycleSub(1); reached.push(d.line().sub); }
+ok('Tab on a Code Line reaches mermaid', reached.indexOf('mermaid') > -1, reached.join(' '));
+
 ok('every CLI dialect has a prompt',
    cliSubs.every(function (s) { return !!L.PROMPTS[s]; }),
    cliSubs.filter(function (s) { return !L.PROMPTS[s]; }).join(' '));

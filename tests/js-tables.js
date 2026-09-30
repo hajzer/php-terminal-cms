@@ -25,6 +25,7 @@ var SAMPLES = [
   '+added line',
   '@@ -1,2 +1,2 @@',
   "it's <b>not</b> markup & never was",
+  'stateDiagram-v2; A["a & b"] -->|yes| B %% note',
   'let ľubovoľné = "prílišné"; // žltučký kôň → 5 €'
 ];
 

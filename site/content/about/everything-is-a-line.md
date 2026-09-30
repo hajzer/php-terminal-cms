@@ -68,3 +68,13 @@ $ php bin/test | tail -2
 ## And it is still just markdown
 
 The file the editor exports is ordinary markdown that GitHub renders correctly. The typed lines are how the editor and the renderer think about a document; they are not a format anyone else has to learn.
+
+A diagram is no exception. It is a run of code lines in the `mermaid` dialect, written to the file as the same fence GitLab and GitHub draw:
+
+```mermaid
+%% one file, read into lines and written back out of them
+flowchart LR
+  file[".md file"] --> lines["Lines"]
+  lines --> page["the page"]
+  lines --> file
+```

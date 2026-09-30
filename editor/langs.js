@@ -452,5 +452,13 @@ window.LANGS = {
     "var": "^[-+][^\\n]*",
     "kw": [],
     "bi": []
+  },
+
+  "mermaid": {
+    "com": "^\\s*%%[^\\n]*",
+    "str": "\"[^\"]*\"",
+    "var": null,
+    "kw": ["graph","flowchart","sequenceDiagram","classDiagram","stateDiagram","stateDiagram-v2","erDiagram","gantt","pie","journey","gitGraph","mindmap","timeline","subgraph","end","participant","actor","note","loop","alt","else","opt","par","direction","class","style","classDef","linkStyle","click"],
+    "bi": []
   }
 };

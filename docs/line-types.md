@@ -73,7 +73,7 @@ Key `c`. Markdown a fenced block with the dialect as the info string. Syntax
 highlighted on the page by `site/src/Highlighter.php` and in the editor by the
 same tables, both reading `shared/langs.json`.
 
-Fifty-eight dialects. `Tab` cycles them, which is only sensible for the first
+Fifty-nine dialects. `Tab` cycles them, which is only sensible for the first
 few — `:lang <name>` picks one directly, and the editor's `?` overlay lists them
 all:
 
@@ -84,6 +84,7 @@ all:
 | shells | `bash` `sh` `ksh` `zsh` `fish` `tcsh` `nu` `powershell` `cmd` |
 | data and markup | `sql` `html` `xml` `css` `json` `yaml` `toml` `ini` |
 | configuration | `dockerfile` `makefile` `nginx` `graphql` `hcl` `diff` |
+| diagrams | `mermaid` |
 
 A dialect the tables do not know still works — the block renders as plain
 escaped text, which is what an unknown info string emits.

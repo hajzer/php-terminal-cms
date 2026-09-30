@@ -22,7 +22,7 @@
     'haskell', 'ocaml', 'fsharp', 'elixir', 'erlang', 'clojure', 'lisp', 'scheme',
     'bash', 'sh', 'ksh', 'zsh', 'fish', 'tcsh', 'nu', 'powershell', 'cmd',
     'sql', 'html', 'xml', 'css', 'json', 'yaml', 'toml', 'ini',
-    'dockerfile', 'makefile', 'nginx', 'graphql', 'hcl', 'diff'
+    'dockerfile', 'makefile', 'nginx', 'graphql', 'hcl', 'diff', 'mermaid'
   ];
   /* Dialects a CLI line can carry — a shell or an interactive prompt. */
   var CLI_SUBS = [

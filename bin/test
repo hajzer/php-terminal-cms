@@ -296,16 +296,24 @@ foreach ($files as $file) {
     ok($once === $js['markdown'], 'php and js emit identical markdown',
        diff($once, $js['markdown']));
 
+    $phpHtml   = Renderer::render($lines, false);
     $phpBlocks = array_map(
         static function (string $l): string {
             return preg_match('~^<([a-z0-9]+)~i', $l, $m) === 1 ? $m[1] : '?';
         },
-        explode("\n", Renderer::render($lines, false))
+        explode("\n", $phpHtml)
     );
     $jsBlocks = array_values(array_filter($js['blocks'], static fn ($b) => $b !== '?'));
     $phpBlocks = array_values(array_filter($phpBlocks, static fn ($b) => $b !== '?'));
     ok($phpBlocks === $jsBlocks, 'php and js render the same block sequence',
        "php: " . implode(' ', $phpBlocks) . "\njs : " . implode(' ', $jsBlocks));
+
+    /* the block around a Code Run is each half's own chrome, but what is in
+       the <pre> is the Line model and the tokenizer, and has to be the same
+       bytes on both sides */
+    preg_match_all('~<pre\b.*?</pre>~s', $phpHtml, $phpPres);
+    ok($phpPres[0] === $js['pres'], 'php and js render every code block identically',
+       diff(implode("\n", $phpPres[0]), implode("\n", $js['pres'])));
 }
 
 /* ------------------------------------------------------------- line breaks */

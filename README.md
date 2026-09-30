@@ -73,7 +73,7 @@ you have your own.
 | `"` | quote | `q` | — |
 | `!` | note | `n` | — |
 | `‖` | table row | `t` | — |
-| `{}` | code | `c` | 58 languages — php js ts python ruby go rust java … |
+| `{}` | code | `c` | 59 languages — php js ts python ruby go rust java … |
 | `$` | CLI | `s` | 17 shells and prompts — bash sh zsh fish powershell cmd … |
 | `⟩` | output | `u` | — |
 | `—` | rule | `r` | — |
