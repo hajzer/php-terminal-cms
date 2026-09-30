@@ -1002,12 +1002,17 @@
 
   /* --- markdown in by paste: ^V with no Line open ----------------------- */
   /* A synthetic paste carries a clipboard of its own, with HTML beside the
-     text the way a copy from a web page does — only the text may arrive. */
+     text the way a copy from a web page does — only the text may arrive. The
+     clipboard is a stand-in that shadows the event's own: a DataTransfer made
+     in script reaches the listener as a copy, which Chromium fills and Firefox
+     hands over empty, so the stand-in answers getData() as the real one would
+     in either. The listeners under test read nothing else of it. */
   function paste(text, el) {
-    var dt = new DataTransfer();
-    dt.setData('text/plain', text);
-    dt.setData('text/html', '<h1>not this</h1>');
-    var ev = new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true });
+    var held = { 'text/plain': text, 'text/html': '<h1>not this</h1>' };
+    var ev = new ClipboardEvent('paste', { bubbles: true, cancelable: true });
+    Object.defineProperty(ev, 'clipboardData', {
+      value: { getData: function (type) { return held[type] || ''; } }
+    });
     (el || document.body).dispatchEvent(ev);
     return ev;
   }

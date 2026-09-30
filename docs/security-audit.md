@@ -504,7 +504,10 @@ hashes, not a header with a nonce. It is issue 12.
 `tests/editor-probe.html` drives the editor's DOM half through a real browser
 and is the one check the suite cannot run. At 0.1.9 it was 172 assertions, run
 green in Firefox for the third review. At 0.2.0 it is 248, run green in headless
-Chromium for the fourth review, beside a scripted re-run of the by-hand checks
+Chromium and headless Firefox for the fourth review — the maintainer's first run
+in Firefox found the probe's synthetic paste empty there, which was the probe's
+own clipboard stand-in and not the Editor, and the probe now pastes the same
+way in both — beside a scripted re-run of the by-hand checks
 of issues 05 to 08 — the Editor from `file://`, the site with its header, and
 a Page Build under `/proj` and at the root with the `<meta>` — 31 checks, all
 green; the maintainer's own run in a real browser is what the release waits

@@ -97,3 +97,19 @@ drift rather than exposure.
   every earlier issue's did. The tree is what 08's human check saw plus this
   issue's changes: `ui.js`'s status line, `bin/page-build`'s `.md` refusal,
   and the docs.
+- 2026-09-30, human: the probe in Firefox: **24 failed of 247**, every one
+  on a paste — the paste tests, the raw-face paste, and the whole Diagram
+  section, which pastes its fence in. Also: the content of the pages is not
+  adjusted to the screen width (which pages, and how, still to be said).
+- 2026-09-30, agent: reproduced in Playwright's Firefox (155, build 1543),
+  24 of 247 to the line. The cause is the probe's own `paste()` helper, not
+  the Editor: it made a `DataTransfer` in script and dispatched it on a
+  synthetic `paste` event, and the listener gets a *copy* of that
+  DataTransfer in both browsers — one Chromium fills and Firefox hands over
+  empty, so `getData('text/plain')` answered `''` and every paste said
+  "nothing to paste". The helper now shadows the event's `clipboardData` with
+  a stand-in that answers `getData()`, which is all the listeners under test
+  read of it. **248 of 248 in Firefox and in Chromium.** What the probe
+  cannot do in either is press a real `^V`: 03 tried that with real
+  keypresses in Chromium only, so the by-hand check should include one real
+  `^V` in Firefox with nothing open.
