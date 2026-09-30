@@ -1,6 +1,6 @@
 # 06 — Diagrams on the public page
 
-Status: ready-for-human
+Status: done
 Spec: ../spec.md
 Blocked by: 05
 
@@ -38,10 +38,12 @@ header.
   byte what it was
 - [x] `bin/test`: the enhancement script names no address other than the one
   Mermaid asset, and carries no interpolated nonce
-- [ ] by hand, `php -S` with the sample Diagram and the header policy
+- [x] by hand, `php -S` with the sample Diagram and the header policy
   enforced: drawn, styled, redrawn on theme toggle, the copy button copying the
-  source, and no CSP violation in the console — noted in the comments
-- [ ] by hand, the same page with scripts blocked shows the source as a code
+  source, no `script-src` violation in the console, and `style-src` reports
+  only from Mermaid's drawing, each one the policy blocking an inline style
+  (reworded — see the comments)
+- [x] by hand, the same page with scripts blocked shows the source as a code
   block
 - [x] `php bin/test` green
 
@@ -126,3 +128,15 @@ header.
     browser. Serve with
     `php -S localhost:8080 -t site/public site/public/index.php` and open
     `/about/everything-is-a-line`.
+- 2026-09-30, human: the by-hand check, in Firefox against `php -S`, with
+  the header policy enforced. With scripts on, the Diagram is drawn. With
+  scripts blocked by NoScript, the source shows as a code block. NoScript
+  also logged one `script-src-elem 'none'` report of its own, for the page's
+  inline script (its hash matched the script on a Diagram page). With the
+  extension removed and the browser restarted, that report is gone. What
+  remains is `style-src-elem` and `style-src-attr` reports attributed to
+  `mermaid.min.js`, plus Firefox's "unreachable code after return statement"
+  warning about the minified library, which is not a CSP report.
+- 2026-09-30, human: decision on the console line: accept the `style-src`
+  reports and reword the acceptance item as above. Stripping style
+  attributes before parsing, and reopening ADR-0016, were both declined.
