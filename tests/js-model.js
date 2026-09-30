@@ -542,6 +542,145 @@ d.load(L.parse('---\ntitle: Writing in the editor\ncategory: guides\n---\n\n# Wr
 eq('an opened file keeps its own name and category',
    d.path(), 'content/guides/writing-in-the-editor.md');
 
+/* ---------------------------------------------------------------- paste
+ *
+ * Markdown added to a Document rather than replacing it: the Lines it
+ * describes land below the cursor, and its frontmatter merges by key. */
+function shape(d) {
+  return d.lines.map(function (l) { return l.type + (l.sub ? '/' + l.sub : '') + ':' + l.text; });
+}
+d = docOf(['p:a', 'p:b', 'p:c']);
+d.cur = 1;
+var said = d.paste('# one\n\ntwo\n\n- three\n');
+eq('pasted Lines land below the cursor in the order written', shape(d),
+   ['p:a', 'p:b', 'h1:one', 'p:two', 'list:three', 'p:c']);
+ok('the cursor ends on the last Line pasted', d.cur === 4, 'cur=' + d.cur);
+eq('the paste says how many Lines it added and how many Meta it set', said,
+   { lines: 3, meta: 0 });
+
+var article = '## A heading\n\n- one\n- two\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n\n' +
+              '> [!NOTE]\n> careful\n\n```php\necho 1;\n```\n\n```console\n$ ls\n```\n\n' +
+              '```output\nfile\n```\n';
+d = docOf(['p:x']);
+d.paste(article);
+eq('a paste makes the Types Open .md makes of the same markdown',
+   shape(d).slice(1), shape(new L.Doc(L.parse(article))));
+
+d = new L.Doc([L.mk('meta', 'title: Old'), L.mk('meta', 'category: news'),
+               L.mk('meta', 'date: 2026-01-01'), L.mk('p', 'body')]);
+var titleId = d.lines[0].id;
+d.cur = 3;
+said = d.paste('---\ntitle: New\nauthor: me\n---\n\nmore\n');
+eq('a pasted title replaces the title in place, and a new key follows the last Meta',
+   shape(d),
+   ['meta:title: New', 'meta:category: news', 'meta:date: 2026-01-01', 'meta:author: me',
+    'p:body', 'p:more']);
+ok('the title replaced is the same Line, not a new one', d.lines[0].id === titleId);
+ok('the cursor still lands on the last Line pasted', d.line().text === 'more', 'cur=' + d.cur);
+eq('and the report counts the Meta it set', said, { lines: 1, meta: 2 });
+
+d = new L.Doc([L.mk('meta', 'title: T'), L.mk('p', 'a'), L.mk('meta', 'tags: x'), L.mk('p', 'b')]);
+d.cur = 3;
+d.paste('---\ndate: 2026-02-03\n---\n');
+eq('a new key goes after the Document\'s last Meta Line, wherever that is', shape(d),
+   ['meta:title: T', 'p:a', 'meta:tags: x', 'meta:date: 2026-02-03', 'p:b']);
+ok('and the cursor keeps its Line when Meta lands above it', d.line().text === 'b',
+   'cur=' + d.cur);
+
+d = docOf(['p:a', 'p:b']);
+d.cur = 1;
+d.paste('---\ntitle: T\ndate: 2026-02-03\n---\n\n# h\n');
+eq('a Document with no Meta receives pasted Meta at the top, in order', shape(d),
+   ['meta:title: T', 'meta:date: 2026-02-03', 'p:a', 'p:b', 'h1:h']);
+ok('and the body still lands below the cursor\'s Line', d.line().text === 'h', 'cur=' + d.cur);
+
+d = new L.Doc([L.mk('meta', 'title: Old'), L.mk('p', 'a'), L.mk('p', 'b')]);
+d.cur = 1;
+said = d.paste('---\ntitle: New\n---\n');
+eq('a frontmatter-only paste changes only Meta', shape(d), ['meta:title: New', 'p:a', 'p:b']);
+ok('and leaves the cursor where it was', d.cur === 1, 'cur=' + d.cur);
+eq('and says it added no Lines', said, { lines: 0, meta: 1 });
+
+['', '   \n\n\t\n'].forEach(function (nothing, k) {
+  var e = new L.Doc([L.mk('meta', 'title: T'), L.mk('p', 'a')]);
+  e.cur = 1;
+  var before = shape(e);
+  var r = e.paste(nothing);
+  var which = k ? 'a whitespace-only paste' : 'an empty paste';
+  eq(which + ' changes nothing', shape(e), before);
+  ok(which + ' leaves the cursor alone', e.cur === 1, 'cur=' + e.cur);
+  eq(which + ' says so', r, { lines: 0, meta: 0 });
+});
+
+d = new L.Doc([L.mk('meta', 'title: Old Title'), L.mk('p', 'a')]);
+d.paste('---\ntitle: New Title\n---\n');
+ok('the Name follows a pasted title while it was following the title',
+   d.fileName() === 'new-title.md', d.fileName());
+d = new L.Doc([L.mk('meta', 'title: Old Title'), L.mk('p', 'a')]);
+d.setName('kept.md');
+d.paste('---\ntitle: New Title\n---\n');
+ok('and a Name that was set stays', d.fileName() === 'kept.md', d.fileName());
+d = new L.Doc([L.mk('meta', 'title: Old Title'), L.mk('p', 'a')]);
+d.load(d.lines, 'from-a-file.md');
+d.paste('---\ntitle: New Title\n---\n');
+ok('and so does a Name that came from a file', d.fileName() === 'from-a-file.md', d.fileName());
+
+d = docOf(['p:a', 'p:b']);
+d.cur = 1;
+d.paste('x\n\ny\n');
+eq('a paste at the last Line appends', texts(d), ['a', 'b', 'x', 'y']);
+ok('with the cursor on the new last Line', d.cur === 3, 'cur=' + d.cur);
+d = docOf(['p:a', 'p:b']);
+d.cur = 0;
+d.paste('x\n\ny\n');
+eq('a paste at the first Line goes between it and the second', texts(d), ['a', 'x', 'y', 'b']);
+ok('with the cursor on the last Line pasted', d.cur === 2, 'cur=' + d.cur);
+
+d = new L.Doc([L.mk('meta', 'title: T'), L.mk('meta', 'date: 2026-01-01'), L.mk('p', 'a')]);
+d.cur = 2;
+d.paste('---\ntitle: U\ncategory: c\ntitle: V\n---\n\nb\n');
+var out = L.toMarkdown(d.lines);
+eq('toMarkdown after a paste has one frontmatter block and no key twice', out,
+   '---\ntitle: V\ndate: 2026-01-01\ncategory: c\n---\n\na\n\nb\n');
+
+d = new L.Doc([L.mk('meta', 'title: T'), L.mk('meta', 'date: 2026-01-01'), L.mk('p', 'a')]);
+d.cur = 1;
+d.paste('---\nauthor: me\n---\n\nb\n');
+eq('with the cursor on the last Meta Line, pasted Meta still lands above the pasted body',
+   shape(d), ['meta:title: T', 'meta:date: 2026-01-01', 'meta:author: me', 'p:b', 'p:a']);
+ok('and the cursor is on the last Line pasted', d.line().text === 'b', 'cur=' + d.cur);
+
+d = new L.Doc([L.mk('meta', 'title: T'), L.mk('p', 'a')]);
+d.paste('---\ntitle : U\n---\n');
+eq('a key written with a space before its colon is the same key', shape(d),
+   ['meta:title: U', 'p:a']);
+ok('and meta() reads the pasted value', d.meta('title') === 'U', d.meta('title'));
+
+d = new L.Doc([L.mk('meta', 'title: T'), L.mk('p', 'a')]);
+said = d.paste('---\ntitle: U\ntitle: V\n---\n');
+eq('a key pasted twice sets one Meta Line, and says one', [shape(d), said],
+   [['meta:title: V', 'p:a'], { lines: 0, meta: 1 }]);
+
+/* Output is folded by default, and a Run is folded or not as a whole */
+d = docOf(['p:a']);
+d.paste('```console\n$ ls\n```\n\n```output\nfile\n```\n');
+ok('pasted Output that starts a Run of its own arrives folded', d.foldedAt(2),
+   JSON.stringify(d.lines));
+d = docOf(['code:ls', 'out:1', 'out:2', 'p:after']);
+d.setFold(1, true);
+d.cur = 2;
+d.paste('```output\n3\n```\n');
+ok('Output pasted into a folded Run is folded with it',
+   [1, 2, 3].every(function (i) { return d.lines[i].fold === true; }),
+   JSON.stringify(d.lines));
+d = docOf(['code:ls', 'out:1', 'out:2', 'p:after']);
+d.setFold(1, false);
+d.cur = 0;
+d.paste('```output\n0\n```\n');
+ok('Output pasted onto the top of an open Run is open with it',
+   [1, 2, 3].every(function (i) { return d.lines[i].fold === false; }),
+   JSON.stringify(d.lines));
+
 /* -------------------------------------------------------------- history */
 d = docOf(['p:a', 'p:b']);
 var h = new L.History();

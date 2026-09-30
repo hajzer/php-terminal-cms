@@ -899,27 +899,74 @@
     return -1;
   };
 
-  Doc.prototype.meta = function (key) {
+  /* The Meta Line that holds `key`, or -1 — the first one, when a Document
+     has written the same key twice, because that is the one meta() reads. */
+  Doc.prototype.metaAt = function (key) {
     for (var i = 0; i < this.lines.length; i++) {
       var l = this.lines[i];
-      if (l.type === 'meta' && l.text.indexOf(key + ':') === 0) {
-        return l.text.slice(key.length + 1).trim();
-      }
+      if (l.type === 'meta' && l.text.indexOf(key + ':') === 0) return i;
     }
-    return '';
+    return -1;
+  };
+  Doc.prototype.meta = function (key) {
+    var i = this.metaAt(key);
+    return i < 0 ? '' : this.lines[i].text.slice(key.length + 1).trim();
   };
   /* A meta line the document does not have yet goes to the top, where
      frontmatter belongs; cur moves with it so the cursor stays on its line. */
   Doc.prototype.setMeta = function (key, value) {
-    for (var i = 0; i < this.lines.length; i++) {
-      var l = this.lines[i];
-      if (l.type === 'meta' && l.text.indexOf(key + ':') === 0) {
-        l.text = key + ': ' + value;
-        return;
-      }
-    }
+    var i = this.metaAt(key);
+    if (i > -1) { this.lines[i].text = key + ': ' + value; return; }
     this.lines.unshift(mk('meta', key + ': ' + value));
     this.cur++;
+  };
+
+  /** Add a markdown string to the Document, read the way Open .md reads a
+   *  file. Every Line it describes lands below the cursor, in order, and the
+   *  cursor ends on the last of them; Output that starts a Run of its own
+   *  arrives folded, and Output that joins a Run takes that Run's fold. The
+   *  pasted frontmatter merges by key: a key the Document has gets the pasted
+   *  value on the Line it already has, and one it lacks goes after the last
+   *  Meta Line, or to the top when there is none. Returns how many Lines were
+   *  added and how many Meta Lines were set — both 0 for a paste with nothing
+   *  in it, which changes nothing. */
+  Doc.prototype.paste = function (md) {
+    var pasted = parse(md), a = this.lines, body = [], set = [], i, j, m;
+    for (i = 0; i < pasted.length; i++) {
+      if (pasted[i].type !== 'meta') body.push(pasted[i]);
+      if (pasted[i].type === 'out') pasted[i].fold = true;
+    }
+    if (body.length) {
+      var at = this.clamp() + 1;
+      a.splice.apply(a, [at, 0].concat(body));
+      this.cur = at + body.length - 1;
+      /* Output can only join a Run at the two edges of what was pasted */
+      if (a[this.cur + 1] && a[this.cur + 1].type === 'out' && a[this.cur].type === 'out') {
+        this.setFold(this.cur, a[this.cur + 1].fold === true);
+      }
+      if (a[at - 1] && a[at - 1].type === 'out' && a[at].type === 'out') {
+        this.setFold(at - 1, a[at - 1].fold === true);
+      }
+    }
+    for (i = 0; i < pasted.length; i++) {
+      var p = pasted[i];
+      if (p.type !== 'meta') continue;
+      /* written the way setMeta writes it, so that meta() finds it again */
+      if ((m = /^([^:]+):\s*(.*)$/.exec(p.text))) {
+        p.text = m[1].trim() + ':' + (m[2] ? ' ' + m[2] : '');
+        j = this.metaAt(m[1].trim());
+        if (j > -1) {
+          a[j].text = p.text;
+          if (set.indexOf(a[j]) < 0) set.push(a[j]);
+          continue;
+        }
+      }
+      for (j = a.length - 1; j >= 0 && a[j].type !== 'meta'; j--);
+      a.splice(j + 1, 0, p);
+      if (j + 1 <= this.cur) this.cur++;
+      set.push(p);
+    }
+    return { lines: body.length, meta: set.length };
   };
 
   /* ------------------------------------------------------------- history
