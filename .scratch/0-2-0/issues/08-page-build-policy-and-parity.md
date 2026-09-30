@@ -1,6 +1,6 @@
 # 08 — The Page Build: the page's own policy, and parity
 
-Status: ready-for-human
+Status: done
 Spec: ../spec.md
 Blocked by: 06, 07
 
@@ -48,7 +48,7 @@ Headers files for particular hosts. Hashes.
 
 Then:
 
-- [ ] a build with a Diagram served by `php -S` with no header of its own:
+- [x] a build with a Diagram served by `php -S` with no header of its own:
   drawn, styled, no CSP violation in the console — noted in the comments
 - [x] `php bin/test` green
 
@@ -154,4 +154,10 @@ Then:
     - that six bad nonces are refused.
   - Headless Chromium on a fresh `/proj` build gave the same result as
     before: drawn, redrawn on toggle, no `script-src` report.
-
+- 2026-09-30, human: the by-hand check passed on a fresh build with the
+  unescaped `<meta>`. The Diagram is drawn, styled and redrawn on the theme
+  toggle, and no `script-src` report appears. The console shows the drawing's
+  `style-src-attr` and `style-src-elem` reports. As in 06, they are accepted:
+  they come from Mermaid's measuring and from parsing its output, and each
+  one is a style being blocked. Removing them would mean a wider policy or a
+  second way to draw.
