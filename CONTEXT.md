@@ -21,11 +21,11 @@ keystroke that applies it.
 _Avoid_: style, format, kind, tag
 
 **Dialect**:
-The language a Code or CLI Line is written in — fifty-eight of them for Code,
+The language a Code or CLI Line is written in — fifty-nine of them for Code,
 seventeen shells and interactive prompts for CLI. Only these two Types carry one.
-It selects the syntax highlighting, and for CLI the prompt, which is also how
-the Dialect is recognised again when the file is read back — so no two CLI
-Dialects may share one.
+It selects the syntax highlighting — or, for `mermaid`, that the Run is a
+Diagram — and for CLI the prompt, which is also how the Dialect is recognised
+again when the file is read back — so no two CLI Dialects may share one.
 _Avoid_: subtype, variant, language, lang
 
 **Run**:
@@ -40,6 +40,13 @@ A Run of Output Lines immediately following a Code or CLI Run, presented as that
 block's result. Folded by default everywhere — editor, page and exported
 markdown.
 _Avoid_: result, stdout, response
+
+**Diagram**:
+A Code Run in the `mermaid` Dialect, which a reader is shown as the picture its
+source describes. The Lines are the source and stay the source; the picture is
+drawn in the reader's browser and nowhere else, so with the drawing blocked a
+Diagram is an ordinary code block.
+_Avoid_: chart, graph, figure (that is the Image), mermaid (that is the Dialect)
 
 **Cell**:
 One of the `|`-separated parts of a Table Line. A Line's text is the whole row,
@@ -116,18 +123,35 @@ _Avoid_: section, folder, tag, collection
 
 **Editor**:
 The static page on which Lines are composed. It holds one Document in the
-browser tab, opens markdown from a file picker or a drop, and emits it by
-download — the Document is never sent anywhere. The one thing it fetches is an
-image a Line names, so that the preview shows the picture. It knows nothing
-of the Category list — a Document's Category is a Meta Line like any other, and
-the Editor only reads it to say which directory the file belongs in.
+browser tab, opens markdown from a file picker or a drop, takes it in by
+paste, and emits it by download — the Document is never sent anywhere. What
+it fetches is an image a Line names, so that the preview shows the picture,
+and — once the Document holds a Diagram — its own copy of the library that
+draws one. It knows nothing of the Category list — a Document's Category is a
+Meta Line like any other, and the Editor only reads it to say which directory
+the file belongs in.
 _Avoid_: CMS, admin, backend, dashboard
 
 **Renderer**:
-The PHP that turns a Document into HTML for the public site at request time. It
-reads only the subset of markdown the Editor emits, escapes everything, and emits
-only tags it chose itself.
+The PHP that turns a Document into HTML for the public site — at request time,
+or once for every page in a Page Build. It reads only the subset of markdown the
+Editor emits, escapes everything, and emits only tags it chose itself.
 _Avoid_: parser (that is only half of it), engine, generator
+
+**Page Build**:
+Rendering every page of an Instance to files ahead of time, so that a host
+which runs no PHP can serve the public site. The same Renderer, run once over
+all of `content/` instead of once per request. A second way to publish, not a
+replacement for the first.
+_Avoid_: export (that is the Editor's markdown), bake, static site generation,
+build (that is regenerating the derived files from `shared/`)
+
+**Base Path**:
+Where on its host a Page Build's site begins — `/project` on a project page,
+nothing at a domain's root. It belongs to one Page Build, not to the Instance,
+and every local address the built site carries starts with it, a Link's Href
+written from the site's root included.
+_Avoid_: base URL (that is the whole address it is read from), prefix, root
 
 **Fold**:
 Whether an Output run is presented collapsed. It is a property of the Lines
