@@ -999,6 +999,147 @@
   key('Escape', box());
 
 
+  /* --- markdown in by paste: ^V with no Line open ----------------------- */
+  /* A synthetic paste carries a clipboard of its own, with HTML beside the
+     text the way a copy from a web page does — only the text may arrive. */
+  function paste(text, el) {
+    var dt = new DataTransfer();
+    dt.setData('text/plain', text);
+    dt.setData('text/html', '<h1>not this</h1>');
+    var ev = new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true });
+    (el || document.body).dispatchEvent(ev);
+    return ev;
+  }
+
+  oneLine('above');
+  key('o');
+  type('below');
+  key('Escape', box());
+  key('k');
+  run('title Before');
+  var unpasted = rows().join('|');
+  var ev = paste('---\ntitle: Pasted\nauthor: me\n---\n\n## A heading\n\n- an item\n\n' +
+                 '```bash\necho hi\n```\n');
+  ok('a paste with nothing open is taken by the Document', ev.defaultPrevented);
+  ok('and its Lines land typed, below the cursor, with the cursor on the last',
+     rows().join('|') === 'meta:title: Pasted|meta:author: me|p:above|h2:A heading|' +
+       'list:an item|code*:echo hi|p:below', rows().join('|'));
+  ok('the clipboard\'s HTML is not read', rows().join('|').indexOf('not this') < 0,
+     rows().join('|'));
+  ok('the status line says what the paste added and set',
+     /3 lines/.test(msg()) && /2 meta/.test(msg()), msg());
+  key('z', document, false, true);
+  ok('one ^Z takes the whole paste back, Meta included',
+     rows().join('|') === unpasted, rows().join('|'));
+  key('z', document, true, true);
+  ok('and ^⇧Z puts it all back', rows().join('|').indexOf('title: Pasted') > -1 &&
+     rows().join('|').indexOf('echo hi') > -1, rows().join('|'));
+
+  var kept4 = rows().join('|');
+  paste(' \n\t\n');
+  ok('a paste with nothing in it changes nothing and says so',
+     rows().join('|') === kept4 && /nothing/.test(msg()), msg() + ' :: ' + rows().join('|'));
+
+  /* the in-edit paste is untouched: into an open Line it is text, and further
+     lines are Lines of that Line's Type — a script's comment stays a comment */
+  document.getElementById('actClear').click();
+  key('c');
+  run('lang bash');
+  key('i');
+  ev = paste('# a comment\necho two', box());
+  ok('a paste into an open Code Line still gives Code Lines of that Dialect',
+     rows().join('|') === 'code:# a comment|code*:echo two' &&
+     [].map.call(document.querySelectorAll('#sheet .run.code .lang'),
+       function (x) { return x.textContent; }).join() === 'bash',
+     rows().join('|'));
+  ok('and its # comment is not a heading', !document.querySelector('#sheet .ln.h1'),
+     rows().join('|'));
+  key('Escape', box());
+
+  var kept5 = rows().join('|');
+  var input2 = typeCmd('ti');
+  ev = paste('## into the command line', input2);
+  ok('a paste with the command line open goes to the command line',
+     !ev.defaultPrevented && rows().join('|') === kept5, rows().join('|'));
+  key('Escape', input2);
+
+  key('?');
+  ev = paste('## under the help');
+  ok('a paste with an overlay open is left alone',
+     !ev.defaultPrevented && rows().join('|') === kept5, rows().join('|'));
+  key('Escape');
+
+  key('R');
+  ev = paste('## into the name', document.getElementById('docname'));
+  ok('a paste into the Name goes to the Name',
+     !ev.defaultPrevented && rows().join('|') === kept5, rows().join('|'));
+  key('Escape', document.getElementById('docname'));
+
+  run('read');
+  paste('- read face');
+  ok('a paste with the read face showing adds at the cursor and keeps the face',
+     rows().join('|').indexOf('list*:read face') > -1 &&
+     document.getElementById('panes').dataset.mode === 'read', rows().join('|'));
+  run('write');
+
+  /* --- :paste and the Legend's paste: the Clipboard API ----------------- */
+  /* navigator.clipboard stood in for, answering at once, so the probe stays
+     one synchronous run: a thenable is all the call site asks of it */
+  function withClipboard(fake, fn) {
+    var had = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+    Object.defineProperty(navigator, 'clipboard', { value: fake, configurable: true });
+    try { fn(); } finally {
+      if (had) Object.defineProperty(navigator, 'clipboard', had);
+      else delete navigator.clipboard;
+    }
+  }
+  function holding(text) {
+    return { readText: function () { return { then: function (yes) { yes(text); } }; } };
+  }
+  var refusing = {
+    readText: function () { return { then: function (yes, no) { no(new Error('denied')); } }; }
+  };
+
+  var pasteChip = document.querySelector('#legend b[data-a="paste"]');
+  ok('the legend offers paste', !!pasteChip,
+     document.querySelectorAll('#legend b[data-a]').length + ' actions');
+  ok('beside new', !!pasteChip && !!pasteChip.previousElementSibling &&
+     pasteChip.previousElementSibling.dataset.a === 'new',
+     pasteChip && pasteChip.previousElementSibling && pasteChip.previousElementSibling.outerHTML);
+  ok('and prints ^V as the key that does the same thing',
+     !!pasteChip && pasteChip.querySelector('i').textContent === '^V',
+     pasteChip && pasteChip.innerHTML);
+
+  document.getElementById('actClear').click();
+  /* the legend is redrawn by every render(), so the chip is found again */
+  pasteChip = document.querySelector('#legend b[data-a="paste"]');
+  withClipboard(holding('- from the legend'), function () {
+    if (pasteChip) pasteChip.click();
+  });
+  ok('clicking it reads the clipboard and adds what it holds',
+     rows().join('|') === 'p:write…|list*:from the legend', rows().join('|'));
+  withClipboard(holding('> from the command'), function () { run('paste'); });
+  ok(':paste does the same', rows().join('|').indexOf('quote*:from the command') > -1,
+     rows().join('|'));
+
+  var kept6 = rows().join('|');
+  withClipboard(refusing, function () { run('paste'); });
+  ok('a refused clipboard changes nothing and points at ^V',
+     rows().join('|') === kept6 && /\^V/.test(msg()), msg() + ' :: ' + rows().join('|'));
+  withClipboard({}, function () { run('paste'); });
+  ok('so does a clipboard with no readText',
+     rows().join('|') === kept6 && /\^V/.test(msg()), msg());
+  withClipboard(undefined, function () { run('paste'); });
+  ok('and one that is not there at all, as in an insecure context',
+     rows().join('|') === kept6 && /\^V/.test(msg()), msg());
+
+  ok('the help lists :paste among the commands',
+     [].some.call(document.querySelectorAll('#cmdlist kbd'),
+       function (k) { return k.textContent === 'paste'; }));
+  ok('and ^V among the keys',
+     [].some.call(document.querySelectorAll('#help kbd'),
+       function (k) { return k.textContent === '^V'; }));
+
   /* --- the write pane has the read pane's measure ---------------------- */
   /* The two panes have different font bases — the sheet is 14px, the reader
      page is --global-font-size — so the same measure cannot be reached by

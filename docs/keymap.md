@@ -5,8 +5,8 @@ where it is genuinely better — dragging a line, clicking a type in the legend.
 
 On a touch screen there is no keyboard to run the writing loop from, so the
 legend along the bottom is it: the line types on the left with `link` among
-them, and `edit` `new` `remove` `↑` `↓` `fold` on the right, each doing exactly
-what the key printed beside it does. Tap a line to put the cursor on it; tap it
+them, and `edit` `new` `paste` `remove` `↑` `↓` `fold` on the right, each doing
+exactly what the key printed beside it does. Tap a line to put the cursor on it; tap it
 again to write in it.
 
 ## Moving
@@ -120,6 +120,7 @@ allowlist the page uses — but it does not stop you committing it.
 | **Open .md** or drop a `.md` | open an existing document for editing |
 | **New .md** or `N` | start a new document, keeping the category |
 | **Clear** | empty this document, keeping its name — `^Z` brings it back |
+| `^V` (no line open) | markdown from the clipboard, added below the cursor as typed lines |
 | `R` | name the file — or click the name in the tab bar |
 | `E` | export — shows the markdown, copy or download it |
 | `^B` then `1` / `2` / `3` | write pane / read pane / split screen |
@@ -131,6 +132,23 @@ allowlist the page uses — but it does not stop you committing it.
 | `:` | command line |
 | `?` | the keys and every command, in the editor |
 
+`^V` with no line open reads the clipboard's text the way **Open .md** reads a
+file, and adds it rather than replacing: every line it describes lands below the
+cursor with its type — a `## ` a heading, a fence a code block of its dialect —
+and the cursor ends on the last of them. Frontmatter merges by key: a `title:`
+the document already has takes the pasted value where it stands, and a key it
+lacks is added after its last meta line. The status line says how many lines
+were added and how many meta lines set, and one `^Z` takes all of it back.
+`:paste` and the legend's `paste` read the clipboard through the browser's
+Clipboard API instead, for a screen with no keyboard; where the browser refuses
+that — from a page it does not trust, or when permission is withheld — they say
+so and point at `^V`, which needs no permission. Only the clipboard's plain text
+is read, never its HTML.
+
+A paste into a line that is open for editing is not markdown: it is text, and
+each further line of it becomes a line of the same type. A shell script pasted
+into a code line stays a code block, `# comment` and all.
+
 The three buttons in the topbar are the whole of what the editor does to a
 document as a whole. There is no save button, and no fourth thing hiding
 anywhere: the editor has nowhere to save to, and `E` is how a file leaves it.
@@ -138,7 +156,7 @@ anywhere: the editor has nowhere to save to, and `E` is how a file leaves it.
 ## Undo and redo
 
 `^Z` takes back anything that changed the document — a word typed, a line
-removed, a run reordered, a file opened, **Clear**, **New .md**. `^⇧Z` (or `^Y`)
+removed, a run reordered, a file opened, a paste, **Clear**, **New .md**. `^⇧Z` (or `^Y`)
 puts it back. The buttons in the topbar do the same and grey out when there is
 nothing left to take back.
 
@@ -257,6 +275,7 @@ removes one and `y` duplicates one, exactly as they do everywhere else.
 | --- | --- |
 | `undo` · `redo` | the same as `^Z` and `^⇧Z` |
 | `open` | open a markdown file — the same as dropping one on the page |
+| `paste` | markdown from the clipboard, added below the cursor — the same as `^V` |
 | `newdoc` | start a new document, keeping the category |
 | `clear` | empty this document, keeping its name |
 | `name [file.md]` | name the file; no argument goes back to following the title |

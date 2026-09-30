@@ -266,12 +266,16 @@
 
   /* The writing loop as buttons, so that a screen with no keyboard can run it.
      Each one is the key beside it, doing what the key does — there is no
-     action here that the keymap does not already have. */
+     action here that the keymap does not already have. `paste` is the one
+     whose key is not in the keymap: ^V arrives as the browser's paste event,
+     and the button reads the same clipboard through the Clipboard API. */
   var ACTS = [
     { a: 'edit', label: 'edit',   key: 'i', keys: ['i', 'Enter'],
       run: function () { startEdit(); } },
     { a: 'new',  label: 'new',    key: 'o', keys: ['o'],
       run: function () { openLine('below'); } },
+    { a: 'paste', label: 'paste', key: '^V', keys: [],
+      run: function () { pasteClipboard(); } },
     { a: 'del',  label: 'remove', key: 'D', keys: ['D', 'x'],
       run: function () { commitEdit(); doc.remove(); render(); say('removed'); } },
     { a: 'up',   label: '↑',      key: 'K', keys: ['K'],
@@ -625,6 +629,39 @@
     }
     return out.join('\n');
   }
+  /* Markdown added below the cursor, read the way Open .md reads a file. One
+     render() after the model has done all of it, so the whole paste is one
+     state in the history and one ^Z takes it back. */
+  function pasteMarkdown(text) {
+    commitEdit();
+    var got = doc.paste(String(text));
+    render();
+    if (!got.lines && !got.meta) return say('nothing to paste');
+    var said = [];
+    if (got.lines) said.push(got.lines + ' line' + (got.lines > 1 ? 's' : '') + ' added');
+    if (got.meta) said.push(got.meta + ' meta set');
+    say('pasted — ' + said.join(' · ') + ' — ^Z takes it back');
+  }
+  /* The Clipboard API is not there in an insecure context and may be refused
+     where it is; the paste event ^V raises needs neither. */
+  var NO_CLIPBOARD = 'the clipboard cannot be read from here — ^V pastes instead';
+  function pasteClipboard() {
+    var c = navigator.clipboard;
+    if (!c || !c.readText) return say(NO_CLIPBOARD);
+    c.readText().then(pasteMarkdown, function () { say(NO_CLIPBOARD); });
+  }
+  /* A paste with nothing open is markdown for the Document. Anywhere text is
+     being typed — an open Line, the command line, an overlay's fields, the
+     Name — it belongs to what is being typed into, and is left alone. */
+  document.addEventListener('paste', function (e) {
+    if (e.defaultPrevented || editing || !cmd.classList.contains('hidden') ||
+        document.querySelector('.ov.on') || nameEl.getAttribute('contenteditable')) return;
+    var cd = e.clipboardData;
+    if (!cd) return;
+    e.preventDefault();
+    pasteMarkdown(cd.getData('text/plain'));
+  });
+
   function copyBlock() {
     var l = doc.line();
     if (['code', 'cli', 'out'].indexOf(l.type) < 0) {
@@ -1058,6 +1095,9 @@
     { name: 'open', help: 'open a markdown file — same as dropping one on the page',
       run: function () { openFile(); } },
 
+    { name: 'paste', help: 'markdown from the clipboard, added below the cursor (^V)',
+      run: function () { pasteClipboard(); } },
+
     { name: 'newdoc', help: 'start a new document, keeping the category',
       run: function () { newDoc(); } },
 
@@ -1445,7 +1485,7 @@
     if (k === 'k' || k === 'ArrowUp')   { step(-1); render(); e.preventDefault(); return; }
     if (k === 'g') { doc.cur = 0; render(); return; }
     if (k === 'G') { doc.cur = doc.lines.length - 1; render(); return; }
-    /* the seven the legend also has as buttons, so that a key and the button
+    /* the keys the legend also has as buttons, so that a key and the button
        beside it cannot come to mean two different things */
     if (actByKey[k]) { e.preventDefault(); actByKey[k].run(); return; }
     if (k === 'O') { openLine('above'); e.preventDefault(); return; }
