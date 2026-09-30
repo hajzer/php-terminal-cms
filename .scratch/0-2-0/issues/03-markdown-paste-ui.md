@@ -1,6 +1,6 @@
 # 03 — Markdown in by paste: the keyboard, the command and the Legend
 
-Status: ready-for-human
+Status: done
 Spec: ../spec.md
 Blocked by: 02
 
@@ -46,15 +46,17 @@ A paste dialog. HTML from the clipboard. Any change to paste while editing.
 Then:
 
 - [x] `php bin/test` green
-- [ ] `:paste` tried by hand from `file://` and from `localhost`, and a refused
-  permission seen to leave the Document alone — noted in the comments
+- [x] `:paste` tried by hand from `file://` and from `localhost`, and a refused
+  permission seen to leave the Document alone — noted in the comments (driven
+  by Playwright with real keypresses and real permission states, not by a
+  person's hands; Chromium only)
 - [x] the probe green in a browser, with its count noted in the comments
 
 ## Comments
 
 - 2026-09-30, agent: the probe is green in headless Chromium (Playwright's
-  chrome-headless-shell 1243), **195 of 195** — 23 of them new for paste.
-  `php bin/test`: 596 passed, 0 failed. Each guard on the document-level
+  chrome-headless-shell 1243), **195 of 195** — 23 of them new for paste; after the review
+  fixes, **198 of 198**. `php bin/test`: 596 passed, 0 failed. Each guard on the document-level
   listener (open Line, command line, overlay, Name) was taken out in turn and
   the probe went red on its test.
 - 2026-09-30, agent: `:paste` against the real Clipboard API, in headless
@@ -65,8 +67,23 @@ Then:
   - `http://localhost` (`php -S`) — the same.
   - `http://<LAN address>` — not a secure context, no `navigator.clipboard`:
     the same sentence, Document unchanged.
-- Left for a human: the by-hand item above, in a real browser. A granted
-  permission reading the clipboard into the Document has only run against a
-  stub, and plain `^V` with nothing focused has only run as a synthetic
-  event. Chromium and Firefox raise `paste` on `body` for it; Safari has been
-  known not to without an editable target, so that one is worth a try.
+- 2026-09-30, agent, after review: the "is text being typed" test is one
+  predicate the keymap and the paste share; the Name counts when it holds the
+  focus without being open (it has `tabindex`); a `:paste` whose clipboard
+  answers after something was opened pastes nothing and says so; an empty
+  paste still renders, so an edit it committed reaches the history. The raw
+  face's paste check went to 04's acceptance, since raw does not exist yet.
+- 2026-09-30, agent: the real thing, through Playwright (playwright-core
+  1.63, Chromium 153 headless shell) — real keypresses, the system clipboard,
+  permissions granted or not — from `file://` and from `http://localhost`,
+  8 of 8 each:
+  - `^V` with nothing open adds `meta`, `h2` and `list` Lines, the status
+    line says "2 lines added · 1 meta set", and `^Z` takes all of it back;
+  - `:paste` and the Legend's `paste`, permission granted, read the clipboard;
+  - `^V` into an open Code Line gives Code Lines, `# comment` included;
+  - `^V` with the command line open lands in the command line;
+  - with no permission, `:paste` changes nothing and points at `^V`.
+- Not tried: Firefox (Playwright's build of it is not installed here) and
+  Safari, which has been known not to raise `paste` on a page with no
+  editable target — if `^V` does nothing there, `:paste` and the Legend still
+  do.

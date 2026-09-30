@@ -24,6 +24,8 @@ read-only, in a `<pre>`. **Export .md** is a button for what `E` already does.
 - The reading face split uses is remembered in `localStorage` beside swap and
   zoom, read and written in `try`/`catch` as they are.
 - The `?` overlay's key table gains `w` and `^B 4`.
+- A paste while raw is showing inserts at the cursor as usual and changes no
+  face (spec, *Paste*); 03's listener already does, and this checks it.
 
 ### Export .md
 
@@ -46,6 +48,9 @@ Export bytes.
 - [ ] raw is not editable — typing in it changes no Line
 - [ ] `^B 4` and `:raw` reach raw
 - [ ] the *Export .md* button opens the export overlay
+- [ ] a `^V` paste with raw showing adds at the cursor, raw follows it, and the
+  face stays raw — 03's probe covers the read face only, because raw did not
+  exist yet
 
 Then:
 
