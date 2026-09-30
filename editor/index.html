@@ -18,6 +18,7 @@
     <div class="acts">
       <button type="button" id="actOpen" title="open a markdown file (or drop one anywhere)">Open .md</button>
       <button type="button" id="actNew" title="start a new document (N)">New .md</button>
+      <button type="button" id="actExport" title="the markdown, and the path it belongs at (E)">Export .md</button>
       <button type="button" id="actClear" title="empty this document">Clear</button>
       <span class="bar"></span>
       <button type="button" id="actUndo" title="undo (Ctrl+Z)">↶ undo</button>
@@ -29,6 +30,7 @@
   <div class="tabs">
     <button data-tab="write" class="on">write</button>
     <button data-tab="read">read</button>
+    <button data-tab="raw">raw</button>
     <button data-tab="split">split</button>
     <button class="icon" type="button" id="swap" title="swap the two panes (B)">⇄</button>
     <div class="grow"></div>
@@ -42,10 +44,11 @@
     </div>
   </div>
 
-  <div class="panes" id="panes" data-mode="write" data-swap="no">
+  <div class="panes" id="panes" data-mode="write" data-face="read" data-swap="no">
     <div class="pane write" id="tab-write"><div class="sheet" id="sheet"></div></div>
     <div class="pane readwrap" id="tab-read">
       <div class="reader-page" id="read"></div>
+      <div class="raw-page" id="raw"><pre></pre></div>
     </div>
   </div>
 
@@ -59,6 +62,7 @@
     <div class="w on" data-tab="write">1:write</div>
     <div class="w" data-tab="read">2:read</div>
     <div class="w" data-tab="split">3:split</div>
+    <div class="w" data-tab="raw">4:raw</div>
     <div class="grow"></div>
     <div class="msg" id="msg"></div>
     <div class="right" id="right"></div>
@@ -66,7 +70,7 @@
 </div>
 
 <input type="file" id="openFile" accept=".md,text/markdown,text/plain" hidden>
-<div class="prefix" id="prefix">^B — 1 write · 2 read · 3 split</div>
+<div class="prefix" id="prefix">^B — 1 write · 2 read · 3 split · 4 raw</div>
 
 <div class="ov" id="help"><div class="card">
   <h4>keys and commands<span class="grow"></span><button data-close>esc</button></h4>
@@ -102,11 +106,12 @@
     <div class="row"><kbd>Open .md</kbd><span>open a file — or drop one anywhere on the page</span></div>
     <div class="row"><kbd>^V</kbd><span>with no line open — markdown from the clipboard, added below the cursor as typed lines</span></div>
     <div class="row"><kbd>New .md · N</kbd><span>start a new document, keeping the category</span></div>
+    <div class="row"><kbd>Export .md · E</kbd><span>the markdown, the path it belongs at, and a download</span></div>
     <div class="row"><kbd>Clear</kbd><span>empty this one — ^Z brings it back</span></div>
     <div class="row"><kbd>R</kbd><span>name the file — or click the name in the tab bar</span></div>
-    <div class="row"><kbd>E</kbd><span>export markdown</span></div>
     <h5>screen</h5>
     <div class="row"><kbd>e · v · b</kbd><span>write · read · split screen (^B 1 · 2 · 3)</span></div>
+    <div class="row"><kbd>w · ^B 4</kbd><span>raw — the markdown Export writes, live; split shows whichever of read and raw came last</span></div>
     <div class="row"><kbd>B</kbd><span>swap the panes — editor left or editor right</span></div>
     <div class="row"><kbd>+ − 0</kbd><span>content bigger · smaller · back to 100%</span></div>
     <div class="row"><kbd>T</kbd><span>theme normal ⇄ dark</span></div>

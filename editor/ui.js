@@ -25,6 +25,7 @@
 
   var sheet    = document.getElementById('sheet');
   var read     = document.getElementById('read');
+  var raw      = document.querySelector('#raw pre');
   var panes    = document.getElementById('panes');
   var legend   = document.getElementById('legend');
   var msgEl    = document.getElementById('msg');
@@ -328,6 +329,7 @@
     drawSheet();
     drawLegend();
     read.innerHTML = L.renderDoc(doc.lines);
+    raw.textContent = L.toMarkdown(doc.lines);
     var l = doc.line(), t = L.byId[l.type];
     document.getElementById('right').innerHTML =
       'L' + (doc.cur + 1) + '/' + doc.lines.length + ' · ' + t.name.toLowerCase() +
@@ -472,7 +474,7 @@
   }
 
   function startEdit() {
-    if (tab === 'read') setTab('write');
+    if (reading()) setTab('write');
     commitEdit();
     if (doc.reveal()) draw();
 
@@ -579,16 +581,26 @@
   nameEl.addEventListener('blur', function () { endName(true); });
 
   /* ------------------------------------------------------------- panes */
+  /* read and raw are the reading pane full width: nothing to write on */
+  function reading() { return tab === 'read' || tab === 'raw'; }
   function setTab(t) {
-    if (t !== 'write' && t !== 'read' && t !== 'split') t = 'write';
+    if (['write', 'read', 'raw', 'split'].indexOf(t) < 0) t = 'write';
     tab = t;
+    if (reading()) setFace(t);
     panes.dataset.mode = t;
     store('tcms-tab', t);
     document.querySelectorAll('[data-tab]').forEach(function (b) {
       b.classList.toggle('on', b.dataset.tab === t);
     });
-    legend.style.display = t === 'read' ? 'none' : 'flex';
+    legend.style.display = reading() ? 'none' : 'flex';
     render();
+  }
+  /* The reading pane's face — the page, or the markdown Export writes. Read
+     and raw show it full width; split shows whichever was chosen last. */
+  function setFace(f) {
+    f = f === 'raw' ? 'raw' : 'read';
+    panes.dataset.face = f;
+    store('tcms-face', f);
   }
   function setSwap(on) {
     swapped = !!on;
@@ -1160,7 +1172,10 @@
     { name: 'read', help: 'the page as a reader sees it, full width',
       run: function () { setTab('read'); } },
 
-    { name: 'split', help: 'both at once',
+    { name: 'raw', help: 'the markdown Export writes, live and read-only, full width',
+      run: function () { setTab('raw'); } },
+
+    { name: 'split', help: 'write beside read or raw, whichever was shown last',
       run: function () { setTab('split'); } },
 
     { name: 'swap', help: 'swap the two panes in split screen',
@@ -1419,6 +1434,7 @@
   });
   document.getElementById('actOpen').addEventListener('click', openFile);
   document.getElementById('actNew').addEventListener('click', newDoc);
+  document.getElementById('actExport').addEventListener('click', openExport);
   document.getElementById('actClear').addEventListener('click', clearDoc);
   undoBtn.addEventListener('click', undo);
   redoBtn.addEventListener('click', redo);
@@ -1442,8 +1458,8 @@
     if (prefix) {
       prefix = false;
       prefixEl.classList.remove('on');
-      if (k === '1' || k === '2' || k === '3') {
-        setTab({ '1': 'write', '2': 'read', '3': 'split' }[k]);
+      if (k === '1' || k === '2' || k === '3' || k === '4') {
+        setTab({ '1': 'write', '2': 'read', '3': 'split', '4': 'raw' }[k]);
         e.preventDefault();
       }
       return;
@@ -1468,7 +1484,7 @@
     /* the two keys the strip's `‹` and `›` are: a selected Column is
        drawn on screen, so there is always something visible to move, and with
        none selected these say nothing and do nothing */
-    if ((e.ctrlKey || e.metaKey) && !e.altKey && tab !== 'read' &&
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && !reading() &&
         (k === 'ArrowLeft' || k === 'ArrowRight') && colSel) {
       e.preventDefault();
       columnOp(k === 'ArrowLeft' ? 'left' : 'right');
@@ -1491,11 +1507,12 @@
     if (k === 'N') { newDoc(); return; }
     if (k === 'R') { startName(); return; }
     if (k === 'v') { setTab('read'); return; }
+    if (k === 'w') { setTab('raw'); return; }
     if (k === 'e') { setTab('write'); return; }
     if (k === 'b') { setTab(tab === 'split' ? 'write' : 'split'); return; }
     if (k === 'B') { if (tab !== 'split') setTab('split'); setSwap(!swapped); return; }
     if (k === ':') { e.preventDefault(); openCmd(); return; }
-    if (tab === 'read') return;
+    if (reading()) return;
 
     if (k === 'j' || k === 'ArrowDown') { step(1); render(); e.preventDefault(); return; }
     if (k === 'k' || k === 'ArrowUp')   { step(-1); render(); e.preventDefault(); return; }
@@ -1537,6 +1554,7 @@
   hist.reset(doc);
   setScale(parseFloat(stored('tcms-scale', '1')) || 1, true);
   setSwap(stored('tcms-swap', '0') === '1');
+  setFace(stored('tcms-face', 'read'));
   setTab(stored('tcms-tab', 'write'));
   say('? for keys and commands · b splits the screen · drop a .md to open it · E exports');
 })();

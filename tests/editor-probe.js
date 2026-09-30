@@ -1166,6 +1166,164 @@
      [].some.call(document.querySelectorAll('#help kbd'),
        function (k) { return k.textContent === '^V'; }));
 
+  /* --- the raw face: the Export bytes, live, and not a place to type ----- */
+  var panesEl = document.getElementById('panes');
+  var rawEl   = document.getElementById('raw');
+  var readFace = document.getElementById('read');
+  function mode() { return panesEl.dataset.mode; }
+  function rawText() {
+    var p = rawEl && rawEl.querySelector('pre');
+    return p ? p.textContent : null;
+  }
+  /* what E shows is toMarkdown of the Document — the bytes raw has to be */
+  function exported() {
+    run('export');
+    var t = document.getElementById('expMd').textContent;
+    key('Escape');
+    return t;
+  }
+  function shown(el) { return !!el && el.getClientRects().length > 0; }
+  function faceStored() {
+    try { return localStorage.getItem('tcms-face'); } catch (e) { return 'unreadable'; }
+  }
+
+  document.getElementById('actClear').click();
+  key('2');
+  key('i');
+  type('Raw face');
+  key('Escape', box());
+  key('o');
+  type('with **bold** and a [link](https://example.com/)');
+  key('Escape', box());
+  key('p');
+
+  key('w');
+  ok('w shows raw', mode() === 'raw' && shown(rawEl) && !shown(readFace),
+     mode() + ' raw ' + shown(rawEl) + ' read ' + shown(readFace));
+  var md = exported();
+  ok('and its text is exactly what Export writes', rawText() === md,
+     JSON.stringify(rawText()) + ' vs ' + JSON.stringify(md));
+  ok('the markdown is the markdown, not the page', /\*\*bold\*\*/.test(rawText() || ''),
+     rawText());
+  ok('the legend is put away in raw, as in read', getComputedStyle(document.getElementById('legend')).display === 'none',
+     getComputedStyle(document.getElementById('legend')).display);
+
+  key('e');
+  key('o');
+  type('committed in write');
+  key('Escape', box());
+  key('w');
+  ok('an edit committed in write changes raw',
+     (rawText() || '').indexOf('committed in write') > -1 && rawText() === exported(),
+     rawText());
+
+  key('b');
+  ok('split after w shows write and raw',
+     mode() === 'split' && shown(document.getElementById('sheet')) && shown(rawEl) &&
+     !shown(readFace), mode() + ' raw ' + shown(rawEl) + ' read ' + shown(readFace));
+  ok('and remembers that split shows raw', faceStored() === 'raw', faceStored());
+  key('o');
+  type('typed beside raw');
+  key('Enter', box());
+  ok('raw follows a commit in split while the next Line is still open',
+     (rawText() || '').indexOf('typed beside raw') > -1, rawText());
+  key('Escape', box());
+  key('B');
+  ok('B still swaps the panes with raw beside write',
+     panesEl.dataset.swap === 'yes' && mode() === 'split', panesEl.dataset.swap);
+  key('B');
+
+  key('v');
+  key('b');
+  ok('split after v shows write and read',
+     mode() === 'split' && shown(readFace) && !shown(rawEl),
+     mode() + ' raw ' + shown(rawEl) + ' read ' + shown(readFace));
+  ok('and remembers that split shows read', faceStored() === 'read', faceStored());
+
+  key('w');
+  var rawBefore = rawText(), rowsBefore = rows().join('|');
+  var rawPre = rawEl && rawEl.querySelector('pre');
+  ok('raw is not editable', !!rawPre && !rawPre.isContentEditable && !rawEl.isContentEditable,
+     rawPre && rawPre.contentEditable);
+  if (rawPre) {
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    var rng = document.createRange();
+    rng.selectNodeContents(rawPre);
+    sel.addRange(rng);
+    /* a selection's text leaves out a <pre>'s last newline — the browser's
+       doing, and the export overlay's copy is the byte-exact one */
+    ok('its text can be selected, to be copied',
+       sel.toString().replace(/\n$/, '') === rawBefore.replace(/\n$/, ''),
+       JSON.stringify(sel.toString()));
+    ['x', 'D', 'o', 'p', 'Enter', 'Backspace'].forEach(function (k) { key(k, rawPre); });
+    document.execCommand('insertText', false, 'typed into raw');
+    sel.removeAllRanges();
+  }
+  ok('typing in raw changes no Line',
+     rows().join('|') === rowsBefore && rawText() === rawBefore && !box(),
+     rows().join('|'));
+
+  key('e');
+  key('b', document, false, true);
+  key('4');
+  ok('^B 4 reaches raw', mode() === 'raw', mode());
+  key('b', document, false, true);
+  key('2');
+  ok('^B 2 still reaches read', mode() === 'read', mode());
+  run('raw');
+  ok(':raw reaches raw', mode() === 'raw', mode());
+  run('read');
+  ok(':read reaches read', mode() === 'read', mode());
+
+  var tabNames = [].map.call(document.querySelectorAll('.tabs [data-tab]'),
+    function (b) { return b.dataset.tab; }).join(' ');
+  ok('the tabs are write · read · raw · split', tabNames === 'write read raw split', tabNames);
+  var rawTab = document.querySelector('.tabs [data-tab="raw"]');
+  if (rawTab) rawTab.click();
+  ok('and the raw tab shows raw, marked as the one on',
+     mode() === 'raw' && !!rawTab && rawTab.classList.contains('on'), mode());
+  var win = document.querySelector('.status [data-tab="raw"]');
+  ok('the status bar lists raw as window 4, and marks it',
+     !!win && win.textContent === '4:raw' && win.classList.contains('on'),
+     win && win.outerHTML);
+
+  var rawPasted = rows().length;
+  paste('- pasted over raw');
+  ok('a ^V paste with raw showing adds at the cursor',
+     rows().length === rawPasted + 1 && rows().join('|').indexOf('list*:pasted over raw') > -1,
+     rows().join('|'));
+  ok('raw follows it',
+     (rawText() || '').indexOf('- pasted over raw') > -1 && rawText() === exported(), rawText());
+  ok('and the face stays raw', mode() === 'raw', mode());
+
+  run('write');
+  var expBtn = document.getElementById('actExport');
+  ok('the top bar has Export .md, after New .md',
+     !!expBtn && expBtn.textContent === 'Export .md' &&
+     expBtn.previousElementSibling && expBtn.previousElementSibling.id === 'actNew',
+     expBtn && expBtn.outerHTML);
+  ok('and its title names E', !!expBtn && /\(E\)/.test(expBtn.title), expBtn && expBtn.title);
+  if (expBtn) expBtn.click();
+  ok('the Export .md button opens the export overlay',
+     document.getElementById('exp').classList.contains('on') &&
+     document.getElementById('expMd').textContent === rawText(),
+     document.getElementById('exp').className);
+  key('Escape');
+
+  var helpText = document.getElementById('help').textContent;
+  ok('the help lists w and ^B 4', [].some.call(document.querySelectorAll('#help kbd'),
+       function (k) { return /(^| )w( |$)/.test(k.textContent) && /\^B 4/.test(k.textContent); }),
+     helpText.length);
+  ok('and Export .md beside New .md', [].some.call(document.querySelectorAll('#help kbd'),
+       function (k) { return /^Export \.md/.test(k.textContent); }));
+  ok('and :raw among the commands', [].some.call(document.querySelectorAll('#cmdlist kbd'),
+       function (k) { return k.textContent === 'raw'; }));
+
+  /* leave split showing read, as a fresh Editor would */
+  run('read');
+  run('write');
+
   /* --- the write pane has the read pane's measure ---------------------- */
   /* The two panes have different font bases — the sheet is 14px, the reader
      page is --global-font-size — so the same measure cannot be reached by
