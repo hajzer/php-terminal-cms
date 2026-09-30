@@ -1,6 +1,6 @@
 # 07 — The Page Build: layout, Base Path, output
 
-Status: ready-for-human
+Status: done
 Spec: ../spec.md
 
 ## What
@@ -67,7 +67,7 @@ request-time URL scheme.
 
 Then:
 
-- [ ] a build of the sample served with `php -S localhost:8080 -t <output>`
+- [x] a build of the sample served with `php -S localhost:8080 -t <output>`
   browsed by hand, from the root and from a `/proj` Base Path, and noted in the
   comments
 
@@ -133,3 +133,9 @@ Then:
   `index.html`, not `404.html`. That is the dev server's fallback; GitLab and
   GitHub Pages serve `404.html`. To browse the `/proj` build, put it in a
   `proj/` directory and serve that directory's parent.
+- 2026-09-30, human: the by-hand check. Built with
+  `php bin/page-build --output=dist/serve/proj --base-url=http://localhost:8080/proj/`
+  and served with `php -S localhost:8080 -t dist/serve`, then built with
+  `php bin/page-build --output=dist/pages` and served with
+  `php -S localhost:8080 -t dist/pages`. Browsed both, from `/proj/` and from
+  the root: everything worked.
