@@ -923,6 +923,86 @@ ok(!str_contains(TerminalCms\Page::html($site, $home), 'nonce='),
 ok(str_contains($nonced, '(function () {') && !str_contains($nonced, '$nonceAttr'),
    'the script is emitted as written, not read as PHP', $nonced);
 
+/* A page without a Diagram carries nothing of the drawing, to the byte. The
+   hash is of a fixed shell, so it moves only when the shell does — and a
+   change to it is a change to every page on every Instance, made on purpose. */
+$fixedSite  = ['title' => 'Shell', 'tagline' => 'a fixed site', 'accent' => '#21e08a',
+               'categories' => [['slug' => 'guides', 'label' => 'Guides']]];
+$fixedRoute = ['status' => 200, 'title' => 'A page', 'body' => '<h1>A page</h1>', 'active' => 'guides'];
+ok(hash('sha256', TerminalCms\Page::html($fixedSite, $fixedRoute, 'N0NCE'))
+       === 'a93683f949ad6412df542dd4ac4cfb38e54658b2fc55c264b7b0ed92be400dc0'
+   && hash('sha256', TerminalCms\Page::html($fixedSite, $fixedRoute))
+       === '8c07af37028173da874da083854ea97b0bac873c2379adb647cd6abf9e3b8dca',
+   'the shell of a page without a Diagram is byte for byte what it was');
+
+/** The page's one <script> element, tag to end tag. */
+function script(string $html): string
+{
+    return preg_match('~<script\b.*?</script>~s', $html, $m) === 1 ? $m[0] : '';
+}
+
+$diagramRoute = $router->route('/about/everything-is-a-line');
+ok(str_contains($diagramRoute['body'], '<span class="lang">mermaid</span>'),
+   'the sample content has a Diagram to draw', $diagramRoute['body']);
+$drawing = TerminalCms\Page::html($site, $diagramRoute, 'r4nd0m+va1ue/=');
+$drawer  = script($drawing);
+ok(str_contains($drawer, 'mermaid.render(') && str_contains($drawer, "securityLevel: 'strict'"),
+   'a page with a Diagram carries the code that draws it', $drawer);
+ok(substr_count($drawing, '<script') === 1 && substr_count($drawing, 'nonce="r4nd0m+va1ue/="') === 2,
+   'in the one script, still with the page\'s two nonces and no third', $drawing);
+ok(!str_contains(substr($drawer, (int) strpos($drawer, '>')), 'r4nd0m'),
+   'and the nonce is on the tag, never in the script\'s text: it is read from document.currentScript',
+   $drawer);
+ok(str_contains($drawer, 'document.currentScript') && str_contains($drawer, '.nonce'),
+   'which is where the script it creates takes its nonce from', $drawer);
+
+/* every address the script could ask for: a quoted string that starts with a
+   slash, names a scheme, or ends in .js — and every way to ask for one */
+preg_match_all('~["\']((?:[a-z][a-z0-9+.-]*:|/)[^"\'\s]*|[^"\'\s]*\.js)["\']~i', $drawer, $named);
+ok(array_values(array_unique($named[1])) === ['/mermaid.min.js'],
+   'the script names no address but the one Mermaid asset', implode("\n", $named[1]));
+ok(preg_match('~\b(fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon|import)\s*\(|new\s+(Worker|Image)\b~', $drawer) !== 1,
+   'and opens no connection of its own', $drawer);
+
+/* nothing in PHP reads the script, so nothing in PHP notices it broken */
+if ($node === '') {
+    echo "  -- node not installed, skipping the parse of the page's script\n";
+} else {
+    foreach (['without' => script($nonced), 'with' => $drawer] as $which => $tag) {
+        $tmp = (string) tempnam(sys_get_temp_dir(), 'tcms-page-js');
+        file_put_contents($tmp, preg_replace('~^<script[^>]*>|</script>$~', '', $tag));
+        exec($node . ' --check ' . escapeshellarg($tmp) . ' 2>&1', $out, $status);
+        unlink($tmp);
+        ok($status === 0, "the page's script parses as JavaScript, $which a Diagram", implode("\n", $out));
+        $out = [];
+    }
+}
+
+$plainPages = 0;
+foreach (['/', '/guides', '/about', '/about/what-it-is', '/guides/install-in-five-minutes', '/nowhere'] as $uri) {
+    $plainRoute = $router->route($uri);
+    if (str_contains($plainRoute['body'], 'class="lang">mermaid<')) {
+        continue;
+    }
+    $plainPages++;
+    ok(!str_contains(TerminalCms\Page::html($site, $plainRoute, 'n'), 'mermaid'),
+       "$uri has no Diagram, and the page says nothing about one");
+}
+ok($plainPages >= 4, 'and most of the sample pages have none', (string) $plainPages);
+
+/* only the tag the Renderer writes makes a Diagram — a writer's own text that
+   says mermaid, however it is spelled, is escaped and draws nothing */
+$sayMermaid = [
+    'status' => 200, 'title' => 'x', 'active' => null,
+    'body' => Renderer::render(Markdown::parse(
+        "---\ntitle: x\n---\n\n"
+        . "The word mermaid, and `<span class=\"lang\">mermaid</span>` as code.\n\n"
+        . "```text\n<div class=\"block-bar\"><span class=\"lang\">mermaid</span></div>\n```\n"
+    )[1]),
+];
+ok(!str_contains(TerminalCms\Page::html($site, $sayMermaid), 'mermaid.render('),
+   'a page whose text only says "mermaid" gets no drawing', $sayMermaid['body']);
+
 $accents = [
     '#21e08a'                          => '#21e08a',
     '#ABCDEF'                          => '#ABCDEF',

@@ -7,6 +7,13 @@ namespace TerminalCms;
 final class Page
 {
     /**
+     * Where a page with a Diagram loads Mermaid from: its own copy, beside the
+     * stylesheets. The one address the enhancement script can ask for, and
+     * the one place it is written.
+     */
+    private const MERMAID = '/mermaid.min.js';
+
+    /**
      * @param array<string,mixed> $site
      * @param array{status:int,title:string,body:string,active:?string,lang?:string} $r
      * @param string $nonce the request's CSP nonce, which the two inline
@@ -87,7 +94,7 @@ $iconLink . '
 </main>
 
 ' . $footer . '
-' . self::enhancement($nonce) . '
+' . self::enhancement($nonce, self::hasDiagram($r['body'])) . '
 </body>
 </html>
 ';
@@ -133,17 +140,35 @@ $iconLink . '
     }
 
     /**
-     * The page is complete and readable with this script blocked or disabled:
-     * it only adds a copy button to code blocks, a theme toggle and a text-size
-     * control. No content depends on it, nothing is fetched, and it is inline so
-     * there is no third-party origin to trust. Remove it and you lose three
-     * conveniences, not any words.
+     * Whether the body holds a Diagram: a code block the Renderer wrote in the
+     * mermaid Dialect. The tags are the Renderer's own — a writer's text that
+     * spells them out arrives escaped, so it cannot make a page load anything.
      */
-    private static function enhancement(string $nonce): string
+    private static function hasDiagram(string $body): bool
     {
-        /* a nowdoc, so that not one character of the script below is read as
+        return str_contains($body, '<div class="block-bar"><span class="lang">mermaid</span></div><pre class="code">');
+    }
+
+    /**
+     * The page is complete and readable with this script blocked or disabled:
+     * on every page it adds a copy button to code blocks, a theme toggle and a
+     * text-size control, and it is inline so there is no third-party origin to
+     * trust. No content depends on it. Remove it and you lose those
+     * conveniences, not any words.
+     *
+     * On a page with a Diagram, and only there, it also draws each one over
+     * its code block with the Mermaid copy served beside the stylesheets. The
+     * tag then names that address, and the script loads it carrying the nonce
+     * it read off its own tag, so the policy names nothing new. On every other
+     * page the script is the three conveniences alone and fetches nothing.
+     */
+    private static function enhancement(string $nonce, bool $diagrams): string
+    {
+        /* nowdocs, so that not one character of the script below is read as
            PHP: a heredoc would interpolate a `$` and eat a `\` */
-        return '<script' . self::nonceAttr($nonce) . '>' . <<<'HTML'
+        return '<script' . self::nonceAttr($nonce)
+             . ($diagrams ? ' data-mermaid="' . e(self::MERMAID) . '"' : '') . '>'
+             . <<<'HTML'
 
 (function () {
   function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
@@ -199,7 +224,134 @@ $iconLink . '
     bar.appendChild(btn);
   });
 })();
-</script>
-HTML;
+
+HTML
+             . ($diagrams ? self::DRAWING : '') . '</script>';
     }
+
+    /**
+     * Drawing, the part of the script a page with a Diagram gets. Mermaid is
+     * asked for a picture of each Diagram's source, and the picture is placed
+     * over the code block by hand, because Mermaid writes a <style> element and
+     * style attributes, both of which the nonce policy refuses. Its stylesheet
+     * goes into one <style> made here with the nonce, and each style attribute
+     * is taken off and written back through the CSSOM once the SVG is in the
+     * page, which the policy permits. A source that does not parse keeps its
+     * code block, and the page says nothing about it. The theme toggle draws
+     * every Diagram again in the new colours.
+     *
+     * The Editor's read pane draws the same way, with the same configuration,
+     * in editor/ui.js; what differs is that it keeps drawings between
+     * keystrokes and prints the error for a writer.
+     */
+    private const DRAWING = <<<'HTML'
+(function () {
+  var own = document.currentScript;
+  var diagrams = [].map.call(document.querySelectorAll('.block'), function (block) {
+    var lang = block.querySelector(':scope > .block-bar .lang');
+    var pre = block.querySelector(':scope > pre.code');
+    return lang && pre && lang.textContent === 'mermaid' ? { block: block, shown: pre, src: pre.textContent } : null;
+  }).filter(Boolean);
+  if (!diagrams.length) return;
+
+  /* a Diagram's copy button copies its source exactly as written, where a
+     code block's takes the prompt's space off every line */
+  diagrams.forEach(function (d) {
+    var was = d.block.querySelector(':scope > .block-bar .copy');
+    if (!was) return;
+    var btn = was.cloneNode(true);
+    was.replaceWith(btn);
+    btn.addEventListener('click', function () {
+      navigator.clipboard.writeText(d.src).then(function () {
+        btn.textContent = 'copied';
+        setTimeout(function () { btn.textContent = 'copy'; }, 1200);
+      });
+    });
+  });
+
+  var nonce = own.nonce || '';
+  var queue = Promise.resolve(), drawn = 0;
+
+  /* one drawing at a time, each with the colours of the moment it was asked
+     for, so a theme toggled twice cannot draw one theme in the other's */
+  function drawAll() {
+    var config = diagramConfig();
+    diagrams.forEach(function (d) {
+      function one() {
+        window.mermaid.initialize(config);
+        return window.mermaid.render('tcms-diagram-' + (++drawn), d.src)
+          .then(function (r) { place(d, r.svg); }, function () {});
+      }
+      queue = queue.then(one, one);
+    });
+  }
+
+  function diagramConfig() {
+    var root = document.documentElement;
+    var css = getComputedStyle(root);
+    function v(name) { return css.getPropertyValue(name).trim(); }
+    var chosen = root.getAttribute('data-theme');
+    var dark = chosen ? chosen === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    var font = getComputedStyle(document.querySelector('main') || document.body).fontFamily;
+    return {
+      startOnLoad: false,
+      securityLevel: 'strict',
+      suppressErrorRendering: true,
+      theme: 'base',
+      fontFamily: font,
+      themeVariables: {
+        darkMode: dark,
+        fontFamily: font,
+        background: v('--bg'),
+        primaryColor: v('--bg'),
+        edgeLabelBackground: v('--bg'),
+        primaryTextColor: v('--fg'),
+        textColor: v('--fg'),
+        lineColor: v('--fg'),
+        primaryBorderColor: v('--accent')
+      }
+    };
+  }
+
+  function place(d, markup) {
+    var from = new DOMParser().parseFromString(markup, 'text/html').querySelector('svg');
+    if (!from) return;
+    var css = '';
+    from.querySelectorAll('style').forEach(function (el) {
+      css += el.textContent + '\n';
+      el.remove();
+    });
+    var inline = andBelow(from).map(function (el) {
+      var style = el.getAttribute('style');
+      el.removeAttribute('style');
+      return style;
+    });
+    var svg = document.importNode(from, true);
+    var live = andBelow(svg);
+    var sheet = document.createElementNS(svg.namespaceURI, 'style');
+    if (nonce) sheet.setAttribute('nonce', nonce);
+    sheet.textContent = css;
+    svg.insertBefore(sheet, svg.firstChild);
+    d.shown.replaceWith(svg);
+    d.shown = svg;
+    live.forEach(function (el, i) {
+      if (inline[i] && /[^\s;]/.test(inline[i])) el.style.cssText = inline[i];
+    });
+  }
+
+  /* an element and every element inside it, in document order — the same
+     order for a tree and for its imported copy */
+  function andBelow(el) { return [el].concat([].slice.call(el.querySelectorAll('*'))); }
+
+  var s = document.createElement('script');
+  s.src = own.getAttribute('data-mermaid');
+  if (nonce) s.nonce = nonce;
+  s.onload = function () { if (window.mermaid) drawAll(); };
+  document.head.appendChild(s);
+  document.getElementById('theme').addEventListener('click', function () {
+    if (window.mermaid) drawAll();
+  });
+})();
+
+HTML;
 }

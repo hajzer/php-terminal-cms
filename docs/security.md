@@ -123,12 +123,36 @@ page.
 ## The one script on the page
 
 Each page carries about fifty lines of inline JavaScript that add a copy button
-to code blocks, a theme toggle and a text-size control. It fetches nothing,
-stores two strings in `localStorage`, and is inline so there is no third-party
+to code blocks, a theme toggle and a text-size control. They fetch nothing,
+store two strings in `localStorage`, and are inline so there is no third-party
 origin to trust. Every
 page is complete and readable with it blocked — no content depends on it. Delete
 the `enhancement()` method in `site/src/Page.php` if you want a page with zero
 script.
+
+A page with a Diagram — a code block in the `mermaid` Dialect — gets about a
+hundred more lines in the same script, and that is the only page that does.
+They find each Diagram, add one `<script src="/mermaid.min.js">` for the copy
+of Mermaid served from the site's own origin, and draw each Diagram over its
+code block with `securityLevel: 'strict'`. The added `<script>` carries the
+nonce, read from `document.currentScript.nonce` of the running script — the
+nonce is never written into the script's text, and `script-src` names nothing
+new. Mermaid's picture arrives with a `<style>` element and `style` attributes,
+which the policy refuses, so the script places it by hand: the stylesheet into
+one `<style>` carrying the nonce, each `style` attribute through the element's
+CSSOM, which the policy permits. A source that does not parse keeps its code
+block and the page prints nothing. The theme toggle draws every Diagram again,
+and a Diagram's copy button copies its source. With scripts blocked, the Diagram
+is the code block it always was.
+
+Drawing leaves style-src reports in the browser's console: Mermaid measures its
+picture in a scratch element with inline styles, and parsing its output does the
+same in an inert document, and the policy blocks both. Each report is the
+boundary holding. The picture is right because placement carries the styles.
+
+Every other page gets the script byte for byte as it was: nothing new is sent,
+nothing is fetched, and `bin/test` holds the shell of a page without a Diagram to
+a fixed hash.
 
 ## Headers
 
@@ -148,7 +172,8 @@ A page has two inline points — the enhancement script and the one style block
 that carries the configured accent — and they name a nonce instead of the
 policy naming `unsafe-inline`. Sixteen random bytes per request, so the value a
 page carries is no use to the next one. Nothing else on the page may run: no
-`<script src>`, no inline handler, no `style` attribute.
+inline handler, no `style` attribute, and no `<script src>` but the one the
+enhancement script adds on a page with a Diagram, which carries the nonce.
 
 The accent is the only config value that reaches the page as CSS rather than as
 text, and escaping is not a way of validating CSS, so it has to be six hex
