@@ -38,6 +38,13 @@
     key('Escape');
     return p;
   }
+  /* what E shows: toMarkdown of the Document */
+  function exported() {
+    run('export');
+    var t = document.getElementById('expMd').textContent;
+    key('Escape');
+    return t;
+  }
   function rows() {
     return [].map.call(document.querySelectorAll('#sheet .ln'), function (r) {
       return r.className.replace('ln ', '').replace(' cur', '*') + ':' +
@@ -485,9 +492,7 @@
      document.querySelectorAll('#read .colstrip, #read .cell').length === 0,
      (readTbl && readTbl.textContent.replace(/\s+/g, '')) + ' :: ' +
      document.querySelectorAll('#read .colstrip, #read .cell').length);
-  run('export');
-  var stripMd = document.getElementById('expMd').textContent;
-  key('Escape');
+  var stripMd = exported();
   ok('and export is the table it always was',
      stripMd.indexOf('| a | b | c |\n| --- | --- | --- |\n| d | e | f |') > -1 &&
      stripMd.indexOf('colstrip') < 0, stripMd);
@@ -805,9 +810,7 @@
   fa().value = 'diagram.png';
   fb().value = 'how it fits together';
   key('Enter', fb());
-  run('export');
-  var md = document.getElementById('expMd').textContent;
-  key('Escape');
+  var md = exported();
   ok('a committed caption reaches the export',
      md.indexOf('![how it fits together](diagram.png)') > -1, md);
   var fig = document.querySelector('#read figure');
@@ -829,9 +832,7 @@
   fa().value = 'pic).png';
   fb().value = 'a cap]tion';
   key('Enter', fb());
-  run('export');
-  md = document.getElementById('expMd').textContent;
-  key('Escape');
+  md = exported();
   ok('an src and a caption are cut down to what the syntax carries',
      md.indexOf('![a caption](pic.png)') > -1, md);
 
@@ -1175,13 +1176,6 @@
     var p = rawEl && rawEl.querySelector('pre');
     return p ? p.textContent : null;
   }
-  /* what E shows is toMarkdown of the Document — the bytes raw has to be */
-  function exported() {
-    run('export');
-    var t = document.getElementById('expMd').textContent;
-    key('Escape');
-    return t;
-  }
   function shown(el) { return !!el && el.getClientRects().length > 0; }
   function faceStored() {
     try { return localStorage.getItem('tcms-face'); } catch (e) { return 'unreadable'; }
@@ -1200,9 +1194,9 @@
   key('w');
   ok('w shows raw', mode() === 'raw' && shown(rawEl) && !shown(readFace),
      mode() + ' raw ' + shown(rawEl) + ' read ' + shown(readFace));
-  var md = exported();
-  ok('and its text is exactly what Export writes', rawText() === md,
-     JSON.stringify(rawText()) + ' vs ' + JSON.stringify(md));
+  var rawMd = exported();
+  ok('and its text is exactly what Export writes', rawText() === rawMd,
+     JSON.stringify(rawText()) + ' vs ' + JSON.stringify(rawMd));
   ok('the markdown is the markdown, not the page', /\*\*bold\*\*/.test(rawText() || ''),
      rawText());
   ok('the legend is put away in raw, as in read', getComputedStyle(document.getElementById('legend')).display === 'none',

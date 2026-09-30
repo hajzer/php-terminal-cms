@@ -25,7 +25,7 @@
 
   var sheet    = document.getElementById('sheet');
   var read     = document.getElementById('read');
-  var raw      = document.querySelector('#raw pre');
+  var rawPre   = document.querySelector('#raw pre');
   var panes    = document.getElementById('panes');
   var legend   = document.getElementById('legend');
   var msgEl    = document.getElementById('msg');
@@ -329,7 +329,7 @@
     drawSheet();
     drawLegend();
     read.innerHTML = L.renderDoc(doc.lines);
-    raw.textContent = L.toMarkdown(doc.lines);
+    rawPre.textContent = L.toMarkdown(doc.lines);
     var l = doc.line(), t = L.byId[l.type];
     document.getElementById('right').innerHTML =
       'L' + (doc.cur + 1) + '/' + doc.lines.length + ' · ' + t.name.toLowerCase() +
@@ -581,10 +581,12 @@
   nameEl.addEventListener('blur', function () { endName(true); });
 
   /* ------------------------------------------------------------- panes */
+  /* the layouts, in the order ^B numbers them and the status bar prints them */
+  var LAYOUTS = ['write', 'read', 'split', 'raw'];
   /* read and raw are the reading pane full width: nothing to write on */
   function reading() { return tab === 'read' || tab === 'raw'; }
   function setTab(t) {
-    if (['write', 'read', 'raw', 'split'].indexOf(t) < 0) t = 'write';
+    if (LAYOUTS.indexOf(t) < 0) t = 'write';
     tab = t;
     if (reading()) setFace(t);
     panes.dataset.mode = t;
@@ -1458,8 +1460,8 @@
     if (prefix) {
       prefix = false;
       prefixEl.classList.remove('on');
-      if (k === '1' || k === '2' || k === '3' || k === '4') {
-        setTab({ '1': 'write', '2': 'read', '3': 'split', '4': 'raw' }[k]);
+      if (/^[1-9]$/.test(k) && LAYOUTS[k - 1]) {
+        setTab(LAYOUTS[k - 1]);
         e.preventDefault();
       }
       return;
