@@ -1,0 +1,300 @@
+#!/usr/bin/env php
+<?php
+/**
+ * A Page Build: every page of the Instance, rendered to files, for a host that
+ * serves files and runs no PHP.
+ *
+ *   php bin/page-build --output=<dir> [--base-url=<url>]
+ *
+ * Each page is what the request-time site answers for the same address — the
+ * same Router::route() and Page::html(), and nothing assembled here:
+ *
+ *   index.html                    the homepage
+ *   <category>/index.html         each Category
+ *   <category>/<slug>/index.html  each Document, in each of its Languages
+ *   404.html                      the answer to an address that is nothing
+ *
+ * beside everything in site/public/ but its PHP and its .htaccess. The path of
+ * --base-url is the Base Path every local address starts with; without it the
+ * site begins at the host's root.
+ *
+ * The output is written whole or not at all. The pages are rendered into a
+ * fresh directory beside it, which replaces it only once every page is there;
+ * a failure removes the fresh one and leaves the old one as it was. An output
+ * is replaced only when it is absent, empty, or holds the .page-build marker
+ * an earlier build left, and never when it is, holds, or is inside site/ — a
+ * mistyped --output cannot delete an Instance.
+ */
+declare(strict_types=1);
+
+use TerminalCms\BasePath;
+use TerminalCms\Highlighter;
+use TerminalCms\Listing;
+use TerminalCms\Page;
+use TerminalCms\Router;
+use TerminalCms\Site;
+
+$root = dirname(__DIR__);
+$site = $root . '/site';
+
+require $site . '/src/bootstrap.php';
+
+const MARKER = '.page-build';
+
+/** The address the 404 page is rendered from: not a Category, because no slug has a dot in it. */
+const NOWHERE = '/404.html';
+
+function refuse(string $why): never
+{
+    fwrite(STDERR, $why . "\n");
+    exit(1);
+}
+
+/** Removes a file or a directory and everything in it, never following a link out of it. */
+function remove(string $path): void
+{
+    if (is_link($path) || is_file($path)) {
+        unlink($path);
+        return;
+    }
+    if (!is_dir($path)) {
+        return;
+    }
+    foreach (scandir($path) ?: [] as $name) {
+        if ($name !== '.' && $name !== '..') {
+            remove($path . '/' . $name);
+        }
+    }
+    rmdir($path);
+}
+
+/**
+ * site/public/ as it is, but for what only PHP reads: every .php file and
+ * every .htaccess. A link is followed, as a web server would follow it, and
+ * one that leads back into a directory being copied is an error.
+ *
+ * @param list<string> $within the real paths of the directories being copied
+ */
+function copyPublic(string $from, string $to, array $within = []): void
+{
+    $real = (string) realpath($from);
+    if (in_array($real, $within, true)) {
+        throw new RuntimeException("$from leads back into itself");
+    }
+    foreach (scandir($from) ?: [] as $name) {
+        if ($name === '.' || $name === '..' || $name === '.htaccess' || strtolower(pathinfo($name, PATHINFO_EXTENSION)) === 'php') {
+            continue;
+        }
+        if (is_dir("$from/$name")) {
+            mkdir("$to/$name");
+            copyPublic("$from/$name", "$to/$name", [...$within, $real]);
+        } else {
+            copy("$from/$name", "$to/$name");
+        }
+    }
+}
+
+/** Writes one page, into a place nothing in site/public/ already took. */
+function write(string $dir, string $rel, string $html): void
+{
+    $file = $dir . '/' . $rel;
+    if (file_exists($file)) {
+        throw new RuntimeException("$rel is both a page and a file in site/public/");
+    }
+    if (!is_dir(dirname($file))) {
+        mkdir(dirname($file), 0755, true);
+    }
+    file_put_contents($file, $html);
+}
+
+/**
+ * Every address the site answers with a page, and the file it is built to:
+ * the homepage, each Category, and each Document in each of its Languages as
+ * the Listing enumerates them. The addresses are the request-time site's, so
+ * each one is also the page's directory under the output.
+ *
+ * @param array<string,mixed> $config
+ * @return array<string,string> address => file, relative to the output
+ */
+function addresses(array $config, string $content): array
+{
+    $out = ['/' => 'index.html'];
+    foreach (Site::categories($config) as $c) {
+        $out['/' . $c['slug']] = $c['slug'] . '/index.html';
+        foreach (Listing::forCategory($content, $c['slug'], Site::languages($config), new BasePath()) as $entry) {
+            foreach ($entry->languages ?: [$entry->url()] as $url) {
+                /* a file named `..md` is a Document the request-time site
+                   cannot be asked for either, since a browser resolves the
+                   dots away — here it would be a directory that is not one */
+                if (in_array(basename($url), ['.', '..'], true)) {
+                    throw new RuntimeException("content$url.md has no address a directory can hold");
+                }
+                $out[$url] = ltrim($url, '/') . '/index.html';
+            }
+        }
+    }
+    return $out;
+}
+
+/* ------------------------------------------------------------- the arguments */
+
+/* each flag once, spelled as it is here: a misspelled --base-url would
+   otherwise build a site at the host's root without a word */
+const USAGE = 'usage: php bin/page-build --output=<dir> [--base-url=<url>]';
+$args = [];
+foreach (array_slice($argv, 1) as $arg) {
+    if (preg_match('~^--(output|base-url)=(.*)$~s', $arg, $m) !== 1 || isset($args[$m[1]])) {
+        refuse(USAGE . " — $arg is not one of them, or is given twice");
+    }
+    $args[$m[1]] = $m[2];
+}
+$output = $args['output'] ?? '';
+if ($output === '') {
+    refuse(USAGE . ' — --output is required');
+}
+
+try {
+    $at = BasePath::fromUrl($args['base-url'] ?? '');
+} catch (InvalidArgumentException) {
+    refuse('--base-url names no Base Path a site can begin at: ' . ($args['base-url'] ?? ''));
+}
+
+$configFile = $site . '/site.php';
+if (!is_file($configFile)) {
+    refuse(Site::NO_CONFIG);
+}
+
+/* ---------------------------------------------------------------- the output */
+
+/* The output, absolute and without . or .., and its nearest ancestor that
+   exists resolved through any link — so that what is compared below is
+   where the files would really go. */
+$parts = [];
+foreach (explode('/', str_starts_with($output, '/') ? $output : getcwd() . '/' . $output) as $part) {
+    if ($part === '..') {
+        array_pop($parts);
+    } elseif ($part !== '' && $part !== '.') {
+        $parts[] = $part;
+    }
+}
+$missing = [];
+while ($parts !== [] && !file_exists('/' . implode('/', $parts))) {
+    array_unshift($missing, array_pop($parts));
+}
+$target = rtrim((string) realpath('/' . implode('/', $parts)), '/') . '/' . implode('/', $missing);
+$target = $target === '/' ? $target : rtrim($target, '/');
+if ($target === '/') {
+    refuse("$output is not a directory a build can be written to");
+}
+$name   = basename($target);
+$parent = dirname($target);
+
+$guarded = [
+    (string) realpath($root)            => 'the repository root',
+    (string) realpath($site)            => 'site/',
+    (string) realpath($site . '/content') => 'content/',
+];
+foreach ($guarded as $path => $what) {
+    if ($target === $path || str_starts_with($path, $target . '/')) {
+        refuse("$target is or holds $what — a build never replaces it");
+    }
+}
+if (str_starts_with($target, realpath($site) . '/')) {
+    refuse("$target is inside site/ — a build is never written into the Instance");
+}
+if (file_exists($target)) {
+    if (!is_dir($target)) {
+        refuse("$target is not a directory");
+    }
+    foreach (['site', 'content'] as $held) {
+        if (is_dir("$target/$held")) {
+            refuse("$target holds $held/ — a build never replaces it");
+        }
+    }
+    if (!is_file("$target/" . MARKER) && (scandir($target) ?: []) !== ['.', '..']) {
+        refuse("$target is not empty and holds no " . MARKER . ' — it is not an earlier Page Build, and is left alone');
+    }
+}
+
+/* ----------------------------------------------------------------- the build */
+
+/* the directories made on the way to the output, so that a failure takes
+   them back with it */
+$made = [];
+for ($dir = $parent; !file_exists($dir); $dir = dirname($dir)) {
+    $made[] = $dir;
+}
+$fresh = $parent . '/.' . $name . '.page-build-' . bin2hex(random_bytes(6));
+
+/* a write that only warns is a page that is missing */
+set_error_handler(static function (int $severity, string $message): bool {
+    if ((error_reporting() & $severity & ~(E_DEPRECATED | E_USER_DEPRECATED)) === 0) {
+        return false;
+    }
+    throw new ErrorException($message, 0, $severity);
+});
+
+try {
+    if ($made !== []) {
+        mkdir($parent, 0755, true);
+    }
+    mkdir($fresh, 0755);
+
+    /** @var array<string,mixed> $config */
+    $config = require $configFile;
+    Highlighter::load($site . '/shared/langs.json');
+
+    copyPublic($site . '/public', $fresh);
+
+    $router = new Router($config, $site . '/content', $at);
+    foreach (addresses($config, $site . '/content') as $address => $file) {
+        $page = $router->route($address);
+        if ($page['status'] !== 200) {
+            throw new RuntimeException("$address is listed, and answers {$page['status']}");
+        }
+        write($fresh, $file, Page::html($config, $page, '', $at));
+    }
+    $page = $router->route(NOWHERE);
+    if ($page['status'] !== 404) {
+        throw new RuntimeException(NOWHERE . ' answers ' . $page['status'] . ', not 404');
+    }
+    write($fresh, '404.html', Page::html($config, $page, '', $at));
+
+    file_put_contents($fresh . '/' . MARKER, "Written by bin/page-build. A build replaces only a directory that holds this file.\n");
+
+    /* the old output is moved aside, not removed, until the new one is in */
+    if (file_exists($target)) {
+        $old = $parent . '/.' . $name . '.page-build-old-' . bin2hex(random_bytes(6));
+        rename($target, $old);
+        try {
+            rename($fresh, $target);
+        } catch (Throwable $e) {
+            try {
+                rename($old, $target);
+            } catch (Throwable) {
+                refuse("page-build failed, and the previous build is at $old: " . $e->getMessage());
+            }
+            throw $e;
+        }
+    } else {
+        rename($fresh, $target);
+    }
+} catch (Throwable $e) {
+    restore_error_handler();
+    remove($fresh);
+    foreach ($made as $dir) {
+        @rmdir($dir);
+    }
+    refuse('page-build failed, and left ' . $target . ' as it was: ' . $e->getMessage());
+}
+restore_error_handler();
+
+if (isset($old)) {
+    try {
+        remove($old);
+    } catch (Throwable $e) {
+        fwrite(STDERR, "the previous build could not be removed from $old: " . $e->getMessage() . "\n");
+    }
+}
+
+echo "built $target" . ($at->path !== '' ? " for {$at->path}/" : '') . "\n";

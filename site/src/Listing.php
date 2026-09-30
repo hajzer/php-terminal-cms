@@ -17,6 +17,7 @@ final class Entry
      * @param string $lang the code of that language, '' when the site has one
      * @param array<string,string> $languages code => URL, in the declared order —
      *        empty unless this document exists in more than one language
+     * @param BasePath $at where the site begins, which the URLs are written under
      */
     public function __construct(
         public readonly string $category,
@@ -25,12 +26,13 @@ final class Entry
         public readonly string $date,
         public readonly string $lang = '',
         public readonly array $languages = [],
+        private readonly BasePath $at = new BasePath(),
     ) {
     }
 
     public function url(): string
     {
-        return '/' . $this->category . '/' . $this->slug;
+        return $this->at->page($this->category . '/' . $this->slug);
     }
 }
 
@@ -84,10 +86,16 @@ final class Listing
      * own introduction, not an entry in its own listing — in any language.
      *
      * @param list<string> $codes the declared languages, the site's own first
+     * @param BasePath $at where the site begins, which the entries' URLs are
+     *        written under
      * @return list<Entry>
      */
-    public static function forCategory(string $contentDir, string $category, array $codes = []): array
-    {
+    public static function forCategory(
+        string $contentDir,
+        string $category,
+        array $codes = [],
+        BasePath $at = new BasePath(),
+    ): array {
         $dir = $contentDir . '/' . $category;
         if (!is_dir($dir)) {
             return [];
@@ -107,7 +115,7 @@ final class Listing
             $code = isset($variants['']) ? '' : (isset($variants[$default]) ? $default : array_key_first($variants));
             $meta = Document::peekMeta($dir . '/' . $variants[$code]);
 
-            $addresses = Language::addresses($base, $variants, '/' . $category . '/', $default);
+            $addresses = Language::addresses($base, $variants, $category, $default, $at);
             $one   = count($addresses) < 2;
 
             $entries[] = new Entry(
@@ -117,6 +125,7 @@ final class Listing
                 $meta['date'] ?? '',
                 $one ? '' : Language::code((string) $code, $default),
                 $one ? [] : $addresses,
+                $at,
             );
         }
 
@@ -134,13 +143,19 @@ final class Listing
      * @param ?int $limit how many to print — null is every one there is, which
      *        is what Site::listingMax() answers for an instance that asked for
      *        all of them
+     * @param BasePath $at where the site begins — forCategory()
      * @return list<Entry>
      */
-    public static function recent(string $contentDir, array $categories, array $codes, ?int $limit): array
-    {
+    public static function recent(
+        string $contentDir,
+        array $categories,
+        array $codes,
+        ?int $limit,
+        BasePath $at = new BasePath(),
+    ): array {
         $all = [];
         foreach ($categories as $c) {
-            foreach (self::forCategory($contentDir, $c['slug'], $codes) as $entry) {
+            foreach (self::forCategory($contentDir, $c['slug'], $codes, $at) as $entry) {
                 $all[] = $entry;
             }
         }

@@ -15,6 +15,9 @@ namespace TerminalCms;
  */
 final class Site
 {
+    /** What an entry point says, and does not go on from, when there is no site.php. */
+    public const NO_CONFIG = 'site.php is missing — copy site.php.example to site.php and edit it.';
+
     /** The accent an instance that names none, or names one that is not a colour, gets. */
     public const ACCENT = '#21e08a';
 

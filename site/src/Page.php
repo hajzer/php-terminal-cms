@@ -20,8 +20,11 @@ final class Page
      *        points on the page — the accent style block and the enhancement
      *        script — have to carry to run at all. A caller with no policy to
      *        satisfy passes none and gets the page without the attributes.
+     * @param BasePath $at where the site begins, which every local address in
+     *        the shell is written under. The Router that made $r is given the
+     *        same one.
      */
-    public static function html(array $site, array $r, string $nonce = ''): string
+    public static function html(array $site, array $r, string $nonce = '', BasePath $at = new BasePath()): string
     {
         /* every key here is optional: a site.php that names none of them
            still has to render a page */
@@ -38,7 +41,7 @@ final class Page
         $nav = '';
         foreach (Site::categories($site) as $c) {
             $on   = $c['slug'] === $r['active'] ? ' class="on"' : '';
-            $nav .= '<a href="/' . e($c['slug']) . '"' . $on . '>' . e($c['label']) . '</a>';
+            $nav .= '<a href="' . e($at->page($c['slug'])) . '"' . $on . '>' . e($c['label']) . '</a>';
         }
 
         $accent = Site::accent($site);
@@ -46,12 +49,12 @@ final class Page
         $tagline = trim((string) ($site['tagline'] ?? ''));
         /* a footer that disagreed with the body about where a link opens would
            be the same instance answering the same question two ways */
-        $footer  = self::footer($site['footer'] ?? '', Site::linkOpen($site));
+        $footer  = self::footer($site['footer'] ?? '', Site::linkOpen($site), $at);
 
         /* the picture is in the brand link, in front of the words it is the
            picture of — so the instance is named whether or not it loads */
         $logo = Site::logo($site);
-        $brand = ($logo !== '' ? '<img class="logo" src="' . e($logo) . '" alt="' . e($name) . '">' : '')
+        $brand = ($logo !== '' ? '<img class="logo" src="' . e($at->local($logo)) . '" alt="' . e($name) . '">' : '')
                . e($name);
 
         /* the icon in the reader's tab, which a browser asks for whether or
@@ -61,7 +64,7 @@ final class Page
         $icon = Site::favicon($site);
         if ($icon !== '') {
             $type = Site::faviconType($icon);
-            $iconLink = "\n" . '<link rel="icon" href="' . e($icon) . '"'
+            $iconLink = "\n" . '<link rel="icon" href="' . e($at->local($icon)) . '"'
                       . ($type !== '' ? ' type="' . e($type) . '"' : '') . '>';
         }
 
@@ -73,13 +76,13 @@ final class Page
 <title>' . e($title) . '</title>' .
 ($tagline !== '' ? "\n" . '<meta name="description" content="' . e($tagline) . '">' : '') .
 $iconLink . '
-<link rel="stylesheet" href="/theme.css">
-<link rel="stylesheet" href="/site.css">
+<link rel="stylesheet" href="' . e($at->local('/theme.css')) . '">
+<link rel="stylesheet" href="' . e($at->local('/site.css')) . '">
 <style' . self::nonceAttr($nonce) . '>:root{--accent:' . e($accent) . '}</style>
 </head>
 <body class="reader">
 <div class="topbar">
-  <a class="brand" href="/">' . $brand . '</a>' .
+  <a class="brand" href="' . e($at->page('')) . '">' . $brand . '</a>' .
 ($tagline !== '' ? "\n" . '  <span class="tagline">' . e($tagline) . '</span>' : '') . '
   <nav>' . $nav . '</nav>
   <div class="host">
@@ -94,7 +97,7 @@ $iconLink . '
 </main>
 
 ' . $footer . '
-' . self::enhancement($nonce, self::hasDiagram($r['body'])) . '
+' . self::enhancement($nonce, self::hasDiagram($r['body']) ? $at->local(self::MERMAID) : '') . '
 </body>
 </html>
 ';
@@ -110,8 +113,9 @@ $iconLink . '
      * Nothing is added around it. A footer nobody configured is no footer.
      *
      * @param string $linkOpen where a link to another site opens — Renderer::inline()
+     * @param BasePath $at where the site begins — Renderer::inline()
      */
-    private static function footer(mixed $config, string $linkOpen): string
+    private static function footer(mixed $config, string $linkOpen, BasePath $at): string
     {
         $lines = [];
         foreach (is_array($config) ? $config : [$config] as $line) {
@@ -120,7 +124,7 @@ $iconLink . '
             }
             $line = trim((string) $line);
             if ($line !== '') {
-                $lines[] = '<span>' . Renderer::inline($line, $linkOpen) . '</span>';
+                $lines[] = '<span>' . Renderer::inline($line, $linkOpen, $at) . '</span>';
             }
         }
         if ($lines === []) {
@@ -161,13 +165,16 @@ $iconLink . '
      * tag then names that address, and the script loads it carrying the nonce
      * it read off its own tag, so the policy names nothing new. On every other
      * page the script is the three conveniences alone and fetches nothing.
+     *
+     * @param string $mermaid where Mermaid is served, under the Base Path, on a
+     *        page with a Diagram; '' on every other page
      */
-    private static function enhancement(string $nonce, bool $diagrams): string
+    private static function enhancement(string $nonce, string $mermaid): string
     {
         /* nowdocs, so that not one character of the script below is read as
            PHP: a heredoc would interpolate a `$` and eat a `\` */
         return '<script' . self::nonceAttr($nonce)
-             . ($diagrams ? ' data-mermaid="' . e(self::MERMAID) . '"' : '') . '>'
+             . ($mermaid !== '' ? ' data-mermaid="' . e($mermaid) . '"' : '') . '>'
              . <<<'HTML'
 
 (function () {
@@ -226,7 +233,7 @@ $iconLink . '
 })();
 
 HTML
-             . ($diagrams ? self::DRAWING : '') . '</script>';
+             . ($mermaid !== '' ? self::DRAWING : '') . '</script>';
     }
 
     /**

@@ -18,9 +18,15 @@ final class Renderer
      *
      * @param list<Line> $lines
      * @param string $linkOpen where a link to another site opens — see inline()
+     * @param BasePath $at where the site begins, for an Href and a src written
+     *        from its root
      */
-    public static function render(array $lines, bool $withMeta = true, string $linkOpen = 'here'): string
-    {
+    public static function render(
+        array $lines,
+        bool $withMeta = true,
+        string $linkOpen = 'here',
+        BasePath $at = new BasePath(),
+    ): string {
         $html = [];
         $body = array_values(array_filter($lines, static fn (Line $l) => $l->type !== 'meta'));
         $seen = [];
@@ -37,7 +43,7 @@ final class Renderer
 
             switch ($first->type) {
                 case 'h1':
-                    $html[] = '<h1>' . self::inline($first->text, $linkOpen) . '</h1>';
+                    $html[] = '<h1>' . self::inline($first->text, $linkOpen, $at) . '</h1>';
                     if ($pending !== '') {
                         $html[]  = $pending;
                         $pending = '';
@@ -47,35 +53,35 @@ final class Renderer
                 case 'h3':
                     $tag    = $first->type;
                     $id     = self::anchor($first->text, $seen);
-                    $html[] = "<$tag id=\"$id\">" . self::inline($first->text, $linkOpen) . "</$tag>";
+                    $html[] = "<$tag id=\"$id\">" . self::inline($first->text, $linkOpen, $at) . "</$tag>";
                     break;
                 case 'p':
-                    $html[] = '<p>' . self::inline($first->text, $linkOpen) . '</p>';
+                    $html[] = '<p>' . self::inline($first->text, $linkOpen, $at) . '</p>';
                     break;
                 case 'rule':
                     $html[] = '<hr>';
                     break;
                 case 'img':
                     $alt    = $first->sub ?? '';
-                    $html[] = '<figure><img src="' . e(self::mediaUrl($first->text)) . '" alt="' . e($alt) . '">'
+                    $html[] = '<figure><img src="' . e($at->local(self::mediaUrl($first->text))) . '" alt="' . e($alt) . '">'
                             . ($alt !== '' ? '<figcaption>' . e($alt) . '</figcaption>' : '')
                             . '</figure>';
                     break;
                 case 'list':
-                    $items  = array_map(static fn (Line $l) => '<li>' . self::inline($l->text, $linkOpen) . '</li>', $run);
+                    $items  = array_map(static fn (Line $l) => '<li>' . self::inline($l->text, $linkOpen, $at) . '</li>', $run);
                     $html[] = '<ul>' . implode('', $items) . '</ul>';
                     break;
                 case 'quote':
-                    $parts  = array_map(static fn (Line $l) => self::inline($l->text, $linkOpen), $run);
+                    $parts  = array_map(static fn (Line $l) => self::inline($l->text, $linkOpen, $at), $run);
                     $html[] = '<blockquote>' . implode('<br>', $parts) . '</blockquote>';
                     break;
                 case 'note':
-                    $parts  = array_map(static fn (Line $l) => self::inline($l->text, $linkOpen), $run);
+                    $parts  = array_map(static fn (Line $l) => self::inline($l->text, $linkOpen, $at), $run);
                     $html[] = '<div class="note"><span class="note-tag">note</span>'
                             . implode(' ', $parts) . '</div>';
                     break;
                 case 'table':
-                    $html[] = self::table($run, $linkOpen);
+                    $html[] = self::table($run, $linkOpen, $at);
                     break;
                 case 'code':
                 case 'cli': {
@@ -157,7 +163,7 @@ final class Renderer
     }
 
     /** @param list<Line> $run — first line is the header row */
-    private static function table(array $run, string $linkOpen): string
+    private static function table(array $run, string $linkOpen, BasePath $at): string
     {
         $rows = array_map(
             static fn (Line $l) => array_map('trim', explode('|', $l->text)),
@@ -171,7 +177,7 @@ final class Renderer
             $tag   = $k === 0 ? 'th' : 'td';
             $out  .= $k === 0 ? '<thead><tr>' : '<tr>';
             foreach ($cells as $c) {
-                $out .= "<$tag>" . self::inline($c, $linkOpen) . "</$tag>";
+                $out .= "<$tag>" . self::inline($c, $linkOpen, $at) . "</$tag>";
             }
             $out .= $k === 0 ? '</tr></thead><tbody>' : '</tr>';
         }
@@ -190,8 +196,10 @@ final class Renderer
      *        the instance asks for. The Editor has no configuration and is
      *        never told the setting, so its preview is the default rendering,
      *        which is this one with one attribute fewer.
+     * @param BasePath $at where the site begins. A local Href is written under
+     *        it; the Editor knows no Base Path, and its preview is the default.
      */
-    public static function inline(string $s, string $linkOpen = 'here'): string
+    public static function inline(string $s, string $linkOpen = 'here', BasePath $at = new BasePath()): string
     {
         $s = e($s);
         $s = preg_replace('~`([^`]+)`~', '<code>$1</code>', $s) ?? $s;
@@ -200,13 +208,13 @@ final class Renderer
         /* links: the href is rebuilt from an allowlist of schemes, never passed through */
         return preg_replace_callback(
             '~\[([^\]]+)\]\(([^)\s]+)\)~',
-            static function (array $m) use ($linkOpen): string {
+            static function (array $m) use ($linkOpen, $at): string {
                 $href = self::rawHref($m[2]);
                 if (!self::safeHref($href)) {
                     return $m[1];
                 }
                 $ext = preg_match('~^https?://~i', $href) === 1;
-                return '<a href="' . e($href) . '"'
+                return '<a href="' . e($at->local($href)) . '"'
                      . ($ext ? ' rel="noopener noreferrer"' : '')
                      . ($ext && $linkOpen === 'tab' ? ' target="_blank"' : '') . '>' . $m[1] . '</a>';
             },

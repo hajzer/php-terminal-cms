@@ -195,10 +195,10 @@ editor/        index.html  editor.js  ui.js    ← the static editor
 site/
   public/      index.php  .htaccess  theme.css  site.css  media/
   src/         Router  Markdown  Renderer  Highlighter  Document  Line  Listing
-               Language  Page  Site
+               Language  Page  Site  BasePath
   content/     <category>/<slug>.md   <slug>-<lang>.md
   site.php.example
-bin/           build  test  fmt  package  manifest.php
+bin/           build  test  fmt  package  page-build  manifest.php
 tests/         js-dump.js  js-model.js  js-tables.js  js-inline.js  editor-probe.html
 ```
 
@@ -213,9 +213,10 @@ tab — is the only file that differs between two installations. Copy it from
 | | |
 | --- | --- |
 | `php bin/build` | regenerate derived files from `shared/` |
-| `php bin/test` | the whole suite — round trip, PHP/JS agreement, the editor's model, escaping, link targets, routing, listings, the footer, the page shell, the release manifest |
+| `php bin/test` | the whole suite — round trip, PHP/JS agreement, the editor's model, escaping, link targets, routing, listings, the footer, the page shell, the Page Build, the release manifest |
 | `php bin/fmt` | rewrite `content/` into canonical form (`--check` to only report) |
 | `php bin/package` | build `dist/php-terminal-cms-<version>.{tar.gz,zip}` |
+| `php bin/page-build --output=<dir> [--base-url=<url>]` | render every page of the Instance to files, for a host that runs no PHP |
 
 Open `tests/editor-probe.html` in a browser to run the editor's DOM through the
 writing loop — adding, removing, editing, folding, clicking away mid-edit — and

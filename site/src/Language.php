@@ -71,14 +71,23 @@ final class Language
      *
      * @param array<string,string> $variants code => file name, '' for a name
      *        with no suffix
+     * @param string $category the Category the Document is in, or '' for the
+     *        content root
+     * @param BasePath $at where the site begins, which the URLs are written under
      * @return array<string,string>
      */
-    public static function addresses(string $base, array $variants, string $prefix, string $default): array
-    {
+    public static function addresses(
+        string $base,
+        array $variants,
+        string $category,
+        string $default,
+        BasePath $at = new BasePath(),
+    ): array {
+        $prefix = $category === '' ? '' : $category . '/';
         $out = [];
         foreach ($variants as $suffix => $file) {
             $suffix = (string) $suffix;
-            $out[self::code($suffix, $default)] = $prefix . self::slug($base, $suffix, $default);
+            $out[self::code($suffix, $default)] = $at->page($prefix . self::slug($base, $suffix, $default));
         }
         return $out;
     }

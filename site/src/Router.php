@@ -14,10 +14,15 @@ namespace TerminalCms;
  */
 final class Router
 {
-    /** @param array<string,mixed> $site */
+    /**
+     * @param array<string,mixed> $site
+     * @param BasePath $at where the site begins, which every address the
+     *        router writes into a page is written under
+     */
     public function __construct(
         private readonly array $site,
         private readonly string $contentDir,
+        private readonly BasePath $at = new BasePath(),
     ) {
     }
 
@@ -87,8 +92,7 @@ final class Router
      */
     private function resolve(string $category, string $slug): ?array
     {
-        $dir       = $category === '' ? $this->contentDir : $this->contentDir . '/' . $category;
-        $urlPrefix = $category === '' ? '/' : '/' . $category . '/';
+        $dir = $category === '' ? $this->contentDir : $this->contentDir . '/' . $category;
 
         if (!is_dir($dir)) {
             return null;      /* a category declared in site.php with nothing behind it */
@@ -126,7 +130,7 @@ final class Router
             'file'  => $dir . '/' . $variants[$code],
             'lang'  => Language::code($code, $default),
             'languages' => count($variants) > 1
-                ? Language::addresses($base, $variants, $urlPrefix, $default)
+                ? Language::addresses($base, $variants, $category, $default, $this->at)
                 : [],
         ];
     }
@@ -140,7 +144,7 @@ final class Router
         }
 
         $doc  = Document::load($found['file'], $category, $slug);
-        $body = '<article class="doc">' . $doc->html($this->linkOpen()) . '</article>'
+        $body = '<article class="doc">' . $doc->html($this->linkOpen(), $this->at) . '</article>'
               . $this->docFooter($doc, $found['lang'], $found['languages']);
 
         return ['status' => 200, 'title' => $doc->title(), 'body' => $body,
@@ -159,13 +163,15 @@ final class Router
         $intro = $this->resolve($category, 'index');
         if ($intro !== null) {
             $doc  = Document::load($intro['file'], $category, 'index');
-            $body .= '<article class="doc intro">' . $doc->html($this->linkOpen()) . '</article>';
+            $body .= '<article class="doc intro">' . $doc->html($this->linkOpen(), $this->at) . '</article>';
         } else {
             $body .= '<h1>' . e($label) . '</h1>';
         }
 
         if ($config['listing']) {
-            $body .= $this->listing(Listing::forCategory($this->contentDir, $category, Site::languages($this->site)));
+            $body .= $this->listing(
+                Listing::forCategory($this->contentDir, $category, Site::languages($this->site), $this->at)
+            );
         }
 
         return ['status' => 200, 'title' => $label, 'active' => $category, 'body' => $body,
@@ -179,7 +185,7 @@ final class Router
         $intro = $this->resolve('', 'index');
         if ($intro !== null) {
             $doc  = Document::load($intro['file'], '', 'index');
-            $body .= '<article class="doc intro">' . $doc->html($this->linkOpen()) . '</article>';
+            $body .= '<article class="doc intro">' . $doc->html($this->linkOpen(), $this->at) . '</article>';
         } else {
             $body .= '<h1>' . e($this->title()) . '</h1>';
         }
@@ -190,6 +196,7 @@ final class Router
                 Site::categories($this->site),
                 Site::languages($this->site),
                 Site::listingMax($this->site),
+                $this->at,
             ));
         }
 
@@ -218,7 +225,7 @@ final class Router
             'lang'   => Site::lang($this->site),
             'body'   => '<article class="doc"><h1>404</h1>'
                       . '<p>No document at that address.</p>'
-                      . '<p><a href="/">back to the index</a></p></article>',
+                      . '<p><a href="' . e($this->at->page('')) . '">back to the index</a></p></article>',
         ];
     }
 
@@ -271,7 +278,7 @@ final class Router
     private function docFooter(Document $doc, string $lang, array $languages): string
     {
         return '<div class="doc-foot">'
-             . '<a href="/' . e($doc->category) . '">← ' . e($doc->category) . '</a>'
+             . '<a href="' . e($this->at->page($doc->category)) . '">← ' . e($doc->category) . '</a>'
              . self::languages($languages, $lang)
              . '</div>';
     }

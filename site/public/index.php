@@ -9,9 +9,11 @@ declare(strict_types=1);
  * the request. See docs/security.md.
  */
 
+use TerminalCms\BasePath;
 use TerminalCms\Highlighter;
 use TerminalCms\Page;
 use TerminalCms\Router;
+use TerminalCms\Site;
 
 /**
  * The built-in development server routes every request through this script,
@@ -41,7 +43,7 @@ $configFile = $root . '/site.php';
 if (!is_file($configFile)) {
     http_response_code(500);
     header('Content-Type: text/plain; charset=utf-8');
-    exit("site.php is missing — copy site.php.example to site.php and edit it.\n");
+    exit(Site::NO_CONFIG . "\n");
 }
 
 /** @var array<string,mixed> $site */
@@ -49,7 +51,11 @@ $site = require $configFile;
 
 Highlighter::load($root . '/shared/langs.json');
 
-$router = new Router($site, $root . '/content');
+/* the site begins at the host's root, and a page's address ends where its
+   name does */
+$at = new BasePath('', false);
+
+$router = new Router($site, $root . '/content', $at);
 $result = $router->route($_SERVER['REQUEST_URI'] ?? '/');
 
 /* The page has two inline points — the accent style block and the enhancement
@@ -65,4 +71,4 @@ header('Referrer-Policy: strict-origin-when-cross-origin');
 header('Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()');
 header("Content-Security-Policy: default-src 'none'; img-src 'self'; style-src 'self' 'nonce-$nonce'; script-src 'nonce-$nonce'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
 
-echo Page::html($site, $result, $nonce);
+echo Page::html($site, $result, $nonce, $at);

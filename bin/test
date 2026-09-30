@@ -6,6 +6,7 @@
  */
 declare(strict_types=1);
 
+use TerminalCms\BasePath;
 use TerminalCms\Highlighter;
 use TerminalCms\Line;
 use TerminalCms\Markdown;
@@ -1202,6 +1203,113 @@ foreach ($relative as $src => $want) {
        sprintf('%-16s -> %s', $src, $want), Renderer::mediaUrl($src));
 }
 
+/* ------------------------------------------------------------ the base path */
+echo "\nbase path\n";
+
+$urls = [
+    'https://example.gitlab.io/proj/' => '/proj',
+    'https://example.gitlab.io/proj'  => '/proj',
+    'https://example.gitlab.io/a/b/'  => '/a/b',
+    'https://example.gitlab.io/'      => '',
+    'https://example.gitlab.io'       => '',
+    '/'                               => '',
+    ''                                => '',
+    '/proj/?x=1#y'                    => '/proj',
+];
+foreach ($urls as $url => $want) {
+    ok(BasePath::fromUrl($url)->path === $want,
+       sprintf('%-32s is the Base Path %s', var_export($url, true), var_export($want, true)),
+       BasePath::fromUrl($url)->path);
+}
+foreach (['https://h//evil.example/', 'https://h/a/../b', 'https://h/./a', 'https://h/a\\b', "/a\x01b", '/a b'] as $url) {
+    $threw = false;
+    try {
+        BasePath::fromUrl($url);
+    } catch (InvalidArgumentException) {
+        $threw = true;
+    }
+    ok($threw, sprintf('%-28s is not a Base Path', var_export($url, true)));
+}
+
+$proj = new BasePath('/proj', true);
+ok($proj->page('') === '/proj/' && $proj->page('guides') === '/proj/guides/'
+   && $proj->page('guides/a-b') === '/proj/guides/a-b/',
+   'a built page is addressed under the Base Path, with the trailing slash',
+   $proj->page('') . ' ' . $proj->page('guides'));
+$here = new BasePath();
+ok($here->page('') === '/' && $here->page('guides') === '/guides' && $here->local('/theme.css') === '/theme.css',
+   'and the request-time site\'s addresses start at / and end where the name does',
+   $here->page('') . ' ' . $here->page('guides'));
+
+/* a Link and an Image written from the site's root are written from the Base
+   Path's; everything that is not a local address is left as it is */
+$hrefs = [
+    '[x](/guides/a)'              => 'href="/proj/guides/a"',
+    '[x](/guides/a#part)'         => 'href="/proj/guides/a#part"',
+    '[x](#part)'                  => 'href="#part"',
+    '[x](https://example.com/a)'  => 'href="https://example.com/a"',
+    '[x](mailto:you@example.com)' => 'href="mailto:you@example.com"',
+];
+foreach ($hrefs as $case => $want) {
+    ok(str_contains(Renderer::inline($case, 'here', $proj), $want),
+       sprintf('%-30s -> %s', $case, $want), Renderer::inline($case, 'here', $proj));
+}
+ok(!str_contains(Renderer::inline('[x](//evil.example/a)', 'here', $proj), 'href='),
+   'and a protocol-relative Href is still no link at all');
+foreach (['![a](/media/x.png)' => 'src="/proj/media/x.png"', '![a](x.png)' => 'src="/proj/media/x.png"'] as $case => $want) {
+    [, $one] = Markdown::parse($case . "\n");
+    ok(str_contains(Renderer::render($one, true, 'here', $proj), $want),
+       sprintf('%-30s -> %s', $case, $want), Renderer::render($one, true, 'here', $proj));
+}
+
+/* the one value reaches the whole shell: navigation, brand, stylesheets, the
+   icon, the logo, a footer Link and the Mermaid address */
+$built = TerminalCms\Page::html(
+    ['footer' => '[home](/about)'] + $site,
+    (new TerminalCms\Router($site, $root . '/site/content', $proj))->route('/about/everything-is-a-line'),
+    '', $proj
+);
+foreach (['href="/proj/about/"', 'href="/proj/guides/"', 'class="brand" href="/proj/"',
+          'href="/proj/theme.css"', 'href="/proj/site.css"', 'href="/proj/favicon.ico"',
+          'src="/proj/media/logo.png"', 'data-mermaid="/proj/mermaid.min.js"', 'href="/proj/about/">← about', 'href="/proj/about">home'] as $want) {
+    ok(str_contains($built, $want), "a built page carries $want");
+}
+
+/* The request-time site with the default Base Path, to the byte: every
+   sample address, the policy's nonce fixed. The sample content or the shell
+   changing on purpose is what re-records them. */
+$before = [
+    '/'                                 => 'b5c8773eb6d0cf6dbf8533d893a1a3c6d3272ed95bdd6df726934c08b7d9a388',
+    '/about'                            => '5133d5ad79bc91dded8c08a4096406f5038b57f77d956f2a37e1db6cd64ad9aa',
+    '/guides'                           => '4d351b7b4b29b187d1d67d6fc765f14d9798afb26bf1f970753a2bbba361b415',
+    '/about/everything-is-a-line'       => '23472696247749345a0d9b34b4764f2d14ff5ca37e6630da4e7fe55efc6cdff3',
+    '/about/what-it-is'                 => 'd8403eb5e842e5984db475416fb66ba24d43b118ecca251a013f745699f25851',
+    '/about/what-it-is-sk'              => '5884a99e0c1d772904f0367af48636d1461f7155026124a9bb02ce776b93a343',
+    '/guides/install-in-five-minutes'   => 'a1d8329f057e7afb384e00044d4525d7ea4b585b3bb62f39b46915f4732b3769',
+    '/guides/publishing-is-a-file-copy' => 'f5e064aa32187ed4e82059161fa8fae28bb27833cc6f44e4cb21b4a245351ca8',
+    '/guides/writing-in-the-editor'     => '3e785e02e78796bce5e0de5ed291fb9648a800505f4693f0a7e737b24d1573ef',
+    '/404.html'                         => '9442cbd663a6bc0c6596a066ec1af4b666b42c7100f25f95ad6d53b52de0474b',
+];
+foreach ($before as $uri => $hash) {
+    ok(hash('sha256', TerminalCms\Page::html($site, $router->route($uri), 'N0NCE')) === $hash
+       && TerminalCms\Page::html($site, $router->route($uri), 'N0NCE', $here)
+          === TerminalCms\Page::html($site, $router->route($uri), 'N0NCE'),
+       sprintf('%-36s is byte for byte what it was', $uri));
+}
+
+/* a built page's links end in a slash, and the request-time site answers them */
+foreach (array_keys($before) as $uri) {
+    if ($uri === '/' || $uri === '/404.html') {
+        continue;
+    }
+    ok($router->route($uri . '/') === $router->route($uri), sprintf('%-36s answers with a trailing slash', $uri));
+}
+
+/* the Base Path is the build's: a site.php that names one is not asked */
+ok(TerminalCms\Page::html($site + ['base' => '/x', 'base_path' => '/x', 'base_url' => 'https://h/x'], $home)
+   === TerminalCms\Page::html($site, $home),
+   'a site.php cannot set the Base Path');
+
 /* ------------------------------------------- the built-in server serves assets */
 echo "\ndev server\n";
 $port = 8100 + (getmypid() % 400);
@@ -1249,6 +1357,218 @@ if (is_resource($proc)) {
 if ($temp) {
     unlink($cfg);
 }
+
+/* ---------------------------------------------------------- the page build */
+echo "\npage build\n";
+
+/* The build is run as a writer runs it, in a copy of the Instance, so that
+   what it refuses and what it replaces are files nobody else needs. */
+function copyTree(string $from, string $to): void
+{
+    mkdir($to, 0755, true);
+    foreach (scandir($from) ?: [] as $name) {
+        if ($name === '.' || $name === '..') {
+            continue;
+        }
+        is_dir("$from/$name") ? copyTree("$from/$name", "$to/$name") : copy("$from/$name", "$to/$name");
+    }
+}
+
+function removeTree(string $path): void
+{
+    if (is_link($path) || is_file($path)) {
+        unlink($path);
+        return;
+    }
+    if (!is_dir($path)) {
+        return;
+    }
+    foreach (scandir($path) ?: [] as $name) {
+        if ($name !== '.' && $name !== '..') {
+            removeTree("$path/$name");
+        }
+    }
+    rmdir($path);
+}
+
+/** Every path under a directory, with what each file holds: what "left as it
+ *  was found" is compared by. @return array<string,string> */
+function snapshot(string $dir): array
+{
+    $out = [];
+    if (!is_dir($dir)) {
+        return $out;
+    }
+    $it = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::SELF_FIRST
+    );
+    foreach ($it as $f) {
+        $rel = substr($f->getPathname(), strlen($dir) + 1);
+        $out[$rel] = $f->isDir() ? 'dir' : (string) md5_file($f->getPathname());
+    }
+    ksort($out);
+    return $out;
+}
+
+/** @return array{0:int, 1:string} the exit status and what it printed */
+function pageBuild(string $instance, array $args): array
+{
+    $cmd = array_merge([PHP_BINARY, $instance . '/bin/page-build'], $args);
+    $proc = proc_open($cmd, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+    $said = stream_get_contents($pipes[1]) . stream_get_contents($pipes[2]);
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+    return [proc_close($proc), $said];
+}
+
+/** Every local address a built page names, from href, src and the one data
+ *  attribute that carries one. @return list<string> */
+function localAddresses(string $html): array
+{
+    preg_match_all('~\b(?:href|src|data-mermaid)="([^"]*)"~', $html, $m);
+    return array_values(array_filter(
+        array_map('html_entity_decode', $m[1]),
+        static fn (string $a) => preg_match('~^(#|[a-z][a-z0-9+.-]*:)~i', $a) !== 1
+    ));
+}
+
+/** The file a host serves for a local address, or '' for none. */
+function servedFile(string $out, string $address): string
+{
+    $path = rawurldecode((string) preg_replace('~[?#].*$~', '', $address));
+    $file = $out . $path;
+    if (str_ends_with($path, '/') || is_dir($file)) {
+        $file = rtrim($file, '/') . '/index.html';
+    }
+    return is_file($file) ? $file : '';
+}
+
+$box = sys_get_temp_dir() . '/tcms-build-' . getmypid();
+mkdir($box . '/instance/bin', 0755, true);
+$box = (string) realpath($box);
+$instance = $box . '/instance';
+copy($root . '/bin/page-build', $instance . '/bin/page-build');
+foreach (['src', 'shared', 'public', 'content'] as $dir) {
+    copyTree($root . '/site/' . $dir, $instance . '/site/' . $dir);
+}
+copy($root . '/site/site.php.example', $instance . '/site/site.php');
+
+$out = $box . '/out/pages';
+[$status, $said] = pageBuild($instance, ['--output=' . $out, '--base-url=https://example.gitlab.io/proj/']);
+ok($status === 0, 'the sample content builds with Base Path /proj', $said);
+
+$expected = [
+    'index.html', '404.html', '.page-build',
+    'about/index.html', 'guides/index.html',
+    'about/everything-is-a-line/index.html', 'about/what-it-is/index.html', 'about/what-it-is-sk/index.html',
+    'guides/install-in-five-minutes/index.html', 'guides/publishing-is-a-file-copy/index.html',
+    'guides/writing-in-the-editor/index.html',
+    'theme.css', 'site.css', 'favicon.ico', 'mermaid.min.js',
+    'media/logo.png', 'media/architecture.svg',
+];
+$files = array_keys(array_filter(snapshot($out), static fn (string $v) => $v !== 'dir'));
+ok(array_diff($expected, $files) === [], 'every expected file is there',
+   implode("\n", array_diff($expected, $files)));
+$forbidden = array_filter($files, static fn (string $f) => str_ends_with($f, '.php') || basename($f) === '.htaccess');
+ok($forbidden === [], 'and no .php and no .htaccess', implode("\n", $forbidden));
+ok(file_get_contents($out . '/theme.css') === file_get_contents($root . '/site/public/theme.css')
+   && file_get_contents($out . '/media/logo.png') === file_get_contents($root . '/site/public/media/logo.png'),
+   'the public assets are copied as they are');
+
+$pages = array_values(array_filter($files, static fn (string $f) => str_ends_with($f, '.html')));
+$wrong = [];
+foreach ($pages as $page) {
+    foreach (localAddresses((string) file_get_contents("$out/$page")) as $a) {
+        if (!str_starts_with($a, '/proj/')) {
+            $wrong[] = "$page: $a does not start with /proj/";
+        } elseif (servedFile($out, substr($a, strlen('/proj'))) === '') {
+            $wrong[] = "$page: $a is no file in the output";
+        }
+    }
+}
+ok($wrong === [], 'every local href and src in every built page starts with /proj/ and resolves',
+   implode("\n", array_slice($wrong, 0, 8)));
+ok(str_contains((string) file_get_contents($out . '/index.html'), 'src="/proj/media/architecture.svg"'),
+   'a root-relative Image src in the sample carries the Base Path');
+$notFound = (string) file_get_contents($out . '/404.html');
+ok(str_contains($notFound, '<h1>404</h1>') && str_contains($notFound, 'href="/proj/">back to the index'),
+   '404.html is the site\'s 404 page, pointing home under the Base Path', $notFound);
+ok(str_contains((string) file_get_contents($out . '/about/what-it-is-sk/index.html'), 'href="/proj/about/what-it-is/"'),
+   'a Document\'s other Languages are linked with the trailing slash');
+
+/* no --base-url: the site begins at the host's root */
+$rootOut = $box . '/root';
+[$status, $said] = pageBuild($instance, ['--output=' . $rootOut]);
+$wrong = [];
+foreach ($pages as $page) {
+    foreach (localAddresses((string) file_get_contents("$rootOut/$page")) as $a) {
+        if (!str_starts_with($a, '/') || str_starts_with($a, '/proj') || servedFile($rootOut, $a) === '') {
+            $wrong[] = "$page: $a";
+        }
+    }
+}
+ok($status === 0 && $wrong === [], 'built with no --base-url, every address starts at / and resolves',
+   $said . implode("\n", array_slice($wrong, 0, 8)));
+ok(str_contains((string) file_get_contents($rootOut . '/index.html'), 'class="brand" href="/"'),
+   'and the brand is the host\'s root');
+
+/* a build over an earlier one replaces it; an empty directory is also fine */
+file_put_contents($out . '/stale.html', 'from an earlier build');
+[$status, $said] = pageBuild($instance, ['--output=' . $out, '--base-url=https://example.gitlab.io/proj']);
+ok($status === 0 && !file_exists($out . '/stale.html') && is_file($out . '/index.html'),
+   'a build replaces an earlier build whole', $said);
+mkdir($box . '/empty');
+[$status, $said] = pageBuild($instance, ['--output=' . $box . '/empty']);
+ok($status === 0 && is_file($box . '/empty/.page-build'), 'and an empty directory', $said);
+
+/* Refusals: each says why, exits non-zero, and leaves everything it was
+   given as it found it — the Instance, the output and the directory beside
+   it, so no fresh directory is left behind either. */
+function refused(string $what, string $instance, array $args, string $box, string $expect): void
+{
+    $before = snapshot($box);
+    [$status, $said] = pageBuild($instance, $args);
+    ok($status !== 0 && str_contains($said, $expect) && snapshot($box) === $before,
+       "refused: $what", "exit $status: $said");
+}
+
+mkdir($box . '/mine');
+file_put_contents($box . '/mine/notes.txt', 'not a build');
+refused('a non-empty output that is not a Page Build', $instance, ['--output=' . $box . '/mine'], $box, $box . '/mine');
+refused('an output that is site/', $instance, ['--output=' . $instance . '/site'], $box, 'site/');
+refused('an output that is content/', $instance, ['--output=' . $instance . '/site/content'], $box, 'content/');
+refused('an output that is the repository root', $instance, ['--output=' . $instance], $box, 'repository root');
+refused('an output that holds the repository root', $instance, ['--output=' . $box], $box, 'repository root');
+refused('an output inside site/', $instance, ['--output=' . $instance . '/site/public/pages'], $box, 'site/');
+foreach (['site', 'content'] as $held) {
+    mkdir("$box/holds-$held/$held", 0755, true);
+    touch("$box/holds-$held/.page-build");
+    refused("a marked output that holds $held/", $instance, ["--output=$box/holds-$held"], $box, "$held/");
+}
+file_put_contents($box . '/a-file', 'x');
+refused('an output that is a file', $instance, ['--output=' . $box . '/a-file'], $box, $box . '/a-file');
+refused('no --output', $instance, [], $box, '--output');
+refused('a misspelled flag', $instance, ['--output=' . $box . '/new', '--baseurl=/proj'], $box, '--baseurl=/proj');
+refused('a flag given twice', $instance, ['--output=' . $box . '/new', '--output=' . $box . '/other'], $box, 'twice');
+refused('a Base Path that is not one', $instance, ['--output=' . $out, '--base-url=https://h//evil.example/'], $box, 'Base Path');
+
+rename($instance . '/site/site.php', $instance . '/site/site.php.off');
+refused('no site.php', $instance, ['--output=' . $box . '/new'], $box,
+        'site.php is missing — copy site.php.example to site.php and edit it.');
+rename($instance . '/site/site.php.off', $instance . '/site/site.php');
+
+/* A build that fails part-way — a Category page and a file in public/ at one
+   address, found after the assets and the homepage are written — leaves the
+   previous build where it was. */
+mkdir($instance . '/site/public/guides');
+file_put_contents($instance . '/site/public/guides/index.html', 'an asset where a page goes');
+$before = snapshot($box);
+[$status, $said] = pageBuild($instance, ['--output=' . $out, '--base-url=https://example.gitlab.io/proj']);
+ok($status !== 0 && str_contains($said, 'guides/index.html') && snapshot($box) === $before,
+   'a build that fails part-way leaves the previous build in place, and nothing beside it', "exit $status: $said");
+
+removeTree($box);
 
 /* ------------------------------------------------------- dangerous calls */
 echo "\nsource\n";
