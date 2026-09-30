@@ -1,6 +1,6 @@
 # 02 — Markdown in by paste: the model half
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 
 ## What
@@ -38,21 +38,21 @@ history recording, which are 03's.
 
 `node tests/js-model.js` covers, and passes:
 
-- [ ] Lines land below the cursor in the order written, cursor on the last
-- [ ] a heading, a list, a table, a note, a fence with a Dialect, a
+- [x] Lines land below the cursor in the order written, cursor on the last
+- [x] a heading, a list, a table, a note, a fence with a Dialect, a
   ```` ```console ```` fence and an ```` ```output ```` fence become the Types
   *Open .md* makes of them
-- [ ] a pasted `title:` replaces the Document's `title:` in place, and its
+- [x] a pasted `title:` replaces the Document's `title:` in place, and its
   position among the Meta does not move
-- [ ] a pasted key the Document lacks is appended after the last Meta Line
-- [ ] a Document with no Meta receives pasted Meta at the top
-- [ ] a frontmatter-only paste changes only Meta
-- [ ] an empty paste and a whitespace-only paste change nothing
-- [ ] the Name follows a pasted title when it was following, and not otherwise
-- [ ] a paste at the last Line and at the first Line, for the two edges
-- [ ] `toMarkdown` after a paste has exactly one frontmatter block and no
+- [x] a pasted key the Document lacks is appended after the last Meta Line
+- [x] a Document with no Meta receives pasted Meta at the top
+- [x] a frontmatter-only paste changes only Meta
+- [x] an empty paste and a whitespace-only paste change nothing
+- [x] the Name follows a pasted title when it was following, and not otherwise
+- [x] a paste at the last Line and at the first Line, for the two edges
+- [x] `toMarkdown` after a paste has exactly one frontmatter block and no
   duplicate key
 
 Then:
 
-- [ ] `php bin/test` green
+- [x] `php bin/test` green
