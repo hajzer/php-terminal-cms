@@ -1,6 +1,7 @@
 /* php-terminal-cms editor — the browser half. A document is never sent
-   anywhere; the one thing this page fetches is an image a line names, to show
-   it in the preview.
+   anywhere. What this page fetches is an image a line names, to show it in the
+   preview, and — once the document holds a Diagram — its own copy of the
+   library that draws one.
 
    The model lives in editor.js; this file is only keyboard, mouse and DOM.
 
@@ -80,6 +81,7 @@
     var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'normal' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
     store('tcms-theme', next);
+    drawDiagrams();
     return next;
   }
 
@@ -329,6 +331,7 @@
     drawSheet();
     drawLegend();
     read.innerHTML = L.renderDoc(doc.lines);
+    drawDiagrams();
     rawPre.textContent = L.toMarkdown(doc.lines);
     var l = doc.line(), t = L.byId[l.type];
     document.getElementById('right').innerHTML =
@@ -356,6 +359,157 @@
     doc.reveal();
     hist.record(doc);
     draw();
+  }
+
+  /* --------------------------------------------------------- diagrams */
+
+  /* A Diagram reaches the read pane as the code block renderDoc made of it,
+     and is drawn over that block here, after every redraw. Nothing is loaded
+     until a redraw finds one: then the library is fetched from beside this
+     script, with its nonce when the page has one, and each Diagram is drawn
+     once per source and theme and kept, so the redraw every keystroke makes
+     puts the picture straight back. A Diagram that is already drawn keeps its
+     picture until the one for the new theme is ready. */
+  var own = document.currentScript;
+  var nonce = (own && own.nonce) || '';
+  var LIBRARY = own ? own.src.replace(/[^\/]*$/, 'mermaid.min.js') : 'mermaid.min.js';
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  var library = '';                  /* '', 'loading', 'ready' or 'failed' */
+  var drawings = new Map();          /* theme + source -> { svg } or { error } */
+  var DRAWINGS_KEPT = 32;
+  var queue = Promise.resolve(), drawn = 0;
+  /* the block a drawing was placed in -> the source and key it was drawn from,
+     which is what the copy button copies once the <pre> is gone */
+  var placed = new WeakMap();
+
+  function drawDiagrams() {
+    var blocks = [].filter.call(read.querySelectorAll('.block'), function (b) {
+      var lang = b.querySelector('.block-bar .lang');
+      return lang && lang.textContent === 'mermaid' &&
+        (placed.has(b) || !!b.querySelector('pre.code'));
+    });
+    if (!blocks.length) return;
+    if (library !== 'ready') { loadLibrary(); return; }
+    var theme = document.documentElement.getAttribute('data-theme');
+    blocks.forEach(function (block) {
+      var was = placed.get(block);
+      var src = was ? was.src : block.querySelector('pre.code').textContent;
+      var key = theme + '\n' + src;
+      if (was && was.key === key) return;
+      var d = drawings.get(key);
+      if (d) { drawings.delete(key); drawings.set(key, d); }
+      else { d = {}; drawings.set(key, d); ask(d, src); forget(); }
+      if (d.svg) place(block, d.svg, src, key);
+      else if (d.error && !block.querySelector('.derr')) fail(block, d.error);
+    });
+  }
+
+  function loadLibrary() {
+    if (library) return;
+    library = 'loading';
+    var s = document.createElement('script');
+    s.src = LIBRARY;
+    if (nonce) s.nonce = nonce;
+    s.onload = function () {
+      library = window.mermaid ? 'ready' : 'failed';
+      drawDiagrams();
+    };
+    s.onerror = function () {
+      library = 'failed';
+      say('mermaid.min.js did not load — a Diagram stays as its source');
+    };
+    document.head.appendChild(s);
+  }
+
+  /* One drawing at a time, each with the configuration of the moment it was
+     asked for, so a theme toggled twice cannot draw one theme in the other's
+     colours. */
+  function ask(d, src) {
+    var config = diagramConfig();
+    function one() {
+      window.mermaid.initialize(config);
+      return window.mermaid.render('tcms-diagram-' + (++drawn), src).then(
+        function (r) { d.svg = r.svg; },
+        function (e) { d.error = String((e && e.message) || e); }
+      ).then(drawDiagrams);
+    }
+    queue = queue.then(one, one);
+  }
+  /* the least recently used, once there are more than a document needs */
+  function forget() {
+    drawings.forEach(function (d, key) {
+      if (drawings.size > DRAWINGS_KEPT && (d.svg || d.error)) drawings.delete(key);
+    });
+  }
+
+  function diagramConfig() {
+    var css = getComputedStyle(document.documentElement);
+    function v(name) { return css.getPropertyValue(name).trim(); }
+    var font = getComputedStyle(read).fontFamily;
+    return {
+      startOnLoad: false,
+      securityLevel: 'strict',
+      /* a source that does not parse is reported here, not drawn as a
+         picture of an error left behind in the page */
+      suppressErrorRendering: true,
+      theme: 'base',
+      fontFamily: font,
+      themeVariables: {
+        darkMode: document.documentElement.getAttribute('data-theme') === 'dark',
+        fontFamily: font,
+        background: v('--bg'),
+        primaryColor: v('--bg'),
+        edgeLabelBackground: v('--bg'),
+        primaryTextColor: v('--fg'),
+        textColor: v('--fg'),
+        lineColor: v('--fg'),
+        primaryBorderColor: v('--accent')
+      }
+    };
+  }
+
+  /* The SVG arrives as a string with a <style> element and style attributes
+     in it, both of which a nonce policy refuses. It is parsed inert, each
+     <style>'s text goes into one stylesheet made here with the nonce, and
+     each style attribute is taken off and written back through the CSSOM
+     once the SVG is in the page, which a policy permits. */
+  function place(block, markup, src, key) {
+    var from = new DOMParser().parseFromString(markup, 'text/html').querySelector('svg');
+    if (!from) return;
+    var css = '';
+    from.querySelectorAll('style').forEach(function (el) {
+      css += el.textContent + '\n';
+      el.remove();
+    });
+    var all = [from].concat([].slice.call(from.querySelectorAll('*')));
+    var inline = all.map(function (el) {
+      var style = el.getAttribute('style');
+      el.removeAttribute('style');
+      return style;
+    });
+    var svg = document.importNode(from, true);
+    var live = [svg].concat([].slice.call(svg.querySelectorAll('*')));
+    var sheet = document.createElementNS(SVG_NS, 'style');
+    if (nonce) sheet.setAttribute('nonce', nonce);
+    sheet.textContent = css;
+    svg.insertBefore(sheet, svg.firstChild);
+    (block.querySelector(':scope > svg') || block.querySelector('pre.code')).replaceWith(svg);
+    live.forEach(function (el, i) {
+      if (inline[i] && /[^\s;]/.test(inline[i])) el.style.cssText = inline[i];
+    });
+    placed.set(block, { src: src, key: key });
+    var err = block.querySelector('.derr');
+    if (err) err.remove();
+  }
+
+  /* the source stays, and what Mermaid said about it goes under it */
+  function fail(block, message) {
+    var pre = block.querySelector('pre.code');
+    if (!pre) return;
+    var err = document.createElement('div');
+    err.className = 'derr';
+    err.textContent = message;
+    pre.after(err);
   }
 
   /* ---------------------------------------------------------- editing */
@@ -1367,6 +1521,7 @@
      site/src/Page.php: nothing is shared between a static page and a PHP
      heredoc without a build step, and there is no build step. */
   function blockText(block) {
+    if (placed.has(block)) return placed.get(block).src;
     var pre = block && block.querySelector('pre.code, pre.cli');
     if (!pre) return '';
     var copy = pre.cloneNode(true);

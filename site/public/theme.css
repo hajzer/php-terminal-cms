@@ -233,6 +233,11 @@ body.reader {
   padding: var(--global-space) calc(var(--global-space) * 1.5); overflow-x: auto;
 }
 
+/* a drawn Diagram is in the frame its source was in, centred at its own width */
+.reader .block:has(> svg) { border: 1px solid var(--border); }
+.reader .block:has(> svg) > .block-bar { border-width: 0 0 1px; }
+.reader .block > svg { display: block; margin: var(--global-space) auto; }
+
 /* ---------- figures ---------- */
 .reader figure { margin: calc(var(--global-space) * 2) 0; }
 .reader figure img { max-width: 100%; display: block; border: 1px solid var(--border); }

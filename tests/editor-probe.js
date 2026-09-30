@@ -1390,10 +1390,166 @@
      writePane.width + ' vs ' + readPane.width + ' :: ' + getComputedStyle(sheetEl).maxWidth);
   run('write');
 
-  var bad = out.filter(function (l) { return l.indexOf('FAIL') === 0; }).length;
-  var pre = document.createElement('pre');
-  pre.style.cssText = 'position:fixed;inset:0;z-index:999;background:#111;color:#ddd;' +
-    'font:12px/1.5 monospace;padding:14px;margin:0;overflow:auto;white-space:pre-wrap';
-  pre.textContent = out.join('\n') + '\n\n' + bad + ' failed of ' + out.length;
-  document.body.appendChild(pre);
+
+  /* --- a Diagram in the read pane -------------------------------------- */
+  /* Drawing is asynchronous — the library arrives by a <script> and draws
+     behind a promise — so from here the run waits on what it is looking for,
+     each step starting when the last one has seen it or given up, and the
+     report is printed at the end of the chain. */
+  function until(cond, then) {
+    var t0 = Date.now();
+    (function poll() {
+      var v = false;
+      try { v = !!cond(); } catch (e) {}
+      if (v || Date.now() - t0 > 15000) then(v); else setTimeout(poll, 25);
+    })();
+  }
+  function library() { return document.querySelectorAll('script[src$="mermaid.min.js"]'); }
+  /* a colour the page names, as getComputedStyle spells a colour */
+  function colourOf(prop) {
+    var probe = document.createElement('i');
+    probe.style.color = getComputedStyle(document.documentElement).getPropertyValue(prop).trim();
+    document.body.appendChild(probe);
+    var c = getComputedStyle(probe).color;
+    probe.remove();
+    return c;
+  }
+  function drawing() { return readEl.querySelector('.block > svg'); }
+  function shape(svg, node) {
+    return svg && svg.querySelector('[id*="flowchart-' + node + '-"] :is(rect, polygon, path)');
+  }
+  function fill(svg, node) { var s = shape(svg, node); return s ? getComputedStyle(s).fill : ''; }
+
+  ok('a Document without a Diagram loads no script, through every redraw above',
+     library().length === 0 && !window.mermaid, library().length + ' ' + typeof window.mermaid);
+
+  var DIAGRAM = 'graph TD\n  A[Start] --> B{Is it?}\n  B -->|Yes| C[Done]\n  style C fill:#f9f';
+  /* every style attribute the read pane is given, and what it was before */
+  var styled = [];
+  var watch = new MutationObserver(function (rs) { styled = styled.concat(rs); });
+  watch.observe(readEl, { subtree: true, attributes: true, attributeFilter: ['style'],
+                          attributeOldValue: true });
+
+  /* what the body holds before anything is drawn: the library draws in a
+     scratch element of its own, which has to be gone again afterwards */
+  function bodyNow() {
+    return [].map.call(document.body.children, function (e) {
+      return e.nodeName.toLowerCase() + (e.id ? '#' + e.id : '');
+    }).join(' ');
+  }
+  var bodyThen = bodyNow();
+
+  run('read');
+  document.getElementById('actClear').click();
+  paste('```mermaid\n' + DIAGRAM + '\n```\n\n```bash\necho plain\n```\n');
+  ok('the first redraw that finds a Diagram adds one <script> for the library',
+     library().length === 1, library().length);
+  ok('and asks for the Editor\'s own copy, from beside the page\'s script',
+     library().length === 1 && /\/editor\/mermaid\.min\.js$/.test(library()[0].src),
+     library()[0] && library()[0].src);
+
+  until(drawing, function () {
+    var svg = drawing(), block = svg && svg.closest('.block');
+    ok('a Diagram in the read pane becomes an <svg>', !!svg, readEl.innerHTML.slice(0, 200));
+    ok('which takes the place of the <pre>',
+       !!block && !block.querySelector('pre') &&
+       block.querySelector('.block-bar .lang').textContent === 'mermaid',
+       block && block.innerHTML.slice(0, 200));
+    ok('and an ordinary code block beside it stays a code block',
+       [].some.call(readEl.querySelectorAll('.block pre.code'),
+                    function (p) { return p.textContent === 'echo plain'; }),
+       readEl.querySelectorAll('pre.code').length);
+
+    var sheets = svg ? svg.querySelectorAll('style') : [];
+    ok('the SVG carries one stylesheet, the one the placement made',
+       sheets.length === 1 && svg.firstElementChild === sheets[0], sheets.length);
+    var bg = colourOf('--bg'), a = fill(svg, 'A');
+    ok('a node\'s fill is the page\'s background, read from its custom properties',
+       a === bg, a + ' vs ' + bg);
+    if (sheets.length === 1) {
+      var parent = sheets[0].parentNode, next = sheets[0].nextSibling;
+      sheets[0].remove();
+      var bare = fill(svg, 'A');
+      parent.insertBefore(sheets[0], next);
+      ok('and it comes from the placed stylesheet — without it the fill is not that',
+         bare !== a && fill(svg, 'A') === a, bare + ' / ' + fill(svg, 'A'));
+    }
+    ok('a style statement in the source still colours its node',
+       fill(svg, 'C') === 'rgb(255, 153, 255)', fill(svg, 'C'));
+
+    /* A style attribute in markup is what a nonce policy refuses. What the
+       placement may leave is one it wrote through the CSSOM once the SVG was
+       in the page — seen here as a change from no attribute at all. */
+    var inSvg = styled.filter(function (r) { return svg && svg.contains(r.target); });
+    var carried = svg ? [svg].concat([].slice.call(svg.querySelectorAll('*')))
+      .filter(function (el) { return el.hasAttribute('style'); }) : [];
+    ok('no element in the placed SVG has a style attribute it arrived with',
+       carried.length > 0 && inSvg.every(function (r) { return r.oldValue === null; }) &&
+       carried.every(function (el) {
+         return inSvg.some(function (r) { return r.target === el; });
+       }),
+       carried.length + ' styled, ' + inSvg.length + ' written, ' +
+       inSvg.filter(function (r) { return r.oldValue !== null; }).length + ' had one before');
+    watch.disconnect();
+
+    key('k');
+    ok('a redraw puts the drawing straight back, with no flash of source',
+       !!drawing() && ![].some.call(readEl.querySelectorAll('pre.code'),
+                     function (p) { return /graph TD/.test(p.textContent); }),
+       readEl.querySelectorAll('pre.code').length + ' pre');
+
+    var copied = null;
+    withClipboard({ writeText: function (s) { copied = s; return { then: function () {} }; } },
+      function () {
+        var b = drawing() && drawing().closest('.block').querySelector('button.copy');
+        if (b) b.click();
+      });
+    ok('the copy button on a Diagram copies its source', copied === DIAGRAM,
+       JSON.stringify(copied));
+
+    var dark = fill(drawing(), 'A');
+    key('T');
+    until(function () { return fill(drawing(), 'A') !== dark; }, function () {
+      ok('T redraws the Diagram, and its fill follows the theme',
+         fill(drawing(), 'A') !== dark && fill(drawing(), 'A') === colourOf('--bg'),
+         dark + ' -> ' + fill(drawing(), 'A') + ' vs ' + colourOf('--bg'));
+      key('T');
+      until(function () { return fill(drawing(), 'A') === dark; }, function (back) {
+        ok('and T again draws it as it was', back, fill(drawing(), 'A') + ' vs ' + dark);
+        broken();
+      });
+    });
+  });
+
+  function broken() {
+    document.getElementById('actClear').click();
+    paste('```mermaid\ngraph TD\n  A --> --> (\n```\n');
+    until(function () { return readEl.querySelector('.derr'); }, function () {
+      var err = readEl.querySelector('.derr'), block = err && err.closest('.block');
+      var pre = block && block.querySelector('pre.code');
+      ok('an invalid Diagram keeps its code block', !!pre && !block.querySelector('svg'),
+         block && block.innerHTML.slice(0, 200));
+      ok('and shows Mermaid\'s message under it',
+         !!pre && pre.nextElementSibling === err && /\S/.test(err.textContent),
+         err && err.textContent);
+      ok('and the page is left as it was — nothing of either drawing stays behind',
+         bodyNow() === bodyThen, bodyThen + '\n  now ' + bodyNow());
+      key('k');
+      ok('a redraw prints the message once, not once more',
+         readEl.querySelectorAll('.derr').length === 1, readEl.querySelectorAll('.derr').length);
+      document.getElementById('actClear').click();
+      run('write');
+      finish();
+    });
+  }
+
+  function finish() {
+    var bad = out.filter(function (l) { return l.indexOf('FAIL') === 0; }).length;
+    var pre = document.createElement('pre');
+    pre.style.cssText = 'position:fixed;inset:0;z-index:999;background:#111;color:#ddd;' +
+      'font:12px/1.5 monospace;padding:14px;margin:0;overflow:auto;white-space:pre-wrap';
+    pre.textContent = out.join('\n') + '\n\n' + bad + ' failed of ' + out.length;
+    document.body.appendChild(pre);
+    document.title = 'probe done';
+  }
 })();

@@ -8,6 +8,9 @@
  *                     -> site/shared/langs.json (the site reads it directly)
  *   shared/theme.css  -> editor/theme.css
  *                     -> site/public/theme.css
+ *   shared/mermaid.min.js -> editor/mermaid.min.js      (each half serves its
+ *                         -> site/public/mermaid.min.js  own copy, from beside
+ *                                                        the page that draws)
  *   docs/media/architecture.svg -> site/public/media/architecture.svg
  *                                  (the example site shows the diagram)
  *   editor/index.html -> tests/editor-probe.html  (the same page, with its
@@ -54,6 +57,8 @@ $targets = [
     '/site/shared/langs.json' => $json,
     '/editor/theme.css'       => file_get_contents($root . '/shared/theme.css'),
     '/site/public/theme.css'  => file_get_contents($root . '/shared/theme.css'),
+    '/editor/mermaid.min.js'  => file_get_contents($root . '/shared/mermaid.min.js'),
+    '/site/public/mermaid.min.js' => file_get_contents($root . '/shared/mermaid.min.js'),
     '/site/public/media/architecture.svg' => file_get_contents($root . '/docs/media/architecture.svg'),
     '/tests/editor-probe.html' => $probe,
 ];
