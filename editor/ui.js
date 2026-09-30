@@ -334,10 +334,12 @@
     read.innerHTML = L.renderDoc(doc.lines);
     drawDiagrams();
     rawPre.textContent = L.toMarkdown(doc.lines);
+    /* the sub is a Dialect from a closed list on a Code or CLI Line, and on an
+       Image Line the caption — the writer's own text, escaped like any other */
     var l = doc.line(), t = L.byId[l.type];
     document.getElementById('right').innerHTML =
       'L' + (doc.cur + 1) + '/' + doc.lines.length + ' · ' + t.name.toLowerCase() +
-      (l.sub ? '[' + l.sub + ']' : '');
+      (l.sub ? '[' + L.esc(l.sub) + ']' : '');
     drawFile();
   }
 

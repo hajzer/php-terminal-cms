@@ -1041,6 +1041,15 @@
   ok('a paste with nothing in it changes nothing and says so',
      rows().join('|') === kept4 && /nothing/.test(msg()), msg() + ' :: ' + rows().join('|'));
 
+  /* what a paste brings in reaches the page as text wherever the page shows
+     it — the status line included, which names an Image Line by its caption */
+  paste('![<b>a caption</b> <img src=x onerror="document.body.dataset.ran=1">](x.png)\n');
+  var right = document.getElementById('right');
+  ok('a pasted caption reaches the status line as text, not as markup',
+     rows().join('|').indexOf('img*:x.png') > -1 && !right.querySelector('*') &&
+       right.textContent.indexOf('<b>a caption</b>') > -1,
+     right.innerHTML);
+
   /* the in-edit paste is untouched: into an open Line it is text, and further
      lines are Lines of that Line's Type — a script's comment stays a comment */
   document.getElementById('actClear').click();

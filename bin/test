@@ -135,6 +135,25 @@ foreach ($checks as $rel => $want) {
        "$rel matches its source", 'run bin/build');
 }
 
+/* ---------------------------------------------------- the vendored library
+ *
+ * The one third-party file. What its first line says about itself is checked
+ * rather than trusted: the bytes below that line are the upstream file the
+ * hash names, and the version it names is the one docs/security.md names —
+ * so an upgrade that forgets either fails here. */
+echo "\nthe vendored library\n";
+$vendored = (string) file_get_contents($root . '/shared/mermaid.min.js');
+$firstNl  = strpos($vendored, "\n");
+$header   = $firstNl === false ? '' : substr($vendored, 0, $firstNl);
+$claimed  = preg_match('~^/\* mermaid (\d+\.\d+\.\d+), MIT \(shared/mermaid\.LICENSE\) .* sha256 ([0-9a-f]{64}) \*/$~', $header, $m) === 1;
+$below    = $firstNl === false ? '' : hash('sha256', substr($vendored, $firstNl + 1));
+ok($claimed, 'shared/mermaid.min.js opens with its version, its licence and the upstream hash', $header);
+ok($claimed && $below === $m[2], 'and the hash it names is the hash of every byte below that line', $below);
+ok($claimed && str_contains((string) file_get_contents($root . '/docs/security.md'), 'Mermaid ' . $m[1]),
+   'and docs/security.md names that version', $claimed ? $m[1] : '');
+ok(str_contains((string) file_get_contents($root . '/shared/mermaid.LICENSE'), 'The MIT License'),
+   'with its licence beside it');
+
 /* ------------------------------------------------------- dialects and prompts
  *
  * The dialect tables exist twice — editor/editor.js and site/src/Line.php — and
@@ -1746,6 +1765,18 @@ rename($instance . '/site/site.php', $instance . '/site/site.php.off');
 refused('no site.php', $instance, ['--output=' . $box . '/new'], $box,
         'site.php is missing — copy site.php.example to site.php and edit it.');
 rename($instance . '/site/site.php.off', $instance . '/site/site.php');
+
+/* A Document whose name is nothing but the extension, or dots before it, has
+   no address a directory can hold. The build refuses it by name — the file,
+   not the page it would have landed on. */
+foreach (['.md', '..md', '...md'] as $dotted) {
+    file_put_contents($instance . "/site/content/guides/$dotted", "# dots\n");
+    [$status, $said] = pageBuild($instance, ['--output=' . $box . '/dots']);
+    ok($status !== 0 && str_contains($said, "content/guides/$dotted has no address a directory can hold")
+       && !file_exists($box . '/dots'),
+       "a file named $dotted fails the build, naming the file", "exit $status: $said");
+    unlink($instance . "/site/content/guides/$dotted");
+}
 
 /* A build that fails part-way — a Category page and a file in public/ at one
    address, found after the assets and the homepage are written — leaves the

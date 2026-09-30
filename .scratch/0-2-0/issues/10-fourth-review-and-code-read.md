@@ -1,6 +1,6 @@
 # 10 — The fourth review, and a code read
 
-Status: ready-for-agent
+Status: ready-for-human
 Spec: ../spec.md
 Blocked by: 01, 02, 03, 04, 05, 06, 07, 08, 09
 
@@ -42,8 +42,58 @@ drift rather than exposure.
 
 ## Acceptance
 
-- [ ] `## 0.2.0 — fourth review` appended, with scope, severity table, what was
+- [x] `## 0.2.0 — fourth review` appended, with scope, severity table, what was
   looked at and left alone, and hardening
-- [ ] every finding fixed or filed, none recorded and left
+- [x] every finding fixed or filed, none recorded and left
 - [ ] the by-hand checks from 05, 06, 07 and 08 re-run on the final tree
-- [ ] `php bin/test` green
+- [x] `php bin/test` green
+
+## Comments
+
+- 2026-09-30, agent: the review is in `docs/security-audit.md` as
+  `## 0.2.0 — fourth review`, with `## Residual risks` and `## Validation`
+  updated in place. One finding, medium, fixed: the Editor's status line
+  wrote an Image Line's caption through `innerHTML` unescaped (since 0.1.7),
+  and a paste of `![<img src=x onerror=…>](x.png)` ran script in the Editor —
+  tried in headless Chromium, and it ran; escaped now, and the probe holds it.
+  Hardening: `bin/test` checks the vendored Mermaid's own first line — the
+  hash of the bytes below it, the version `docs/security.md` names, the
+  licence beside it; the build refuses a file named `.md` by name (it had
+  failed on it with the wrong reason); ADR-0016 records the nonced
+  `<script src>` that 06 left for 10 or 11. Filed: issue 12, the Editor's
+  page naming no policy. Handed to 11: the `docs/security.md` sentences that
+  still say no third-party JavaScript, one request, and under two thousand
+  lines (it is about 2,200), plus what 11 already lists.
+- 2026-09-30, agent: Mermaid 11.17.2 against its advisory feed. Fifteen
+  advisories stand against the package on GitHub's database; three from 2021
+  and 2022 predate 11, and each of the twelve since is fixed at 11.16.1 or
+  earlier (11.10.0, 11.15.0, 11.16.1; the DOMPurify one at 10.9.3 never
+  touched 11). OSV answers nothing for 11.17.2 today. 12.0.0 was published
+  2026-09-10 and is not taken.
+- 2026-09-30, agent: `php bin/test`: 721 passed, 0 failed. The probe in
+  headless Chromium (Playwright's chromium 1243): **248 of 248**, one new for
+  the caption; it went red before the fix.
+- 2026-09-30, agent: the by-hand checks of 05, 06, 07 and 08, re-run as a
+  script in headless Chromium on this tree, 31 of 31:
+  - 05: `editor/index.html` from `file://`, a ```` ```mermaid ```` fence
+    pasted: drawn, one placed stylesheet, and every request a `file://` beside
+    the page, `editor/mermaid.min.js` among them.
+  - 06: `php -S` through `index.php` on `/about/everything-is-a-line`: the
+    header is the policy and there is no `<meta>`; the SVG replaces the
+    `<pre>`, the placed `<style>` carries the nonce, a node's fill is the
+    page's background; Mermaid fetched once from the origin and every request
+    to the origin; the copy button copies the source; the toggle redraws in
+    the new fill and a second toggle puts the old one back; **0 `script-src`
+    violations**, and only `style-src-elem` (3 per drawing) and
+    `style-src-attr` (66 per drawing) from the drawing; with scripts blocked
+    the source is a code block and nothing is fetched.
+  - 08: the same page from a Page Build under `/proj`, served plain: no
+    header, the `<meta>` first in `<head>`, and every line of 06's list the
+    same.
+  - 07: a `/proj` build and a root build served with `php -S`: every local
+    `href`, `src` and `data-mermaid` of every page answers 200 (97 each), and
+    `404.html` is the site's 404 page.
+  The box stays open for the maintainer's own run in a real browser, as
+  every earlier issue's did. The tree is what 08's human check saw plus this
+  issue's changes: `ui.js`'s status line, `bin/page-build`'s `.md` refusal,
+  and the docs.

@@ -57,3 +57,22 @@ The 0.2.0 entry. `VERSION` → `0.2.0` and the `<i class="ver">` in
 - [ ] **Stop here.** `bin/package` is not run and nothing is pushed until the
   maintainer has opened `tests/editor-probe.html` in a browser and reviewed a
   request-time page and a Page Build with a Diagram themselves.
+
+## Comments
+
+- 2026-09-30, agent, from issue 10: two of the items above are done there and
+  need only reading. `docs/security.md` names the Mermaid version — the
+  sentence in *The one script on the page* that begins "The copy is Mermaid
+  11.17.2" — and `bin/test` now fails if that version is not the one
+  `shared/mermaid.min.js`'s first line names, so keep the words "Mermaid
+  11.17.2" in that file whatever else moves. ADR-0016 has been amended with
+  the nonced `<script src>` 06 asked for; ADR-0017 was read against the code
+  and needs nothing. The "nothing with a CVE feed" sentence in *What does not
+  exist* is corrected in 10, since the new paragraph would have contradicted
+  it. Still for here: the README's "not one byte of third-party JavaScript",
+  and in `docs/security.md` "It does make one request on the author's behalf"
+  and "under two thousand lines in all" — the site's PHP is about 2,200 lines
+  now. `docs/deploy.md` says nine
+  static files for the Editor, corrected in 10. The fourth review is written;
+  its `## Validation` counts 721 assertions and a 248-assertion probe, which
+  the version bump does not change.

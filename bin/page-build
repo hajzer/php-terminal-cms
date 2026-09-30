@@ -126,10 +126,12 @@ function addresses(array $config, string $content): array
         $out['/' . $c['slug']] = $c['slug'] . '/index.html';
         foreach (Listing::forCategory($content, $c['slug'], Site::languages($config), new BasePath()) as $entry) {
             foreach ($entry->languages ?: [$entry->url()] as $url) {
-                /* a file named `..md` is a Document the request-time site
-                   cannot be asked for either, since a browser resolves the
-                   dots away — here it would be a directory that is not one */
-                if (in_array(basename($url), ['.', '..'], true)) {
+                /* a file named `.md`, `..md` or `...md` is a Document the
+                   request-time site cannot be asked for either — its address
+                   is the Category's, or one a browser resolves the dots out
+                   of — and here it would be a directory that is not one */
+                $slug = substr($url, (int) strrpos($url, '/') + 1);
+                if (in_array($slug, ['', '.', '..'], true)) {
                     throw new RuntimeException("content$url.md has no address a directory can hold");
                 }
                 $out[$url] = ltrim($url, '/') . '/index.html';

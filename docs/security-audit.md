@@ -227,6 +227,232 @@ refused is a decision about what the preview is. It is issue 12.
   server and no second origin for it to be a vector against. The site's
   Renderer writes none, and `bin/test` fails if one appears.
 
+## 0.2.0 — fourth review
+
+A review of the surface this release adds and of nothing older, in the shape
+of the three before it. The Dialect a Diagram is made of and the library that
+draws one: its advisories at the pinned version, what `securityLevel:
+'strict'` shuts, the placement that keeps the policy narrow, how a Diagram's
+source reaches `render()`, what the Editor's network claim now covers, and the
+one script `bin/test` does not scan. The paste, from the clipboard to a Line's
+text. The Base Path — where it enters the Renderer, and what judges an Href
+before it is prefixed. The Page Build's writes, which are the first time code
+that renders the site writes a file rather than a response: the refusals, the
+swap, the marker, symlinks on both sides of it, a relative output, and what an
+interrupted run leaves. And the policy a built page names itself. The
+request-time path and the Editor's older surface were re-read as context and
+not re-audited. A code read ran beside the review over the same surface, for
+correctness and drift rather than exposure: the three implementations over the
+new Dialect, the raw face against `toMarkdown`, and the documentation against
+the code.
+
+No remote code execution, injection, request-forgery or origin-escape issue
+was found on the public origin. One finding, in the Editor, fixed.
+
+| # | severity | finding |
+| --- | --- | --- |
+| 1 | medium | The Editor's status line names the Line under the cursor, and names an Image Line by its caption — through `innerHTML`, unescaped, since 0.1.7. A caption is the writer's own text, and `![<img src=x onerror=…>](x.png)` in a file opened, or in markdown pasted, put an element on the page that ran; it was tried, and it ran. Every other place the Editor writes a Line's text is escaped, and the read pane escapes this same caption twice; the status line was the one it missed. This release is what made it reachable from the clipboard: a paste puts the cursor on the last Line it added, which is exactly where the status line looks, so the paste's own promise — that no pasted byte reaches the DOM except as a Line's text — is what it broke. The caption is escaped now, and the probe pastes one with markup in it and requires the status line to hold text. Nothing stood between that element and the browser, because the Editor's page names no policy of its own — which is issue 12. |
+
+Also changed, as hardening rather than as findings:
+
+- `bin/test` reads the first line of `shared/mermaid.min.js` and checks it
+  rather than trusting it: the SHA-256 it names is the hash of every byte
+  below it, the version it names is the one `docs/security.md` names, and the
+  licence is beside it. An upgrade that replaces the file without the sentence,
+  or the sentence without the file, fails the suite.
+- The build refuses a Document whose file is named `.md` by name, as it already
+  refused `..md`. Its address is the Category's own, and the build found that
+  out only when the page landed on a file it had itself just written — and
+  said so in the wrong words. `bin/test` builds with both names.
+- ADR-0016 now records what 06 built and the ADR did not say: the library
+  arrives by a `<script src>` the page's own script creates, carrying the
+  nonce it read off its own tag — the one `<script src>` a page may run, and
+  the exception to ADR-0013's rule that there is none.
+
+And from the code read, fixed where found:
+
+- `docs/deploy.md` counted the Editor at six static files. It has been eight
+  since 0.1.9 shipped a logo and an icon beside it, and is nine with Mermaid.
+- `docs/security.md` names the vendored version, which the spec asked for and
+  nothing had written. The sentence is the one `bin/test` now reads.
+
+And from the code read, handed to issue 11, which owns the words: `docs/security.md`
+still says there is no third-party JavaScript and nothing with a CVE feed,
+that the Editor makes one request, and that the site's PHP is under two
+thousand lines — it is about 2,200; `docs/keymap.md` has no `w`, `^B 4`,
+`:raw` or `:read`; the README, `docs/format.md` and `docs/line-types.md` say
+nothing of a Diagram being drawn. 11 already lists most of these; the line
+count is added to it here.
+
+And from the review, deferred: the Editor's page carries no
+Content-Security-Policy of its own, so a bug in its escaping — finding 1 —
+or in the library it now runs is bounded by the browser alone. Not a one-line
+fix: the page has an inline script and an inline `onerror` that a policy would
+have to name or move, and a policy on a `file://` page is a `<meta>` with
+hashes, not a header with a nonce. It is issue 12.
+
+### Looked at and left alone
+
+- **The pinned version.** Mermaid 11.17.2, the last release of 11. Fifteen
+  advisories stand against the package; three, from 2021 and 2022, predate 11
+  altogether, and each of the twelve since is fixed at 11.16.1 or earlier: the
+  two label XSS of August 2025 (CVE-2025-54880, -54881) at
+  11.10.0; the four of May 2026 — `classDef` CSS injection, state-diagram
+  `classDef` HTML injection, a Gantt infinite loop, configuration CSS
+  injection (CVE-2026-41148, -41149, -41150, -41159) — at 11.15.0; the five of
+  August 2026 — an XY-chart loop, a radar DoS, two prototype pollutions, CSS
+  reaching sibling elements (CVE-2026-71436, -71439, -71438, -71437, -50159)
+  — at 11.16.1; and the bundled-DOMPurify pollution at 10.9.3, which 11 never
+  carried. OSV answers nothing for 11.17.2 on the day of this review. 12.0.0
+  exists, published 2026-09-10, and is not taken: it is a major with no patch
+  release behind it yet.
+- **`securityLevel: 'strict'`.** What it shuts: `click` callbacks — a function
+  named in the source is never bound; HTML in labels — each label goes through
+  DOMPurify with `<style>` forbidden, and the whole SVG goes through DOMPurify
+  again before `render()` returns it, with `foreignObject` and the
+  `dominant-baseline` attribute allowed and nothing else added; and a `click`
+  link's URL is sanitised. `securityLevel` is one of six keys in the library's
+  own `secure` list — with `secure` itself, `startOnLoad`, `maxTextSize`,
+  `maxEdges` and `suppressErrorRendering` — that an `%%{init}%%`
+  directive in a Diagram's source cannot set, so a source cannot loosen the
+  level it is drawn under. What strict does not shut: `click X "https://…"`
+  still makes an `<a>` in the picture, judged by Mermaid's URL sanitiser and
+  never by the Href allowlist — `javascript:` and `data:` refused; `http`,
+  `https`, `mailto` and a protocol-relative `//host` allowed. A Diagram is the
+  author's, as a Line's Href is, and GitHub draws the same link from the same
+  file; it is under residual risks as the one link on a page the allowlist
+  does not judge.
+- **What the library reaches for.** Read once by hand, since the scan does
+  not read it. No `fetch(` call of its own — the twenty-eight are a KaTeX
+  tokenizer's method — and no `XMLHttpRequest`, `WebSocket`, `EventSource`,
+  `sendBeacon`, `importScripts`, `Worker` or dynamic `import(`. `new Image`
+  twice, and both load what a source names: a flowchart node drawn in the
+  `img` shape is measured by loading its URL, and the graph library behind
+  mindmaps caches a node's background image the same way — requests the
+  Diagram chose, which `img-src 'self'` refuses on the public page and nothing
+  refuses in the Editor. `iframe` only for the `sandbox` level, which is not
+  used. Icon packs load through a loader an application registers, and this
+  one registers none. `window.location` is read for absolute marker URLs,
+  which are off by default. `@import` is a token in its CSS parser, and
+  `Function("return this")` is lodash finding the global object. On the public
+  page all of that is bounded by the policy in any case; in the Editor it is
+  bounded by this reading, until issue 12.
+- **The placement.** Read side by side in `editor/ui.js` and
+  `Page::DRAWING`. `render()` returns a string. `DOMParser` parses it as
+  `text/html` in an inert document, where a `<script>` is marked as already
+  started and never runs, even once imported. Every `<style>` is lifted into
+  one `<style>` made with the page's nonce; every `style` attribute is taken
+  off before `importNode` and written back through `cssText` once the SVG is
+  in the page — the CSSOM, which the policy permits, and not markup, which it
+  refuses. The library itself arrives by a `<script>` the page's script
+  creates, with its `nonce` set from `document.currentScript.nonce` — so the
+  two things the drawing adds to the page, that script and the one `<style>`,
+  both carry the nonce, and `bin/test` requires the page's script never to
+  hold the nonce in its text. The probe watches the read pane with a `MutationObserver` and
+  requires every `style` attribute on a drawn SVG to have been written from
+  none; the by-hand checks require a node's fill to come from the placed
+  stylesheet. The two copies differ where 06 said they would — the page keeps
+  no cache and prints no error — and `bin/test` does not compare them; a
+  drift between them fails the probe or the by-hand check, not the suite.
+- **The source as text.** `pre.textContent` on both sides: the `<pre>` the
+  Renderer or `renderDoc` wrote from escaped, highlighted spans, read back as
+  the text it was, and `render(id, src)` takes a string. Only Mermaid's
+  *output* is ever parsed as markup, and only in the inert document above.
+  `hasDiagram()` matches the Renderer's own tags and nothing a writer's text
+  can produce, the drawing code finds Diagrams the same way, and `bin/test`
+  renders a page that spells the tags out and gets no drawing.
+- **The CSS a Diagram brings.** `classDef` and `style` statements in the
+  source become declarations in Mermaid's stylesheet and `style` attributes,
+  and both are carried into the nonced `<style>` and the CSSOM by design — on
+  a page with a Diagram, the source's CSS runs under the nonce. What CSS can do
+  there is bounded by the policy — `img-src 'self'` for a `url()`,
+  `default-src 'none'` for a font, `style-src` for an `@import` — and by the
+  author already owning the page. In the Editor there is no policy, and a
+  `url()` in a pasted Diagram's `classDef` is a request from the writer's
+  browser, as an Image Line's src is; the residual risk below says so.
+- **The Editor's network claim.** `ui.js`'s header, CONTEXT.md's **Editor**
+  entry and the scan's comment in `bin/test` say the same thing: the Document
+  goes nowhere; the page fetches an image a Line names and, once there is a
+  Diagram, its own copy of Mermaid from beside `ui.js` — `document.currentScript.src`,
+  so the probe loads the Editor's copy without a rewrite. Checked in headless
+  Chromium: with a Diagram pasted, every request is a `file://` beside the
+  page, and one of them is `editor/mermaid.min.js`.
+- **The paste.** The document-level `paste` listener acts only when nothing
+  is being typed — no open Line, the command line hidden, the Name not open —
+  no overlay is on, and the focus is not on the Name; the probe tests each
+  guard in turn. It reads `text/plain` and nothing else, through
+  `parse()`, which is the reader *Open .md* uses, and every byte that arrives
+  becomes a Line's `text`, an Image Line's caption, or a Meta Line, which reach
+  the DOM through `esc()`, the highlighter, `renderDoc()` and `textContent`.
+  Finding 1 was the one place that was not so. `:paste` reads the Clipboard
+  API and asks the same question again when the clipboard answers, so a Line
+  opened in the meantime is left alone. A pasted `title:` moves the Name only
+  through `slug()`, and the download's name with it.
+- **The Base Path.** A `BasePath` value, validated in its constructor — one
+  or more segments, none `.` or `..`, none holding a backslash, whitespace, a
+  control character, `?` or `#` — given a value in exactly two places:
+  `index.php` with `''` and no slash, and `bin/page-build` from
+  `--base-url`'s path; every other construction is the default, an empty
+  path, which is the request-time site's.
+  Nothing reads `$_SERVER` for it, nothing reads Site Config for it, and
+  `bin/test` requires a `site.php` naming `base`, `base_path` or `base_url` to
+  change nothing. In the Renderer it enters `inline()` and `render()` as a
+  parameter; `safeHref()` judges the Href as written, and `local()` prefixes
+  only afterwards, and only an Href that starts with `/` and not `//` — which
+  the allowlist has already refused. Every write of a local address goes
+  through `e()`, so a Base Path with a quote in it (`--base-url='https://h/a"b'`
+  was tried) is escaped where it lands, and it never reaches the `<meta>`
+  policy, which carries directives and a base64 nonce and nothing else.
+- **The build's refusals.** By the suite and again by hand: an output that
+  is or holds the repository root, `site/` or `content/`, or is inside
+  `site/` — inside the repository root is allowed, which is where `dist/`
+  is; a symlink
+  at `--output` pointing at `content/`, resolved through `realpath` and refused
+  as `content/`; a non-empty directory with no marker; a file; a marked output
+  that holds `site/` or `content/`; a misspelled or repeated flag; a Base Path
+  that is not one. Each leaves the filesystem as it found it, the directory
+  beside the output included. A relative `--output`, from another directory
+  and with `./` and `..` in it, builds where it says and replaces its own
+  earlier build.
+- **Symlinks.** Under the output, `remove()` unlinks a link and never
+  descends: a marked output holding a link to a directory with a file in it
+  was replaced, and the file survived. Under `site/public/`, the copy follows
+  a link as a web server serves one — a link to a directory outside `public/`
+  publishes it, which 07 recorded and which stands; a link that leads back
+  into a directory being copied is refused as a cycle; a dangling link fails
+  the build by name. Under `content/`, the build reads what the request-time
+  site reads, links included, and both are the author's own directory.
+- **The swap.** The marker is written last, into the fresh directory. The
+  old output is moved aside, the fresh one renamed in, and the old one removed
+  only then. A failure of the second rename puts the old one back; a failure
+  of both exits from inside the `try`, naming where the old build is, and
+  leaves the fresh directory beside it. A process killed between the two
+  renames leaves both under their hidden names and nothing at the output; the
+  next run builds afresh, and the two stay until removed by hand. Availability
+  on the author's own machine, recorded under residual risks.
+- **The marker.** A file whose presence lets a directory be replaced, and
+  whose text says so. It is not a secret and need not be: what it guards
+  against is a mistyped `--output`, not an adversary with write access to the
+  author's disk, who needs no build to do harm with it.
+- **The built policy.** The `<meta>` is the first element of `<head>`, so
+  everything the policy governs comes after it; it is written unescaped
+  because nothing in it comes from a writer, and `Page::html()` refuses a
+  nonce that is not base64. It is the header's policy directive for directive
+  but `frame-ancestors`, which a `<meta>` cannot carry — nor can it carry
+  `X-Content-Type-Options`, `Referrer-Policy` or `Permissions-Policy`, which
+  are a host's to send. Of those, the one that shaped a request —
+  `strict-origin-when-cross-origin` — is what every current browser does with
+  no header at all. One nonce per build, public in every page: it is fresh per
+  build, so a `nonce="…"` written into content before the build cannot name
+  it, which is the whole of what a nonce is for. A built page can be framed,
+  and has nothing on it that acts on a reader's behalf.
+- **The three implementations over the Dialect.** `mermaid` is in
+  `shared/langs.json` and in `TYPES`' Code Dialects, the tokenizers agree on
+  it — `bin/test` compares them on samples — a Diagram in the sample content
+  round-trips, and both renderers emit the same `<pre>` for it. The raw face
+  is `toMarkdown(doc.lines)`, the export's own function and not a second one,
+  and the probe holds it to an edit.
+
 ## Residual risks
 
 - This is not impenetrable and does not claim to be. It is a small surface.
@@ -243,10 +469,28 @@ refused is a decision about what the preview is. It is issue 12.
 - Adding a server-side editor or a save endpoint puts authentication, CSRF, path
   validation and authorization back on the table, and none of this review would
   carry over.
-- The editor's preview turns whatever an image line names into an `<img src>`
-  for the browser to fetch. It is the writer's own browser and the writer's own
-  line, and the request carries no referrer — but it is a request, and a file
-  opened from somebody else is a file whose image lines somebody else wrote.
+- The Editor's preview turns whatever an Image Line names into an `<img src>`
+  for the browser to fetch, and hands a Diagram's source to Mermaid to draw —
+  and a Diagram can name a picture of its own, in a node's `img` shape or a
+  `url()` in a `classDef`, which the browser fetches as it fetches the Image
+  Line's src. It is the writer's own browser and the writer's own Lines, and
+  the request carries no referrer — but it is a request, and a library is a
+  library. A file opened from somebody else, or markdown pasted from them, is
+  one whose Image Lines and Diagrams somebody else wrote, and the Editor's page
+  names no policy of its own to stand between those and the browser. The
+  Document is the only thing in the tab.
+- A Diagram may carry a `click` link, which Mermaid judges and the Href
+  allowlist never sees: `javascript:` and `data:` refused, and a
+  protocol-relative `//host` allowed that a Line's Href would not be.
+- Mermaid is the one file on the origin with a CVE feed. Upgrading it is part
+  of a release, and `bin/test` fails an upgrade that forgets to say so.
+- A built page can be framed: a `<meta>` cannot say `frame-ancestors`. It
+  carries none of the three other headers the entry point sends either. A host
+  that can send headers should.
+- A Page Build killed between moving the old output aside and the new one in
+  leaves both under hidden names beside the output, and nothing at the output,
+  until the next build or a hand removes them. `site/public/` is copied
+  following symlinks, as a web server serves them.
 - The editor holds the document in the browser tab and nowhere else. Anything
   that navigates the tab away loses it: a link clicked in the preview, or a URL
   dropped on the page, does today. Export before either.
@@ -255,8 +499,13 @@ refused is a decision about what the preview is. It is issue 12.
 
 `php bin/build` and `php bin/test` clean at every release: 212 assertions at
 0.1.3, 248 at 0.1.4 and, 0.1.5 having changed no behaviour, still 248 there;
-256 at 0.1.6, 306 at 0.1.7, 477 at 0.1.8 and 548 at 0.1.9.
+256 at 0.1.6, 306 at 0.1.7, 477 at 0.1.8, 548 at 0.1.9 and 721 at 0.2.0.
 
 `tests/editor-probe.html` drives the editor's DOM half through a real browser
-and is the one check the suite cannot run. At 0.1.9 it is 172 assertions, run
-green in Firefox for the third review.
+and is the one check the suite cannot run. At 0.1.9 it was 172 assertions, run
+green in Firefox for the third review. At 0.2.0 it is 248, run green in headless
+Chromium for the fourth review, beside a scripted re-run of the by-hand checks
+of issues 05 to 08 — the Editor from `file://`, the site with its header, and
+a Page Build under `/proj` and at the root with the `<meta>` — 31 checks, all
+green; the maintainer's own run in a real browser is what the release waits
+for.

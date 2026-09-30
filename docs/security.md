@@ -14,9 +14,10 @@ code, and none of it is somebody else's.
 
 No database. No login, session, cookie or token. No form, no upload, no POST
 route — the site handles `GET` and has no code path that writes anything. No
-third-party library on the public origin: no Parsedown, no framework, no
-composer dependency, nothing with a CVE feed to track. No third-party
-JavaScript, no CDN request, no external font. The one inline script on a
+third-party library in the PHP: no Parsedown, no framework, no composer
+dependency. One third-party file on the origin with a CVE feed to track —
+Mermaid, vendored and pinned, which only a page with a Diagram loads (see
+*The one script on the page*). No CDN request, no external font. The one inline script on a
 published page adds a copy button, a theme toggle and a text-size control; it
 reads and writes two `localStorage` keys and touches nothing else, and it runs
 under a per-request nonce rather than `unsafe-inline`.
@@ -149,6 +150,15 @@ Drawing leaves style-src reports in the browser's console: Mermaid measures its
 picture in a scratch element with inline styles, and parsing its output does the
 same in an inert document, and the policy blocks both. Each report is the
 boundary holding. The picture is right because placement carries the styles.
+
+The copy is Mermaid 11.17.2, the npm package's own `dist/mermaid.min.js`
+with one line added at the top that names the version, the licence beside it in
+`shared/mermaid.LICENSE`, and the SHA-256 of everything below that line.
+`bin/test` checks that the hash is the file's, and that the version named here
+is the one the file names — so upgrading the library is replacing one file,
+running `php bin/build`, and correcting this sentence. It is the one file on
+the origin with a CVE feed to watch; the reviews in
+[security-audit.md](security-audit.md) record what was open at each release.
 
 Every other page gets the script byte for byte as it was: nothing new is sent,
 nothing is fetched, and `bin/test` holds the shell of a page without a Diagram to

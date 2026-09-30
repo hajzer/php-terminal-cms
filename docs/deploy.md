@@ -91,7 +91,7 @@ $ rsync -az images/ deploy@example.com:/var/www/example.com/public/media/
 
 ## The editor
 
-`editor/` is six static files. Three ways to run it, in increasing order of
+`editor/` is nine static files. Three ways to run it, in increasing order of
 exposure:
 
 1. **From the filesystem.** Open `editor/index.html`. No server, nothing

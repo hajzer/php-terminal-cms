@@ -24,6 +24,11 @@ Editor's read pane and on the public page. It runs with `securityLevel:
 'strict'`. It replaces the code block in place; with the script blocked or
 failing, the reader has the source as an ordinary code block.
 
+On the public page the library arrives by a `<script src>` that the page's own
+inline script creates, carrying the nonce it reads off its own tag. That is
+the one `<script src>` a page may run — the exception to ADR-0013's rule that
+there is none — and `script-src` names nothing new for it.
+
 This is the one exception to "no third-party JavaScript", and it is scoped to
 pages that draw a diagram.
 
