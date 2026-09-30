@@ -1075,6 +1075,14 @@
      !ev.defaultPrevented && rows().join('|') === kept5, rows().join('|'));
   key('Escape', document.getElementById('docname'));
 
+  /* the Name takes the focus from Tab without being open, and is still the
+     Name: a paste there is not the Document's */
+  document.getElementById('docname').focus();
+  ev = paste('## at the focused name', document.getElementById('docname'));
+  ok('a paste with the focus on the Name, not open, is left alone',
+     !ev.defaultPrevented && rows().join('|') === kept5, rows().join('|'));
+  document.getElementById('docname').blur();
+
   run('read');
   paste('- read face');
   ok('a paste with the read face showing adds at the cursor and keeps the face',
@@ -1083,6 +1091,7 @@
   run('write');
 
   /* --- :paste and the Legend's paste: the Clipboard API ----------------- */
+  var kept6;
   /* navigator.clipboard stood in for, answering at once, so the probe stays
      one synchronous run: a thenable is all the call site asks of it */
   function withClipboard(fake, fn) {
@@ -1122,7 +1131,24 @@
   ok(':paste does the same', rows().join('|').indexOf('quote*:from the command') > -1,
      rows().join('|'));
 
-  var kept6 = rows().join('|');
+  /* the clipboard answers late — after a permission prompt — and a Line the
+     writer opened in the meantime is theirs, not the paste's */
+  var answer = null;
+  kept6 = rows().join('|');
+  withClipboard({ readText: function () {
+    return { then: function (yes) { answer = yes; } };
+  } }, function () { run('paste'); });
+  key('i');
+  type('typed while waiting');
+  if (answer) answer('## arrived late');
+  ok('a clipboard that answers after a Line was opened pastes nothing and says so',
+     !!box() && rows().join('|').indexOf('arrived late') < 0 && /nothing pasted/.test(msg()),
+     msg() + ' :: ' + rows().join('|'));
+  key('Escape', box());
+  ok('and the open Line kept what was typed into it',
+     rows().join('|').indexOf('typed while waiting') > -1, rows().join('|'));
+
+  kept6 = rows().join('|');
   withClipboard(refusing, function () { run('paste'); });
   ok('a refused clipboard changes nothing and points at ^V',
      rows().join('|') === kept6 && /\^V/.test(msg()), msg() + ' :: ' + rows().join('|'));

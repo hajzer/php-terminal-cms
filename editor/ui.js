@@ -319,7 +319,7 @@
      a writer sets. The directory it lands in comes from the category, and the
      export overlay is where the two are shown together as one path. */
   function drawFile() {
-    if (!nameEl.getAttribute('contenteditable')) nameEl.textContent = doc.fileName();
+    if (!naming()) nameEl.textContent = doc.fileName();
     undoBtn.disabled = !hist.canUndo();
     redoBtn.disabled = !hist.canRedo();
   }
@@ -553,8 +553,9 @@
      The name is typed into the tab bar itself: it is the one piece of the
      document that is not a Line, so it has nowhere else to live. */
 
+  function naming() { return !!nameEl.getAttribute('contenteditable'); }
   function startName() {
-    if (nameEl.getAttribute('contenteditable')) return;
+    if (naming()) return;
     commitEdit();
     nameEl.textContent = doc.fileName();
     editable(nameEl);
@@ -563,7 +564,7 @@
     say('type a file name — Enter keeps it, Esc cancels, empty follows the title');
   }
   function endName(keep) {
-    if (!nameEl.getAttribute('contenteditable')) return;
+    if (!naming()) return;
     var typed = nameEl.textContent;
     nameEl.removeAttribute('contenteditable');
     if (keep) say('name ' + doc.setName(typed));
@@ -645,17 +646,27 @@
   /* The Clipboard API is not there in an insecure context and may be refused
      where it is; the paste event ^V raises needs neither. */
   var NO_CLIPBOARD = 'the clipboard cannot be read from here — ^V pastes instead';
+  /* The clipboard answers when it answers — after a permission prompt, as
+     like as not — so whether the Document still takes a paste is asked again
+     when it does, and a Line opened in the meantime is left as it is. */
   function pasteClipboard() {
     var c = navigator.clipboard;
     if (!c || !c.readText) return say(NO_CLIPBOARD);
-    c.readText().then(pasteMarkdown, function () { say(NO_CLIPBOARD); });
+    c.readText().then(function (text) {
+      if (!takesPaste()) return say('nothing pasted — something was open when the clipboard answered');
+      pasteMarkdown(text);
+    }, function () { say(NO_CLIPBOARD); });
   }
   /* A paste with nothing open is markdown for the Document. Anywhere text is
      being typed — an open Line, the command line, an overlay's fields, the
-     Name — it belongs to what is being typed into, and is left alone. */
+     Name — it belongs to what is being typed into, and is left alone. The
+     Name can hold the focus without being open, and a paste there is its own
+     too. */
+  function takesPaste() {
+    return !typing() && !document.querySelector('.ov.on') && document.activeElement !== nameEl;
+  }
   document.addEventListener('paste', function (e) {
-    if (e.defaultPrevented || editing || !cmd.classList.contains('hidden') ||
-        document.querySelector('.ov.on') || nameEl.getAttribute('contenteditable')) return;
+    if (e.defaultPrevented || !takesPaste()) return;
     var cd = e.clipboardData;
     if (!cd) return;
     e.preventDefault();
@@ -1257,6 +1268,12 @@
     complete(b.textContent);
   });
 
+  /* Text is being typed somewhere — the open Line, the command line, the
+     Name — and keys and pastes are that text's, not the Document's. */
+  function typing() {
+    return !!editing || !cmd.classList.contains('hidden') || naming();
+  }
+
   /* ------------------------------------------------------------ mouse */
 
   /* Commit before the click, not on the blur it causes: blur would rebuild the
@@ -1418,8 +1435,7 @@
 
   /* ----------------------------------------------------------- keymap */
   document.addEventListener('keydown', function (e) {
-    if (editing) return;
-    if (!cmd.classList.contains('hidden')) return;
+    if (typing()) return;
     var k = e.key;
     if (addr) { addrKey(e); return; }
 
