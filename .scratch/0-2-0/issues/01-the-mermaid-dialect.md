@@ -1,6 +1,6 @@
 # 01 — The `mermaid` Dialect
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 
 ## What
@@ -32,10 +32,10 @@ Drawing. A Type, a key or an overlay of its own. Any change to `parse()`,
 
 ## Acceptance
 
-- [ ] `mermaid` is in `shared/langs.json` and in `TYPES`' Code Dialects
-- [ ] `node tests/js-model.js`: `Tab` on a Code Line reaches `mermaid`
-- [ ] `tests/js-tables.js`: the JS and PHP tables agree for `mermaid`
-- [ ] a ```` ```mermaid ```` sample round-trips byte for byte, and the JS and
+- [x] `mermaid` is in `shared/langs.json` and in `TYPES`' Code Dialects
+- [x] `node tests/js-model.js`: `Tab` on a Code Line reaches `mermaid`
+- [x] `tests/js-tables.js`: the JS and PHP tables agree for `mermaid`
+- [x] a ```` ```mermaid ```` sample round-trips byte for byte, and the JS and
   PHP renderers emit the same code block for it
-- [ ] `editor/langs.js` and `site/shared/langs.json` regenerated, not edited
-- [ ] `php bin/test` green
+- [x] `editor/langs.js` and `site/shared/langs.json` regenerated, not edited
+- [x] `php bin/test` green
