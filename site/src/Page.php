@@ -27,7 +27,7 @@ final class Page
      * @param bool $ownPolicy whether the page names its policy itself, in a
      *        <meta> ahead of everything the policy governs, for a host that
      *        sends no header of the site's. A page served with the header
-     *        does not; one that does has to have a nonce to name.
+     *        does not; one that does has to have a base64 nonce to name.
      */
     public static function html(
         array $site,
@@ -36,8 +36,11 @@ final class Page
         BasePath $at = new BasePath(),
         bool $ownPolicy = false,
     ): string {
-        if ($ownPolicy && $nonce === '') {
-            throw new \InvalidArgumentException('a page that names its policy needs a nonce, or its own script is refused');
+        /* the policy is written into the page as it reads, unescaped: its
+           directives are Policy's own, and a base64 nonce holds no character
+           an attribute would have to escape */
+        if ($ownPolicy && preg_match('~^[A-Za-z0-9+/]+={0,2}$~', $nonce) !== 1) {
+            throw new \InvalidArgumentException('a page that names its policy needs a base64 nonce');
         }
 
         /* every key here is optional: a site.php that names none of them
@@ -85,7 +88,7 @@ final class Page
         return '<!doctype html>
 <html lang="' . e($lang) . '">
 <head>' .
-($ownPolicy ? "\n" . '<meta http-equiv="Content-Security-Policy" content="' . e(Policy::forMeta($nonce)) . '">' : '') . '
+($ownPolicy ? "\n" . '<meta http-equiv="Content-Security-Policy" content="' . Policy::forMeta($nonce) . '">' : '') . '
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>' . e($title) . '</title>' .

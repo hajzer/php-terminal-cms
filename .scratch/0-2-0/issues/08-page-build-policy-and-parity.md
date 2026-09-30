@@ -139,3 +139,19 @@ Then:
     `php bin/page-build --output=dist/serve/proj --base-url=http://localhost:8080/proj/`,
     serve with `php -S localhost:8080 -t dist/serve`, and open
     `/proj/about/everything-is-a-line/` with the console open.
+- 2026-09-30, human: the by-hand check. The `<meta>` read
+  `content="default-src &#039;none&#039;; …"` in the page source. It was
+  correct but hard to read. The console showed the expected `style-src-attr`
+  reports from the drawing. Asked for a readable source.
+- 2026-09-30, agent: the `<meta>` is now written unescaped. It reads
+  `content="default-src 'none'; …"`.
+  - Nothing in it comes from a writer. The directives are `Policy`'s
+    constants, and `Page::html()` with `ownPolicy` now refuses any nonce that
+    is not base64 (empty included).
+  - `bin/test` checks three things:
+    - the exact unescaped `<meta>`;
+    - that the directives hold none of `"&<>`;
+    - that six bad nonces are refused.
+  - Headless Chromium on a fresh `/proj` build gave the same result as
+    before: drawn, redrawn on toggle, no `script-src` report.
+

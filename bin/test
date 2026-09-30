@@ -955,22 +955,30 @@ ok(str_contains((string) file_get_contents($root . '/site/public/index.php'), 'P
    && str_contains((string) file_get_contents($root . '/bin/page-build'), 'Policy::nonce()'),
    'and the header and the build both read it');
 
-/* a page that names its own policy names it before anything it governs */
+/* a page that names its own policy names it before anything it governs, as
+   it reads: the directives and a base64 nonce hold nothing an attribute would
+   have to escape, so the source says 'self' where a browser reads it */
 $metaed = TerminalCms\Page::html($site, $home, 'r4nd0m+va1ue/=', new BasePath(), ownPolicy: true);
-ok(str_contains($metaed, "<head>\n" . '<meta http-equiv="Content-Security-Policy" content="'
-       . e(TerminalCms\Policy::forMeta('r4nd0m+va1ue/=')) . '">' . "\n<meta charset=\"utf-8\">"),
-   'a page that names its policy has the <meta> as the first element of <head>', $metaed);
-ok(str_replace('<meta http-equiv="Content-Security-Policy" content="'
-       . e(TerminalCms\Policy::forMeta('r4nd0m+va1ue/=')) . '">' . "\n", '', $metaed) === $nonced,
-   'and is otherwise the page that does not');
+$meta   = "<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; img-src 'self'; "
+        . "style-src 'self' 'nonce-r4nd0m+va1ue/='; script-src 'nonce-r4nd0m+va1ue/='; base-uri 'none'; "
+        . "form-action 'none'\">";
+ok(str_contains($metaed, "<head>\n$meta\n<meta charset=\"utf-8\">"),
+   'a page that names its policy has the <meta> as the first element of <head>, unescaped', $metaed);
+ok(str_replace($meta . "\n", '', $metaed) === $nonced, 'and is otherwise the page that does not');
 ok(!str_contains($nonced, 'http-equiv'), 'a page served with the header has no <meta> policy');
-$threw = false;
-try {
-    TerminalCms\Page::html($site, $home, '', new BasePath(), ownPolicy: true);
-} catch (InvalidArgumentException) {
-    $threw = true;
+ok(strpbrk(TerminalCms\Policy::forMeta(''), '"&<>') === false,
+   'the directives hold no character an attribute would have to escape', TerminalCms\Policy::forMeta(''));
+$refused = [];
+foreach (['', 'a"b', 'a b', '<x>', 'a&amp;b', '=abc'] as $bad) {
+    try {
+        TerminalCms\Page::html($site, $home, $bad, new BasePath(), ownPolicy: true);
+    } catch (InvalidArgumentException) {
+        $refused[] = $bad;
+    }
 }
-ok($threw, 'and a page cannot name a policy with no nonce, which would refuse its own script');
+ok(count($refused) === 6,
+   'and a page names a policy only with a base64 nonce: none would refuse its own script, and nothing else is written unescaped',
+   implode("\n", $refused));
 
 /* A page without a Diagram carries nothing of the drawing, to the byte. The
    hash is of a fixed shell, so it moves only when the shell does — and a
