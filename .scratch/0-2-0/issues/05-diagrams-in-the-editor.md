@@ -1,6 +1,6 @@
 # 05 — Diagrams in the Editor: vendoring, drawing, placement
 
-Status: ready-for-human
+Status: done
 Spec: ../spec.md
 Blocked by: 01
 
@@ -60,7 +60,7 @@ The public page, which is 06. Drawing in the write pane. Any change to
 - [x] an invalid Diagram keeps its `<pre>` and shows an error under it
 - [x] `T` redraws, and the drawn fill changes with the theme
 - [x] the copy button on a Diagram copies the source
-- [ ] the Editor opened from `file://` draws a Diagram — tried by hand, noted
+- [x] the Editor opened from `file://` draws a Diagram — tried by hand, noted
   in the comments
 - [x] `php bin/test` green
 - [x] the probe green in a browser, with its count noted in the comments
@@ -152,3 +152,6 @@ The public page, which is 06. Drawing in the write pane. Any change to
     reaches `site/public/theme.css`, where 06 will use it as it is.
   - `docs/security.md` still says "no third-party JavaScript" and that the
     image is the one request. Both are for 06 and 11 to correct.
+- 2026-09-30, human: the by-hand check. `editor/index.html` opened from
+  `file://` in Firefox on Linux and in Chrome on Windows, a Markdown file with
+  a Mermaid Diagram loaded into it, and the Diagram was drawn in both.
