@@ -77,8 +77,9 @@
   (function initTheme() {
     document.documentElement.setAttribute('data-theme', stored('tcms-theme', 'dark'));
   })();
+  function theme() { return document.documentElement.getAttribute('data-theme'); }
   function toggleTheme() {
-    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'normal' : 'dark';
+    var next = theme() === 'dark' ? 'normal' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
     store('tcms-theme', next);
     drawDiagrams();
@@ -374,7 +375,7 @@
   var nonce = (own && own.nonce) || '';
   var LIBRARY = own ? own.src.replace(/[^\/]*$/, 'mermaid.min.js') : 'mermaid.min.js';
   var SVG_NS = 'http://www.w3.org/2000/svg';
-  var library = '';                  /* '', 'loading', 'ready' or 'failed' */
+  var libraryIs = '';                /* '', 'loading', 'ready' or 'failed' */
   var drawings = new Map();          /* theme + source -> { svg } or { error } */
   var DRAWINGS_KEPT = 32;
   var queue = Promise.resolve(), drawn = 0;
@@ -389,12 +390,12 @@
         (placed.has(b) || !!b.querySelector('pre.code'));
     });
     if (!blocks.length) return;
-    if (library !== 'ready') { loadLibrary(); return; }
-    var theme = document.documentElement.getAttribute('data-theme');
+    if (libraryIs !== 'ready') { loadLibrary(); return; }
+    var drawnIn = theme();
     blocks.forEach(function (block) {
       var was = placed.get(block);
       var src = was ? was.src : block.querySelector('pre.code').textContent;
-      var key = theme + '\n' + src;
+      var key = drawnIn + '\n' + src;
       if (was && was.key === key) return;
       var d = drawings.get(key);
       if (d) { drawings.delete(key); drawings.set(key, d); }
@@ -405,19 +406,21 @@
   }
 
   function loadLibrary() {
-    if (library) return;
-    library = 'loading';
+    if (libraryIs) return;
+    libraryIs = 'loading';
     var s = document.createElement('script');
     s.src = LIBRARY;
     if (nonce) s.nonce = nonce;
+    function failed() {
+      libraryIs = 'failed';
+      say('mermaid.min.js did not load — a Diagram stays as its source');
+    }
     s.onload = function () {
-      library = window.mermaid ? 'ready' : 'failed';
+      if (!window.mermaid) return failed();
+      libraryIs = 'ready';
       drawDiagrams();
     };
-    s.onerror = function () {
-      library = 'failed';
-      say('mermaid.min.js did not load — a Diagram stays as its source');
-    };
+    s.onerror = failed;
     document.head.appendChild(s);
   }
 
@@ -455,7 +458,7 @@
       theme: 'base',
       fontFamily: font,
       themeVariables: {
-        darkMode: document.documentElement.getAttribute('data-theme') === 'dark',
+        darkMode: theme() === 'dark',
         fontFamily: font,
         background: v('--bg'),
         primaryColor: v('--bg'),
@@ -481,14 +484,14 @@
       css += el.textContent + '\n';
       el.remove();
     });
-    var all = [from].concat([].slice.call(from.querySelectorAll('*')));
+    var all = andBelow(from);
     var inline = all.map(function (el) {
       var style = el.getAttribute('style');
       el.removeAttribute('style');
       return style;
     });
     var svg = document.importNode(from, true);
-    var live = [svg].concat([].slice.call(svg.querySelectorAll('*')));
+    var live = andBelow(svg);
     var sheet = document.createElementNS(SVG_NS, 'style');
     if (nonce) sheet.setAttribute('nonce', nonce);
     sheet.textContent = css;
@@ -501,6 +504,10 @@
     var err = block.querySelector('.derr');
     if (err) err.remove();
   }
+
+  /* an element and every element inside it, in document order — the same
+     order for a tree and for its imported copy */
+  function andBelow(el) { return [el].concat([].slice.call(el.querySelectorAll('*'))); }
 
   /* the source stays, and what Mermaid said about it goes under it */
   function fail(block, message) {

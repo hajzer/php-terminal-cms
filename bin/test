@@ -1198,9 +1198,10 @@ ok($found === [], 'the site reads, and does nothing else', implode("\n", $found)
 
 /* The editor's requests are an <img src> the browser issues from markup, which
    a source scan cannot see, and — once the Document holds a Diagram — the
-   <script src> ui.js adds for its own copy of Mermaid; this says the other
-   half, that the page opens no connection itself. docs/security.md says what
-   the markup causes.
+   <script> ui.js adds for its own copy of Mermaid, which the browser fetches
+   because the element names it; this says the other half, that the page
+   opens no connection by any other means. docs/security.md says what the
+   markup causes.
 
    The terms are the calls that open a connection and the constructors that
    do — an Image, a worker, a peer connection — and the one call that opens a
@@ -1214,8 +1215,8 @@ ok($found === [], 'the site reads, and does nothing else', implode("\n", $found)
    not read: it is third-party code, vendored unchanged, in which fetch(,
    Image(, Worker( and window.open( all appear, so a scan of it would report
    what the library contains rather than what the Editor does. What it may do
-   on the page is
-   bounded by `securityLevel: 'strict'` and, on the public site, the policy. */
+   on the page is bounded by `securityLevel: 'strict'` and, on the public
+   site, the policy. */
 $found = scan(
     [$root . '/editor/editor.js', $root . '/editor/ui.js'],
     ['fetch(', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'sendBeacon', 'import(',
