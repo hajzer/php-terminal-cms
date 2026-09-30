@@ -113,3 +113,14 @@ drift rather than exposure.
   cannot do in either is press a real `^V`: 03 tried that with real
   keypresses in Chromium only, so the by-hand check should include one real
   `^V` in Firefox with nothing open.
+- 2026-09-30, agent, on the screen width: measured the site's home and
+  Document pages, the `/proj` build's Document page and the Editor at 360,
+  768, 1280 and 1920px in headless Chromium and Firefox. The site and the
+  build fit at every width with no horizontal overflow, their stylesheets
+  loaded, and a drawn Diagram is 338px wide at 360 and its natural 485px
+  above that. The Editor overflows at 360px only: its top bar is 580px
+  wide and clipped (484px at 0.1.9 — issue 04's *Export .md* and *raw*
+  added the rest). Filed as issue 13. If what was seen is something else —
+  the text column not filling a wide screen is the measure from 0.1.9, by
+  design — the page, the browser and what it looked like are what is
+  needed.
