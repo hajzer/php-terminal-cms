@@ -16,7 +16,9 @@
  *
  * beside everything in site/public/ but its PHP and its .htaccess. The path of
  * --base-url is the Base Path every local address starts with; without it the
- * site begins at the host's root.
+ * site begins at the host's root. A static host sends no header the site
+ * chooses, so every page names the request-time policy itself, in a <meta>,
+ * with one nonce per build.
  *
  * The output is written whole or not at all. The pages are rendered into a
  * fresh directory beside it, which replaces it only once every page is there;
@@ -31,6 +33,7 @@ use TerminalCms\BasePath;
 use TerminalCms\Highlighter;
 use TerminalCms\Listing;
 use TerminalCms\Page;
+use TerminalCms\Policy;
 use TerminalCms\Router;
 use TerminalCms\Site;
 
@@ -246,19 +249,23 @@ try {
 
     copyPublic($site . '/public', $fresh);
 
+    /* one nonce for the whole build: the pages are the same files for every
+       reader until the next build */
+    $nonce = Policy::nonce();
+
     $router = new Router($config, $site . '/content', $at);
     foreach (addresses($config, $site . '/content') as $address => $file) {
         $page = $router->route($address);
         if ($page['status'] !== 200) {
             throw new RuntimeException("$address is listed, and answers {$page['status']}");
         }
-        write($fresh, $file, Page::html($config, $page, '', $at));
+        write($fresh, $file, Page::html($config, $page, $nonce, $at, ownPolicy: true));
     }
     $page = $router->route(NOWHERE);
     if ($page['status'] !== 404) {
         throw new RuntimeException(NOWHERE . ' answers ' . $page['status'] . ', not 404');
     }
-    write($fresh, '404.html', Page::html($config, $page, '', $at));
+    write($fresh, '404.html', Page::html($config, $page, $nonce, $at, ownPolicy: true));
 
     file_put_contents($fresh . '/' . MARKER, "Written by bin/page-build. A build replaces only a directory that holds this file.\n");
 

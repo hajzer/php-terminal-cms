@@ -16,16 +16,30 @@ final class Page
     /**
      * @param array<string,mixed> $site
      * @param array{status:int,title:string,body:string,active:?string,lang?:string} $r
-     * @param string $nonce the request's CSP nonce, which the two inline
-     *        points on the page — the accent style block and the enhancement
-     *        script — have to carry to run at all. A caller with no policy to
-     *        satisfy passes none and gets the page without the attributes.
+     * @param string $nonce the page's CSP nonce, one per request or one per
+     *        Page Build, which the two inline points on the page — the accent
+     *        style block and the enhancement script — have to carry to run at
+     *        all. A caller with no policy to satisfy passes none and gets the
+     *        page without the attributes.
      * @param BasePath $at where the site begins, which every local address in
      *        the shell is written under. The Router that made $r is given the
      *        same one.
+     * @param bool $ownPolicy whether the page names its policy itself, in a
+     *        <meta> ahead of everything the policy governs, for a host that
+     *        sends no header of the site's. A page served with the header
+     *        does not; one that does has to have a nonce to name.
      */
-    public static function html(array $site, array $r, string $nonce = '', BasePath $at = new BasePath()): string
-    {
+    public static function html(
+        array $site,
+        array $r,
+        string $nonce = '',
+        BasePath $at = new BasePath(),
+        bool $ownPolicy = false,
+    ): string {
+        if ($ownPolicy && $nonce === '') {
+            throw new \InvalidArgumentException('a page that names its policy needs a nonce, or its own script is refused');
+        }
+
         /* every key here is optional: a site.php that names none of them
            still has to render a page */
         $name  = (string) ($site['title'] ?? 'php-terminal-cms');
@@ -70,7 +84,8 @@ final class Page
 
         return '<!doctype html>
 <html lang="' . e($lang) . '">
-<head>
+<head>' .
+($ownPolicy ? "\n" . '<meta http-equiv="Content-Security-Policy" content="' . e(Policy::forMeta($nonce)) . '">' : '') . '
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>' . e($title) . '</title>' .
@@ -136,7 +151,7 @@ $iconLink . '
 
     /**
      * The attribute that lets one of the page's two inline points run under
-     * the Content-Security-Policy the entry point sends.
+     * the page's Content-Security-Policy.
      */
     private static function nonceAttr(string $nonce): string
     {

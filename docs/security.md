@@ -179,10 +179,55 @@ The accent is the only config value that reaches the page as CSS rather than as
 text, and escaping is not a way of validating CSS, so it has to be six hex
 digits or the default is used.
 
+The policy is written once, in `site/src/Policy.php`. The header above and the
+`<meta>` a built page carries are both read from it, and `bin/test` fails if
+the directives are spelled anywhere else in the code.
+
 To go further: delete `enhancement()` in `site/src/Page.php` and send
 `script-src 'none'`.
 
 HSTS and TLS belong in the vhost, not here.
+
+## The built site
+
+A Page Build ([ADR-0017](adr/0017-a-page-build-is-a-second-way-to-publish.md))
+is served by a host that runs nothing and sends no header the site chooses.
+Every built page therefore names its policy itself, in a `<meta>` that is the
+first element of its `<head>`, ahead of everything it governs:
+
+```output
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; img-src 'self';
+               style-src 'self' 'nonce-<per build>';
+               script-src 'nonce-<per build>'; base-uri 'none';
+               form-action 'none'">
+```
+
+It is the header's policy, directive for directive, but for one. A browser
+ignores `frame-ancestors` in a `<meta>`, so the build leaves it out, and a
+built page can be framed by another site. It has no form, no login and nothing
+to click that acts on a reader's behalf, so a framing page has nothing to trick
+a reader into doing. A host that can send headers can send `frame-ancestors
+'none'` itself. The three other headers above are the host's to send or not:
+the build cannot carry them.
+
+The nonce is sixteen random bytes, made once per build. Every page of one
+build carries the same value, and every reader gets the same value until the
+next build. Anyone who reads a page can see it. That is enough there. A nonce
+stops markup that someone else put into a page from running. The per-request
+value matters where a response can reflect what an attacker sent. A built page
+reflects nothing: it is a file, written before any request. The only thing
+that puts markup into it is the build, from the content, and the Renderer
+cannot express raw HTML. Someone who can change what the build reads can
+already change the page. The nonce does not stand between them.
+
+The inline script, the accent style block, the Mermaid script and a Diagram's
+placed stylesheet carry the build's nonce exactly as they carry a request's.
+`bin/test` builds the sample content and checks three things. Every page's
+first `<head>` element is the policy. The policy's nonce is the one on the
+page's script and style. Every built page is the page the PHP site serves for
+the same address, but for the Base Path, the trailing slash and where the
+policy is named.
 
 ## What to keep patched
 

@@ -12,6 +12,7 @@ declare(strict_types=1);
 use TerminalCms\BasePath;
 use TerminalCms\Highlighter;
 use TerminalCms\Page;
+use TerminalCms\Policy;
 use TerminalCms\Router;
 use TerminalCms\Site;
 
@@ -62,13 +63,13 @@ $result = $router->route($_SERVER['REQUEST_URI'] ?? '/');
    script — and they name this nonce instead of the policy naming
    'unsafe-inline'. One value per request, so a nonce a page carries is no use
    to the next request. */
-$nonce = base64_encode(random_bytes(16));
+$nonce = Policy::nonce();
 
 http_response_code($result['status']);
 header('Content-Type: text/html; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: strict-origin-when-cross-origin');
 header('Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()');
-header("Content-Security-Policy: default-src 'none'; img-src 'self'; style-src 'self' 'nonce-$nonce'; script-src 'nonce-$nonce'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'");
+header('Content-Security-Policy: ' . Policy::forHeader($nonce));
 
 echo Page::html($site, $result, $nonce, $at);

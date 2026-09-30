@@ -924,6 +924,54 @@ ok(!str_contains(TerminalCms\Page::html($site, $home), 'nonce='),
 ok(str_contains($nonced, '(function () {') && !str_contains($nonced, '$nonceAttr'),
    'the script is emitted as written, not read as PHP', $nonced);
 
+/* the policy those nonces answer to, written once: the header the entry point
+   sends, and the <meta> a built page carries, which cannot say
+   frame-ancestors */
+echo "\nthe policy\n";
+ok(TerminalCms\Policy::forHeader('N0NCE') === "default-src 'none'; img-src 'self'; "
+       . "style-src 'self' 'nonce-N0NCE'; script-src 'nonce-N0NCE'; base-uri 'none'; "
+       . "form-action 'none'; frame-ancestors 'none'",
+   'the header names the nonce for styles and scripts and nothing inline besides',
+   TerminalCms\Policy::forHeader('N0NCE'));
+ok(TerminalCms\Policy::forMeta('N0NCE') === "default-src 'none'; img-src 'self'; "
+       . "style-src 'self' 'nonce-N0NCE'; script-src 'nonce-N0NCE'; base-uri 'none'; "
+       . "form-action 'none'",
+   'the <meta> is the same policy without frame-ancestors', TerminalCms\Policy::forMeta('N0NCE'));
+$nonceA = TerminalCms\Policy::nonce();
+ok(strlen((string) base64_decode($nonceA, true)) === 16 && $nonceA !== TerminalCms\Policy::nonce(),
+   'a nonce is sixteen random bytes, a new one each time', $nonceA);
+
+/* the policy is spelled in one file, and both entry points take it from there */
+$spelled = [];
+foreach (array_merge(glob($root . '/site/src/*.php') ?: [],
+                     [$root . '/site/public/index.php', $root . '/bin/page-build']) as $f) {
+    $n = substr_count((string) file_get_contents($f), 'default-src');
+    if ($n > 0) {
+        $spelled[] = substr($f, strlen($root) + 1) . " × $n";
+    }
+}
+ok($spelled === ['site/src/Policy.php × 1'], 'the policy string exists once in the source', implode("\n", $spelled));
+ok(str_contains((string) file_get_contents($root . '/site/public/index.php'), 'Policy::forHeader($nonce)')
+   && str_contains((string) file_get_contents($root . '/bin/page-build'), 'Policy::nonce()'),
+   'and the header and the build both read it');
+
+/* a page that names its own policy names it before anything it governs */
+$metaed = TerminalCms\Page::html($site, $home, 'r4nd0m+va1ue/=', new BasePath(), ownPolicy: true);
+ok(str_contains($metaed, "<head>\n" . '<meta http-equiv="Content-Security-Policy" content="'
+       . e(TerminalCms\Policy::forMeta('r4nd0m+va1ue/=')) . '">' . "\n<meta charset=\"utf-8\">"),
+   'a page that names its policy has the <meta> as the first element of <head>', $metaed);
+ok(str_replace('<meta http-equiv="Content-Security-Policy" content="'
+       . e(TerminalCms\Policy::forMeta('r4nd0m+va1ue/=')) . '">' . "\n", '', $metaed) === $nonced,
+   'and is otherwise the page that does not');
+ok(!str_contains($nonced, 'http-equiv'), 'a page served with the header has no <meta> policy');
+$threw = false;
+try {
+    TerminalCms\Page::html($site, $home, '', new BasePath(), ownPolicy: true);
+} catch (InvalidArgumentException) {
+    $threw = true;
+}
+ok($threw, 'and a page cannot name a policy with no nonce, which would refuse its own script');
+
 /* A page without a Diagram carries nothing of the drawing, to the byte. The
    hash is of a fixed shell, so it moves only when the shell does — and a
    change to it is a change to every page on every Instance, made on purpose. */
@@ -1347,6 +1395,19 @@ if (!$up) {
     }
     $doc = @file_get_contents($base . '/about/everything-is-a-line');
     ok(is_string($doc) && str_contains($doc, '<table>'), 'documents still route');
+
+    /* the header is the policy, with the nonce the page's two inline points carry */
+    $csp = '';
+    foreach ($http_response_header ?? [] as $h) {
+        if (stripos($h, 'Content-Security-Policy:') === 0) {
+            $csp = trim(substr($h, strlen('Content-Security-Policy:')));
+        }
+    }
+    preg_match_all('~\bnonce="([^"]*)"~', (string) $doc, $carried);
+    $served = array_unique($carried[1]);
+    ok(count($carried[1]) === 2 && count($served) === 1 && $csp === TerminalCms\Policy::forHeader($served[0]),
+       'the page is sent with the policy as its header, naming the nonce it carries', $csp);
+    ok(!str_contains((string) $doc, 'http-equiv'), 'and names no policy of its own');
     ok(@file_get_contents($base . '/nope') === false, 'unknown paths still 404');
 }
 
@@ -1497,6 +1558,121 @@ ok(str_contains($notFound, '<h1>404</h1>') && str_contains($notFound, 'href="/pr
 ok(str_contains((string) file_get_contents($out . '/about/what-it-is-sk/index.html'), 'href="/proj/about/what-it-is/"'),
    'a Document\'s other Languages are linked with the trailing slash');
 
+/**
+ * The nonce a built page names in its policy, when the policy is a <meta> and
+ * the first element of its <head>, and the nonce every inline point on the
+ * page carries is that one; otherwise '' and why not.
+ *
+ * @return array{0:string, 1:string} the nonce, and what is wrong
+ */
+function builtNonce(string $html): array
+{
+    if (preg_match('~<head>\s*<([^>]*)>~', $html, $first) !== 1
+        || preg_match('~^meta http-equiv="Content-Security-Policy" content="([^"]*)"$~', $first[1], $meta) !== 1) {
+        return ['', 'the first element of <head> is <' . ($first[1] ?? '') . '>'];
+    }
+    $policy = html_entity_decode($meta[1], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    if (preg_match("~'nonce-([^']+)'~", $policy, $n) !== 1 || $policy !== TerminalCms\Policy::forMeta($n[1])) {
+        return ['', "the <meta> names $policy"];
+    }
+    preg_match_all('~<(\w+)[^>]*\bnonce="([^"]*)"~', $html, $carried, PREG_SET_ORDER);
+    $tags = array_map(static fn (array $c) => $c[1], $carried);
+    sort($tags);
+    if ($tags !== ['script', 'style']) {
+        return ['', 'nonces on ' . implode(', ', $tags)];
+    }
+    foreach ($carried as $c) {
+        if ($c[2] !== $n[1]) {
+            return ['', "<{$c[1]}> carries {$c[2]}, the policy names {$n[1]}"];
+        }
+    }
+    return [$n[1], ''];
+}
+
+$nonces = [];
+$wrong  = [];
+foreach ($pages as $page) {
+    [$nonce, $why] = builtNonce((string) file_get_contents("$out/$page"));
+    $nonce === '' ? $wrong[] = "$page: $why" : $nonces[$nonce] = true;
+}
+ok($wrong === [], 'every built page\'s first <head> element is its policy, whose nonce is the one on its script and style',
+   implode("\n", $wrong));
+ok(count($nonces) === 1, 'and every page of one build names the same nonce', implode("\n", array_keys($nonces)));
+$firstNonce = (string) array_key_first($nonces);
+
+/**
+ * A page with the three things a built one may differ in taken out: where its
+ * policy is named, the Base Path in front of its local addresses, and the
+ * trailing slash on its links. What is left is what the two ways to publish
+ * must agree on to the byte. A served page is given no Base Path; a local
+ * address on a built page that lacks the one it is given is marked, so that
+ * it cannot pass for the served page's.
+ */
+function normalised(string $html, string $base): string
+{
+    $html = (string) preg_replace('~<head>\n<meta http-equiv="Content-Security-Policy" content="[^"]*">~', '<head>', $html, 1);
+    if ($base !== '') {
+        $under = preg_quote($base, '~');
+        $html = (string) preg_replace('~\b(href|src|data-mermaid)="(?!' . $under . '/)(/(?!/))~', '$1="(no Base Path)$2', $html);
+        $html = (string) preg_replace('~\b(href|src|data-mermaid)="' . $under . '(?=/)~', '$1="', $html);
+    }
+    return (string) preg_replace('~\bhref="(/[^"]+?)/"~', 'href="$1"', $html);
+}
+
+/**
+ * Every page of a build set beside the page the request-time site serves for
+ * its address, with the build's nonce: one line for each address where the
+ * two differ, naming it and the first line that does.
+ *
+ * @param list<string> $pages the build's pages, relative to $out
+ * @return list<string>
+ */
+function parity(string $out, array $pages, string $base, array $site, TerminalCms\Router $router): array
+{
+    $differ = [];
+    foreach ($pages as $page) {
+        $address = match (true) {
+            $page === 'index.html'              => '/',
+            str_ends_with($page, '/index.html') => '/' . substr($page, 0, -strlen('/index.html')),
+            default                             => '/' . $page,
+        };
+        $built = (string) file_get_contents("$out/$page");
+        [$nonce] = builtNonce($built);
+        $built  = explode("\n", normalised($built, $base));
+        $served = explode("\n", normalised(TerminalCms\Page::html($site, $router->route($address), $nonce), ''));
+        for ($i = 0; $i < max(count($built), count($served)); $i++) {
+            if (($built[$i] ?? null) !== ($served[$i] ?? null)) {
+                $differ[] = "$address differs at line " . ($i + 1) . ":\n"
+                          . '  built : ' . var_export($built[$i] ?? null, true) . "\n"
+                          . '  served: ' . var_export($served[$i] ?? null, true);
+                break;
+            }
+        }
+    }
+    return $differ;
+}
+
+$built = array_values(array_filter($pages, static fn (string $p) => basename($p) === 'index.html' || $p === '404.html'));
+$differ = parity($out, $built, '/proj', $site, $router);
+ok($differ === [] && count($built) === count($before)
+   && in_array('about/everything-is-a-line/index.html', $built, true) && in_array('404.html', $built, true),
+   'every built page is the page the site serves for its address, but for the Base Path, the slash and the policy\'s carrier',
+   implode("\n", $differ) . "\n" . implode("\n", $built));
+
+/* and a page that differs in anything else is named: one byte of its own, or
+   a link without the Base Path */
+copyTree($out, $box . '/tampered');
+$tampered = $box . '/tampered/about/what-it-is/index.html';
+file_put_contents($tampered, str_replace('</main>', '</main> ', (string) file_get_contents($tampered)));
+$tampered = $box . '/tampered/guides/index.html';
+file_put_contents($tampered, str_replace('href="/proj/about/"', 'href="/about/"', (string) file_get_contents($tampered)));
+$differ = parity($box . '/tampered', $built, '/proj', $site, $router);
+ok(count($differ) === 2 && str_starts_with($differ[0], '/about/what-it-is differs at line')
+   && str_starts_with($differ[1], '/guides differs at line'),
+   'a built page with one byte of its own, or a link without the Base Path, fails parity, naming its address',
+   implode("\n", $differ));
+removeTree($box . '/tampered');
+
 /* no --base-url: the site begins at the host's root */
 $rootOut = $box . '/root';
 [$status, $said] = pageBuild($instance, ['--output=' . $rootOut]);
@@ -1512,6 +1688,11 @@ ok($status === 0 && $wrong === [], 'built with no --base-url, every address star
    $said . implode("\n", array_slice($wrong, 0, 8)));
 ok(str_contains((string) file_get_contents($rootOut . '/index.html'), 'class="brand" href="/"'),
    'and the brand is the host\'s root');
+$differ = parity($rootOut, $built, '', $site, $router);
+ok($differ === [], 'and every page is the served page but for the slash and the policy\'s carrier', implode("\n", $differ));
+[$secondNonce] = builtNonce((string) file_get_contents($rootOut . '/index.html'));
+ok($secondNonce !== '' && $firstNonce !== '' && $secondNonce !== $firstNonce,
+   'two builds carry two different nonces', "$firstNonce\n$secondNonce");
 
 /* a build over an earlier one replaces it; an empty directory is also fine */
 file_put_contents($out . '/stale.html', 'from an earlier build');
