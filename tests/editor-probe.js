@@ -22,11 +22,6 @@
     try { return localStorage.getItem('tcms-theme'); } catch (e) { return 'unreadable'; }
   }
   var THEME_NAMES = (window.THEMES || []).map(function (t) { return t.name; });
-  /* what the page's policy refused during the run */
-  var refused = [];
-  document.addEventListener('securitypolicyviolation', function (e) {
-    refused.push(e.violatedDirective || e.effectiveDirective);
-  });
   function ok(name, cond, got) { out.push((cond ? 'ok   ' : 'FAIL ') + name + (cond ? '' : '  -> ' + got)); }
   function key(k, el, shift, ctrl) {
     (el || document).dispatchEvent(new KeyboardEvent('keydown',
@@ -1852,7 +1847,7 @@
   function finish() {
     /* Mermaid's measuring pass writes style attributes the policy refuses,
        and Chromium reports each; nothing else may be refused */
-    var wrong = refused.filter(function (d) { return !/^style-src-attr$/.test(d); });
+    var wrong = (window.PROBE_REFUSED || ['the watcher did not load']).filter(function (d) { return !/^style-src-attr$/.test(d); });
     ok('the run is refused no script and no stylesheet by the page\'s policy',
        wrong.length === 0, wrong.slice(0, 5).join(', ') + ' (' + wrong.length + ')');
     var bad = out.filter(function (l) { return l.indexOf('FAIL') === 0; }).length;

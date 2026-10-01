@@ -267,7 +267,7 @@ HTML
      * style attributes, both of which the nonce policy refuses. Its stylesheet
      * goes into one <style> made here with the nonce, and each style attribute
      * is taken off and written back through the CSSOM once the SVG is in the
-     * page, which the policy permits. A source that does not parse keeps its
+     * page, a declaration at a time, which the policy permits. A source that does not parse keeps its
      * code block, and the page says nothing about it. The Palette toggle draws
      * every Diagram again in the new colours.
      *
@@ -311,11 +311,31 @@ HTML
     diagrams.forEach(function (d) {
       function one() {
         window.mermaid.initialize(config);
-        return window.mermaid.render('tcms-diagram-' + (++drawn), d.src)
-          .then(function (r) { place(d, r.svg); }, function () {});
+        return keepingStyles(function () {
+          return window.mermaid.render('tcms-diagram-' + (++drawn), d.src);
+        }).then(function (r) { place(d, r.svg); }, function () {});
       }
       queue = queue.then(one, one);
     });
+  }
+
+  /* Mermaid writes the declarations it has for one element, such as a style
+     statement's fill, as a style attribute, and Firefox drops the value of a
+     style attribute set on a page whose policy refuses inline styles. While
+     Mermaid draws, a style attribute is written under another name instead,
+     which place() reads back. That stands for the whole page while a drawing
+     is made, so nothing else in this script writes a style attribute. */
+  var KEPT_STYLE = 'data-tcms-style';
+  function keepingStyles(draw) {
+    var setAttribute = Element.prototype.setAttribute;
+    Element.prototype.setAttribute = function (name, value) {
+      return setAttribute.call(this, String(name).toLowerCase() === 'style' ? KEPT_STYLE : name, value);
+    };
+    function done() { Element.prototype.setAttribute = setAttribute; }
+    var drawing;
+    try { drawing = Promise.resolve(draw()); } catch (e) { done(); return Promise.reject(e); }
+    return drawing.then(function (r) { done(); return r; },
+                        function (e) { done(); throw e; });
   }
 
   function diagramConfig() {
@@ -359,8 +379,9 @@ HTML
       el.remove();
     });
     var inline = andBelow(from).map(function (el) {
-      var style = el.getAttribute('style');
+      var style = [el.getAttribute('style'), el.getAttribute(KEPT_STYLE)].join(';');
       el.removeAttribute('style');
+      el.removeAttribute(KEPT_STYLE);
       return style;
     });
     var svg = document.importNode(from, true);
@@ -372,8 +393,24 @@ HTML
     d.shown.replaceWith(svg);
     d.shown = svg;
     live.forEach(function (el, i) {
-      if (inline[i] && /[^\s;]/.test(inline[i])) el.style.cssText = inline[i];
+      if (inline[i] && /[^\s;]/.test(inline[i])) restyle(el, inline[i]);
     });
+  }
+
+  /* A style attribute's declarations, read by the browser's own parser in a
+     sheet the document never adopts, and set on the element one by one: the
+     policy permits setProperty, and Firefox refuses an assignment to cssText
+     as it does the attribute. */
+  var scratch = new CSSStyleSheet();
+  function restyle(el, declarations) {
+    scratch.replaceSync('x{' + declarations + '}');
+    var rule = scratch.cssRules[0];
+    if (!rule || !rule.style) return;
+    for (var i = 0; i < rule.style.length; i++) {
+      var name = rule.style[i];
+      el.style.setProperty(name, rule.style.getPropertyValue(name),
+                           rule.style.getPropertyPriority(name));
+    }
   }
 
   /* an element and every element inside it, in document order — the same

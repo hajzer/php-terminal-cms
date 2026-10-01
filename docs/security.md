@@ -194,7 +194,10 @@ nonce is never written into the script's text, and `script-src` names nothing
 new. Mermaid's picture arrives with a `<style>` element and `style` attributes,
 which the policy refuses, so the script places it by hand: the stylesheet into
 one `<style>` carrying the nonce, each `style` attribute through the element's
-CSSOM, which the policy permits. A source that does not parse keeps its code
+CSSOM a declaration at a time, which the policy permits. Firefox drops the
+value of a `style` attribute the policy refuses as it is set, so while Mermaid
+draws, the script has its `style` attributes written under another name and
+reads them back from there. A source that does not parse keeps its code
 block and the page prints nothing. The Palette toggle draws every Diagram again,
 and a Diagram's copy button copies its source. With scripts blocked, the Diagram
 is the code block it always was.

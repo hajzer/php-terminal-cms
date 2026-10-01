@@ -112,8 +112,9 @@ $checks = [
    what is left has to be byte-identical to editor/index.html */
 $probe = (string) @file_get_contents($root . '/tests/editor-probe.html');
 $back  = str_replace(
-    ['../editor/', '<script src="editor-probe.js"></script>' . "\n", ' probe</title>'],
-    ['', '', '</title>'],
+    ['../editor/', '<script src="editor-probe-watch.js"></script>' . "\n",
+     '<script src="editor-probe.js"></script>' . "\n", ' probe</title>'],
+    ['', '', '', '</title>'],
     $probe
 );
 ok($probe !== '' && $back === (string) file_get_contents($root . '/editor/index.html'),
@@ -1276,6 +1277,13 @@ ok(!str_contains(substr($drawer, (int) strpos($drawer, '>')), 'r4nd0m'),
    $drawer);
 ok(str_contains($drawer, 'document.currentScript') && str_contains($drawer, '.nonce'),
    'which is where the script it creates takes its nonce from', $drawer);
+/* no browser runs this script here, and the one that runs it by hand most is
+   Firefox, which drops a style attribute and a cssText assignment the policy
+   refuses: a Diagram's styles reach the page only through setProperty */
+ok(str_contains($drawer, 'style.setProperty(') && preg_match('~\.cssText\s*=~', $drawer) !== 1
+   && str_contains($drawer, "'data-tcms-style'"),
+   'a drawing\'s own styles are written a declaration at a time, and kept from Mermaid\'s style attributes',
+   $drawer);
 
 /* every address the script could ask for: a quoted string that starts with a
    slash, names a scheme, or ends in .js — and every way to ask for one */
@@ -1641,7 +1649,7 @@ $before = [
     '/'                                 => '2dd98fc82d0e3b6d20a3adb408899fb1ad3a3c4b45a99df326d1891c96b3a56e',
     '/about'                            => '2944af89567da8b799ed94f131ba860dda7d7ad8ff4897ef2adbbb5a27f08793',
     '/guides'                           => '173d37b8801c398e5074e8b662a6d8214ac9177b1d03a0a87a381c779b5cd387',
-    '/about/everything-is-a-line'       => '4e08e2546475b0c34ccc22f94f1b3b59d919bea4518fc826161aa1659fdc4779',
+    '/about/everything-is-a-line'       => 'cc70781d6b3540efc9258cc246d6db27160bf3079426d773f2f7f977ffe2509c',
     '/about/what-it-is'                 => '753bee01caaec10048aa8154c88b8ae0dcd6990a675fe71f467d00c71cf92d9f',
     '/about/what-it-is-sk'              => 'd604501808b07907008af2912df4fa39773302c2da304af56e7f000171687725',
     '/guides/install-in-five-minutes'   => '97738202f85561bdf13d711606d635a594329d9601fe115794cee11e8415b5fe',

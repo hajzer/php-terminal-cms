@@ -18,7 +18,9 @@
  *   docs/media/architecture.svg -> site/public/media/architecture.svg
  *                                  (the example site shows the diagram)
  *   editor/index.html -> tests/editor-probe.html  (the same page, with its
- *                                                  assets repathed and the
+ *                                                  assets repathed, a watcher
+ *                                                  for what the policy refuses
+ *                                                  first in <head>, and the
  *                                                  probe script appended)
  *
  * bin/test fails if any copy has drifted from its source.
@@ -49,8 +51,9 @@ $probe = (string) preg_replace_callback(
     $page
 );
 $probe = str_replace(
-    ['<title>php-terminal-cms — editor</title>', '</body>'],
-    ['<title>php-terminal-cms — editor probe</title>',
+    ['<meta charset="utf-8">' . "\n", '<title>php-terminal-cms — editor</title>', '</body>'],
+    ['<meta charset="utf-8">' . "\n" . '<script src="editor-probe-watch.js"></script>' . "\n",
+     '<title>php-terminal-cms — editor probe</title>',
      '<script src="editor-probe.js"></script>' . "\n" . '</body>'],
     $probe
 );
