@@ -20,7 +20,7 @@ php-terminal-cms
 |-- site/
 |   |-- content/     one markdown file = one document (page)
 |   |-- public/      the site's main directory (web server root)
-|   |-- src/         the renderer, ~300 lines of PHP
+|   |-- src/         the site's PHP, ~2,200 lines
 |   `-- site.php     the system's configuration
 |-- shared/          the one copy of the theme and the language table
 `-- bin/             build, test, fmt, package
