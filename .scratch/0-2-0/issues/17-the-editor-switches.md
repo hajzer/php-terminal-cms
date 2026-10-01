@@ -1,6 +1,6 @@
 # 17 — The Editor switches, and the read pane follows the Document
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 Blocked by: 14, 15
 
@@ -61,8 +61,8 @@ Writing a Meta Line from the menu. Any Editor knowledge of Site Config.
   carries a pin while `<html>` keeps the writer's, removing the pin or
   misspelling it puts the pane back, a Diagram is redrawn in the new Theme's
   fill
-- [ ] by hand, in a browser: the menu on a phone-width window is reachable,
-  and a note under 13 says it exists — the note is there; the menu is not
-  reachable at 360px, past the edge with undo and redo, until 13 lands
+- [x] by hand, in a browser: the menu on a phone-width window is reachable,
+  and a note under 13 says it exists — reachable at 360px since 13 let the
+  top bar wrap
 - [x] `docs/keymap.md` and `README.md` say what this issue made true
 - [x] `php bin/test` green, `php bin/build` run, no generated file edited
