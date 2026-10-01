@@ -53,7 +53,7 @@ The 0.2.0 entry. `VERSION` → `0.2.0` and the `<i class="ver">` in
 
 - [ ] `php bin/test` green, including the version and derived-files checks
 - [ ] no generated file edited by hand
-- [ ] every acceptance box in 01–10 ticked, and each issue `done`
+- [ ] every acceptance box in every issue under `Blocked by` ticked, and each of them `done`
 - [ ] **Stop here.** `bin/package` is not run and nothing is pushed until the
   maintainer has opened `tests/editor-probe.html` in a browser and reviewed a
   request-time page and a Page Build with a Diagram themselves.
