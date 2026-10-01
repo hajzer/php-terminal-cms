@@ -1278,8 +1278,9 @@ ok(!str_contains(substr($drawer, (int) strpos($drawer, '>')), 'r4nd0m'),
 ok(str_contains($drawer, 'document.currentScript') && str_contains($drawer, '.nonce'),
    'which is where the script it creates takes its nonce from', $drawer);
 /* no browser runs this script here, and the one that runs it by hand most is
-   Firefox, which drops a style attribute and a cssText assignment the policy
-   refuses: a Diagram's styles reach the page only through setProperty */
+   Firefox, which drops the value of a style attribute the policy refuses as
+   it is set: a Diagram's styles are kept under another name while Mermaid
+   draws, and reach the page through setProperty */
 ok(str_contains($drawer, 'style.setProperty(') && preg_match('~\.cssText\s*=~', $drawer) !== 1
    && str_contains($drawer, "'data-tcms-style'"),
    'a drawing\'s own styles are written a declaration at a time, and kept from Mermaid\'s style attributes',
@@ -1649,7 +1650,7 @@ $before = [
     '/'                                 => '417c39a4d9e1baca6309dd0a57824fd1d83698fc65ede02e5d480a1fd22907b8',
     '/about'                            => '2944af89567da8b799ed94f131ba860dda7d7ad8ff4897ef2adbbb5a27f08793',
     '/guides'                           => '173d37b8801c398e5074e8b662a6d8214ac9177b1d03a0a87a381c779b5cd387',
-    '/about/everything-is-a-line'       => 'cc70781d6b3540efc9258cc246d6db27160bf3079426d773f2f7f977ffe2509c',
+    '/about/everything-is-a-line'       => '00e8b2e0fa78530d9a26c14d9cffd063509dd129d2b390106ac05528050c050d',
     '/about/what-it-is'                 => '9ce93052b5f851515746b2313b28ce6559c0e23cbfd22d1b2bb9bb86b9dd00a2',
     '/about/what-it-is-sk'              => '9ba6d68ff2db62224cbbd6a353979b84f372deccd117cef8b28b4f4035ff7499',
     '/guides/install-in-five-minutes'   => '97738202f85561bdf13d711606d635a594329d9601fe115794cee11e8415b5fe',
@@ -2167,17 +2168,27 @@ ok(str_contains((string) file_get_contents($root . '/editor/index.html'),
    'and the one request it causes carries no referrer');
 
 /* The Editor's page names its own policy, the same in every copy, with no
-   nonce and no hash. What it refuses is any
-   script but the Editor's own files, any stylesheet the page does not link,
-   and any connection — the last is what the scan above says, enforced. What
-   it allows is an Image Line's src, anywhere. Each fault is named, so a
-   loosened policy says which part loosened. */
+   nonce and no hash. What it refuses is any script and any stylesheet that
+   is not a file 'self' matches, anything inline, and any connection — the
+   last is what the scan above says, enforced. What it allows is an Image
+   Line's src, anywhere. Each fault is named, so a loosened policy says which
+   part loosened. */
 function editorPolicyFaults(string $page): array
 {
     $faults = [];
     preg_match_all('~<meta http-equiv="Content-Security-Policy" content="([^"]*)">~i', $page, $metas);
     if (count($metas[1]) !== 1) {
         return ['the page names ' . count($metas[1]) . ' policies, not one'];
+    }
+    /* a browser obeys a <meta> policy only inside <head>, and only for what
+       it meets after it: named in <body> it is no policy at all, and named
+       below something the page loads it does not govern that */
+    $above = substr($page, 0, (int) strpos($page, $metas[0][0]));
+    if (stripos($above, '<head>') === false || stripos($above, '</head>') !== false) {
+        $faults[] = 'the policy is named outside <head>';
+    }
+    if (preg_match('~<(?:link|script|style|img|base|object|embed|iframe)\b~i', $above, $early)) {
+        $faults[] = 'the policy is named below a ' . $early[0] . '>, which it does not govern';
     }
     /* a browser obeys the first of two directives with one name, so a
        second is a fault whatever it says */
@@ -2225,9 +2236,14 @@ function editorPolicyFaults(string $page): array
 }
 $editorPage = (string) file_get_contents($root . '/editor/index.html');
 $faults = editorPolicyFaults($editorPage);
-ok($faults === [], 'the Editor\'s page names its policy: no inline script, no stylesheet it does not link, no connection',
+ok($faults === [], 'the Editor\'s page names its policy, in <head> and above all it loads: nothing inline, no connection',
    implode("\n", $faults));
+preg_match('~<meta http-equiv="Content-Security-Policy"[^>]*>\n~', $editorPage, $policyLine);
+$unnamed  = str_replace($policyLine[0] ?? '', '', $editorPage);
 $loosened = [
+    'moved into <body>'  => str_replace('<body class="reader">' . "\n", '<body class="reader">' . "\n" . ($policyLine[0] ?? ''), $unnamed),
+    'moved below a stylesheet' => str_replace('<link rel="stylesheet" href="editor.css">' . "\n",
+                                              '<link rel="stylesheet" href="editor.css">' . "\n" . ($policyLine[0] ?? ''), $unnamed),
     'removed'            => preg_replace('~<meta http-equiv="Content-Security-Policy"[^>]*>\n~', '', $editorPage),
     'unsafe-inline'      => str_replace("script-src 'self'", "script-src 'self' 'unsafe-inline'", $editorPage),
     'unsafe-eval'        => str_replace("script-src 'self'", "script-src 'self' 'unsafe-eval'", $editorPage),
@@ -2262,6 +2278,50 @@ ok(handlerAttributes("'<img src=\"' + src + '\" onerror=\"' + 'this.hidden=true\
    && handlerAttributes("'<img onload=\\'x()\\'>'") !== []
    && handlerAttributes('s.onerror = failed;') === [],
    'and one written into a string of markup is caught, where one assigned as a property is not');
+
+/* Nor does the Editor's own code write a style attribute or make a <style>
+   element. The policy refuses both, and while a Diagram is drawn ui.js has
+   every style attribute on the page written under another name and every
+   <style> element made an inert one — for as long as the drawing takes,
+   which is as long as a picture its source names takes to load. What the
+   Editor styles, it styles through the CSSOM. */
+function inlineStyles(string $code): array
+{
+    preg_match_all('~setAttribute(?:NS)?\(\s*(?:null\s*,\s*)?["\']style["\']'
+                 . '|createElement(?:NS)?\([^)]*["\']style["\']\s*\)'
+                 . '|\sstyle=\\\\?["\']~i', $code, $m);
+    return $m[0];
+}
+$found = [];
+foreach (['editor.js', 'ui.js'] as $f) {
+    $styles = inlineStyles((string) file_get_contents($root . '/editor/' . $f));
+    if ($styles !== []) {
+        $found[] = "$f: " . implode(' ', $styles);
+    }
+}
+ok($found === [], 'the Editor writes no style attribute and makes no <style> element', implode("\n", $found));
+ok(inlineStyles("el.setAttribute('style', 'color: red');") !== []
+   && inlineStyles('var s = document.createElement("style");') !== []
+   && inlineStyles("document.createElementNS(SVG_NS, 'style')") !== []
+   && inlineStyles("'<div style=\"color: red\">'") !== []
+   && inlineStyles("el.style.setProperty('color', 'red'); from.querySelectorAll('style'); if (name !== 'style') return;") === [],
+   'and each of those is caught, where the CSSOM and a comparison with the word are not');
+
+/* A stylesheet can ask for things as well: another sheet, a font, a picture.
+   None that either half ships does — the structural sheet, each half's own,
+   every Theme's — so a page's stylesheets cause no request but the one for
+   themselves, and the Editor's img-src, which allows any host for an Image
+   Line's sake, has nothing in a stylesheet to allow. */
+$found = [];
+foreach (array_merge([$root . '/shared/theme.css'],
+                     glob($root . '/editor/*.css') ?: [], glob($root . '/editor/themes/*.css') ?: [],
+                     glob($root . '/site/public/*.css') ?: [], glob($root . '/site/public/themes/*.css') ?: []) as $f) {
+    if (preg_match_all('~url\(|image-set\(|@import|@font-face~i', (string) file_get_contents($f), $asks)) {
+        $found[] = substr($f, strlen($root) + 1) . ': ' . implode(' ', array_unique($asks[0]));
+    }
+}
+ok($found === [], 'no stylesheet either half ships asks for anything: no url(), no @import, no @font-face',
+   implode("\n", $found));
 
 echo "\n$pass passed, $fail failed\n";
 exit($fail === 0 ? 0 : 1);

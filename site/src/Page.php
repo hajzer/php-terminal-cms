@@ -398,9 +398,9 @@ HTML
   }
 
   /* A style attribute's declarations, read by the browser's own parser in a
-     sheet the document never adopts, and set on the element one by one: the
-     policy permits setProperty, and Firefox refuses an assignment to cssText
-     as it does the attribute. */
+     sheet the document never adopts, and set on the element one by one
+     through the CSSOM, which the policy permits where it refuses the
+     attribute. */
   var scratch = new CSSStyleSheet();
   function restyle(el, declarations) {
     scratch.replaceSync('x{' + declarations + '}');

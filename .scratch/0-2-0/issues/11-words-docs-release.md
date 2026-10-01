@@ -2,7 +2,7 @@
 
 Status: ready-for-human
 Spec: ../spec.md
-Blocked by: 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 12, 14, 15, 16, 17, 18
+Blocked by: 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 12, 14, 15, 16, 17, 18, 19
 
 ## CONTEXT.md
 
@@ -143,3 +143,13 @@ The 0.2.0 entry. `VERSION` → `0.2.0` and the `<i class="ver">` in
     248-assertion probe at 0.2.0. Both were true when 10 wrote them and the
     Themes and 12 have added to each since; it now says 835 and 292 and keeps
     the review's own numbers beside them.
+- 2026-10-01, agent, from issue 19, the fifth review: this issue waits on it
+  as well, and its one open box is the same browser run as the one above. No
+  finding. What it moves here: `php bin/test` is 838 of 838 and the probe 293
+  of 293 in headless Chromium and headless Firefox — three checks and one
+  assertion more than the counts in the comment above, which were true when
+  it was written. `docs/security-audit.md`'s `## Validation` says the new
+  numbers. The CHANGELOG's 0.2.0 entry has a bullet for the fifth review after
+  the fourth's. `docs/security.md`'s editor paragraphs and ADR-0020 are
+  corrected in three places, which 19 lists. Issue 20 is filed from it and
+  does not block the release.

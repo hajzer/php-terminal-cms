@@ -612,8 +612,8 @@
      document adopts — which no style-src governs, and whose rules Mermaid
      scopes to the drawing's own id — and each style attribute is taken off
      and written back through the CSSOM once the SVG is in the page, one
-     declaration at a time: the policy permits setProperty, and Firefox
-     refuses an assignment to cssText as it does the attribute. */
+     declaration at a time, which the policy permits where it refuses the
+     attribute. */
   function place(block, d, src, key) {
     var parse = document.createElement('template');
     parse.innerHTML = d.svg;

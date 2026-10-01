@@ -117,6 +117,14 @@ What an instance has to know before upgrading is at the end.
   the boundary that was missing behind it. Beside it, the build refuses a
   document whose file is named `.md` alone. `docs/security-audit.md` carries
   the scope, the finding, and what was looked at and left alone.
+- A fifth, of what landed after the fourth: the Themes and the editor's
+  policy. No finding. What it changed is how the policy is checked: `bin/test`
+  holds it to its place in `<head>` as well as to its words, and the probe
+  asks it to refuse a handler written as markup — a policy moved into
+  `<body>`, where a browser ignores it, had passed both. `bin/test` also fails
+  if the editor's own scripts write a `style` attribute or make a `<style>`
+  element, and if any stylesheet either half ships holds a `url()`, an
+  `@import` or an `@font-face`.
 - CONTEXT.md gains **Diagram**, **Page Build**, **Base Path**, **Theme** and
   **Palette**.
 

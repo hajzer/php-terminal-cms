@@ -78,7 +78,8 @@ nothing inline: not an `<script>` element, not an `on…=` attribute. The page
 carries none. The starter document sits in an inert
 `<script type="text/markdown">` that `ui.js` reads, and an image that does not
 load is swapped for its box by a listener `ui.js` attaches. Stylesheets come
-only from the files the page links. A Diagram's stylesheet is a constructed
+from files too — the ones the page links — and never from a `<style>` element
+or a `style` attribute. A Diagram's stylesheet is a constructed
 `CSSStyleSheet` the document adopts, which no `style-src` governs, and
 Mermaid's per-element styles are written back through the CSSOM, as on a
 published page. `connect-src 'none'` makes the browser refuse what the source
@@ -90,26 +91,40 @@ What it is not:
   nonce the page printed is one injected markup could copy. The policy names
   no nonce and no hash.
 - **Not a fence around the editor's own files.** `'self'` on a page opened
-  from the filesystem may match any local file, so injected markup that named
-  a script already on the disk could load it. On an editor served over HTTP,
-  `'self'` is that origin.
+  from the filesystem matches any local file, in Chromium and in Firefox, so
+  markup injected into the page could link a stylesheet already on the disk
+  and the browser would apply it. A script it could not run that way: the
+  editor writes markup through `innerHTML`, and a browser never runs a
+  `<script>` written so, whatever file it names. On an editor served over
+  HTTP, `'self'` is that origin.
 - **The same on every copy.** It is part of `editor/index.html`, not made per
   load; anyone can read it, and nothing about it is secret.
 - **Not a stop on the image request.** `img-src` allows any `http:`, `https:`
   or `data:` src, because showing the picture an Image Line names is the
   editor's one deliberate outbound request. Markup injected into the page could
   make the same kind of request.
+- **Not a stop on leaving the page.** No directive governs where the tab goes.
+  A link in the preview, a link a Diagram draws, or a
+  `<meta http-equiv="refresh">` that reached the page as markup takes the tab
+  elsewhere, and the document with it.
 - **Not quiet.** Mermaid measures each drawing in a scratch element with inline
   styles, which the policy refuses; Chromium reports each one as a
   `style-src-attr` violation. The picture is right because the placement
   carries the styles.
 
-`bin/test` fails if the `<meta>` is removed, if any directive names
-`'unsafe-inline'`, `'unsafe-eval'`, `'unsafe-hashes'`, a nonce or a hash, if
-`connect-src` is anything but `'none'`, or if the page or the read pane's
-markup carries an inline script or an event-handler attribute. The browser
-probe runs under the same policy, since it is the same page, and fails if the
-policy refused any script or stylesheet during the run
+`bin/test` fails if the `<meta>` is removed, or moved out of `<head>` or below
+anything the page loads — a browser obeys it nowhere else — if any directive
+names `'unsafe-inline'`, `'unsafe-eval'`, `'unsafe-hashes'`, a nonce or a hash,
+if `connect-src` is anything but `'none'`, or if the page or the read pane's
+markup carries an inline script or an event-handler attribute. It fails too
+if the editor's own scripts write a `style` attribute or make a `<style>`
+element, or if any stylesheet either half ships holds a `url()`, an `@import`
+or an `@font-face`: a stylesheet that asked for something would be a request
+the paragraphs above do not name. The browser probe runs under the same
+policy, since it is the same page. It fails if the policy refused any script
+or stylesheet during the run, and it fails if the policy does not refuse the
+one thing the probe asks it to: a handler written into the page as markup,
+which must not run
 ([ADR-0020](adr/0020-the-editor-names-a-policy-without-a-nonce.md)).
 
 ## The renderer

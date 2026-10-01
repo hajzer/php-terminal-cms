@@ -453,6 +453,220 @@ hashes, not a header with a nonce. It is issue 12.
   is `toMarkdown(doc.lines)`, the export's own function and not a second one,
   and the probe holds it to an edit.
 
+## 0.2.0 — fifth review
+
+A review of what landed after the fourth and before the release, which is two
+things the fourth could not have read. The Themes and the Palettes: a Theme's
+file, the build that makes a stylesheet of it, the name that chooses one on a
+page and in the Editor, and the two words a Palette may be. And the policy the
+Editor's page now names, which was issue 12: what the page stopped doing to
+live under it, what the Diagram code now does to Mermaid while it draws, and
+the same treatment of a Diagram's style attributes on the public page. The
+fourth review's surface was re-read where the new code touches it — the
+placement, the CSS a Diagram brings, the links it may carry — and not
+otherwise. Issue 18 read the Themes against the repo's standards and their
+spec; this is the read for exposure it did not make.
+
+It was run as much as read. Where a line below says *tried*, it was tried on
+this tree in headless Chromium and headless Firefox 155: the Editor from
+`file://`, and the site served by `php -S` with its header.
+
+No remote code execution, injection, request-forgery or origin-escape issue
+was found, and no finding of any severity: nothing that landed gives a
+request, a reader, or a Document from somebody else anything it did not have.
+What the review found is that the Editor's new boundary was checked by its
+words and not by its effect, and that is the hardening below.
+
+Also changed, as hardening rather than as findings:
+
+- **The suite held the Editor's policy to its words and not to its place.** A
+  browser obeys a `<meta>` policy only inside `<head>`, and only for what it
+  meets after it. `bin/test` matched the tag anywhere in the file, so a policy
+  moved into `<body>` — which a browser ignores — passed. It is now required
+  inside `<head>` and above everything the page loads, and the suite tries
+  both moves.
+- **The probe proved the policy refuses nothing the Editor needs, and not that
+  it refuses anything.** "No script and no stylesheet was refused" is as true
+  of a page with no policy as of one with it: with the `<meta>` taken out of
+  the probe page, and again with it moved into `<body>`, the probe ran 292 of
+  292 in both browsers. It now ends by asking the policy for the one thing it
+  is there to refuse — a handler written into the page as markup, which is the
+  fourth review's finding in one line — and requires that it does not run and
+  that the browser names the refusal. Against those two pages that is the
+  assertion that fails, and the only one.
+- **The Editor's own scripts write no `style` attribute and make no `<style>`
+  element, and the suite now says so.** ADR-0020 records that they must not,
+  because the Diagram code's replacements stand for the whole page while a
+  drawing is in flight; nothing checked it. `bin/test` reads `editor.js` and
+  `ui.js` for both, and for a `style="` written into a string of markup, as
+  it already read them for `on…=`.
+- **No stylesheet either half ships asks for anything, and the suite now says
+  so.** The third review found no `url()` and no `@import` by reading two
+  sheets. Twelve Themes have joined them, each ported from somebody else's,
+  and the Editor's `img-src` would let a `url()` in any sheet reach any host
+  from every writer's browser as the page opened. `bin/test` fails on a
+  `url()`, an `image-set()`, an `@import` or an `@font-face` in any stylesheet
+  either half ships.
+
+And from the code read, fixed where found:
+
+- ADR-0020, `ui.js`, the page's drawing script and `bin/test` each said
+  Firefox refuses an assignment to `cssText` under the policy, as it refuses
+  the attribute. It does not. Tried in Firefox 155 under the Editor's `<meta>`
+  and under the site's header, and in Firefox 140 under the `<meta>`: an
+  assignment to `cssText` is honoured, on an HTML and on an SVG element, and
+  what Firefox drops is the value of a `style` attribute as it is set — which
+  is the half of the sentence the code depends on. The placement's
+  `setProperty` is right in every browser and stays; the four sentences now
+  say only what is so. The one in the page's script is a comment in bytes a
+  reader is sent, so the pinned hash of the sample page with a Diagram is
+  re-recorded.
+- `docs/security.md` said the Editor's stylesheets "come only from the files
+  the page links". The policy says `'self'`, and on a page opened from the
+  filesystem `'self'` is every file on the disk — tried: a stylesheet and a
+  script from another directory were both taken as the page's own, in both
+  browsers. The paragraph and ADR-0020 now say that a stylesheet already on
+  the disk could be linked by markup that reached the page, and that a script
+  could not be run that way, because the Editor writes markup through
+  `innerHTML` and a browser never runs a `<script>` written so. They also say
+  what neither did: the policy does not govern where the tab goes.
+- This file's residual risks still said the Editor's page names no policy,
+  that a Diagram's `click` is the one link the Href allowlist does not judge,
+  and that a Diagram names a picture in an `img` shape or a `classDef`. The
+  first stopped being true with issue 12. The other two were short when they
+  were written: a label may carry an `<a>` and an `<img>` of its own, which
+  Mermaid's sanitiser judges, and the CSS a Diagram's `init` directive
+  carries may hold a `url()`. All three are corrected in place below.
+
+And from the code read, filed: a Document with two `theme:` Lines is drawn in
+the last on the page and in the first in the Editor's read pane, and
+`theme : things`, with a space before the colon, is a Theme to the page and
+none to the Editor. Both names are judged before either is used, so it is
+drift between the two readers of Meta and not exposure — and it is older than
+the Themes, which only made it visible: `title:` is read the same two ways.
+Which reader moves is a decision about Meta. It is issue 20.
+
+### Looked at and left alone
+
+- **A Theme's file.** `bin/themes.php` writes each value into a declaration
+  and the notice into a comment, and refuses a value holding `{`, `}`, `;` or
+  a comment mark, and a notice that would close its comment. The file's name
+  is held to a slug before it becomes a selector and a path, and the list the
+  Editor's menu is built from is written by `json_encode`. A key is written as
+  it stands: the build does not judge it, and `bin/test` does, holding every
+  file to the contract's keys exactly and every colour to six hex digits. A
+  Theme is repository data, as `shared/langs.json` is — not reachable from a
+  request, and a bad one is a broken install, not an exposure. No face is
+  shipped, no policy names `font-src`, and a face a reader does not have is
+  the next in the stack.
+- **The name that chooses a Theme on a page.** `theme:` in a Document's Meta
+  and `theme` in Site Config become one attribute and one stylesheet address,
+  and only after `Site::themeName()` has held the name to the slug shape and
+  found `public/themes/<name>.css` under a fixed directory. Anything else is
+  no choice and the next chooser decides. Twenty-six shapes were tried — a
+  climb, a slash at either end, a dot, a `.css`, a NUL in the middle, a
+  percent-encoding, upper case, a fullwidth letter, a no-break space, five
+  thousand characters — and an array beside them. A trailing newline, tab or
+  NUL is trimmed and what is left is the name; every other one was Baseline.
+  Both writes go through `e()`. Nothing in a request chooses either: the site
+  reads no query string, the suite's scan for `$_GET` stands, and a page asked
+  for with `?theme=wasp&palette=dark` is byte for byte the page without. The
+  name is the author's or the administrator's; the reader has no Theme control
+  and no stored value is read for one.
+- **The Palette.** `light` or `dark` from Meta or Site Config, compared
+  strictly against the two words, or no attribute at all. The reader's own
+  comes from `tcms-palette` and is applied by the script only when it is one
+  of the two — where the script it replaced wrote whatever `tcms-theme` held
+  into `data-theme`: an attribute then as now, never markup, and narrower
+  now. A stored Palette with a quote and a handler in it was tried on the
+  served page and in the Editor, and is no Palette in either.
+- **The Editor's Theme and Palette.** A stored `tcms-theme` is used only when
+  `window.THEMES` has the name, and a Document's `theme:` pins the read pane
+  only then. Stored values and Meta carrying quotes, tags and handlers were
+  tried: `<html>` stayed Baseline with no Palette, the pane stayed unpinned,
+  and the meta bar printed the text. The menu is built through `innerHTML`
+  from the generated list, each name and label through `esc()`; `:theme`
+  answers a name it has not got through `textContent`.
+- **The policy, in force.** Tried from `file://`, each written into the page
+  or called from it: an `on…=` handler, an inline `<script>`, a `javascript:`
+  href, `eval` and `new Function`, a `<style>` element, a `style` attribute, a
+  stylesheet from another host, `fetch`, `sendBeacon`, a `WebSocket`, a worker
+  from a `blob:`, an `<iframe>`, an `<object>`, an `<embed>`, a `<video>`, a
+  `<base>` and a form's submission. Each is refused, in both browsers, and
+  reported under the directive that refuses it. The `<meta>` stands below
+  five elements of `<head>` that load nothing and above every one that does.
+- **What the policy does not refuse.** A picture from any host, which is the
+  preview's purpose; in Chromium a `<link rel="prefetch">` as well, which no
+  directive governs there — a second way for injected markup to make the
+  request `img-src` already lets it make, and no more. A file elsewhere on
+  the disk, as above. Leaving the page: a `<meta http-equiv="refresh">`
+  written into the pane sent the tab to the address it named, in both
+  browsers. And being framed, which a `<meta>` cannot refuse: a framed Editor
+  is a fresh one, holding the starter and nothing of a writer's, since the
+  Document is kept in the tab that holds it and nowhere a second copy of the
+  page could read.
+- **The replacements while Mermaid draws.** `keepingStyles()` puts its own
+  `setAttribute` on `Element.prototype` — and, in the Editor, its own
+  `createElement` on `Document.prototype` — for the length of one render, and
+  puts the browser's back when the render settles either way. Tried: after a
+  drawing, after a source that does not parse, and after one whose picture
+  fails to load, both are the browser's own again, and no `data-tcms-style`
+  and no stand-in `<template>` is left in the page. One drawing is asked for
+  at a time, so two replacements never nest and neither can put back the
+  other's. While they stand the Editor's own code runs under them — a render
+  can wait on a picture its source names for as long as the host holds the
+  request — and was tried there, with the request held open: a paste, the
+  Palette key, an Image Line's fallback and the placement of a kept drawing
+  all did what they do, because none of them writes a `style` attribute or
+  makes a `<style>`, which is now the suite's to hold. Later drawings wait
+  behind the held one and are drawn when the request ends; that is under
+  residual risks.
+- **The name the styles are kept under.** `data-tcms-style` is a name a
+  Diagram's label can write for itself, and the placement reads it back as it
+  reads `style`. It gives a label what a `style` attribute gave it in
+  Chromium at the fourth review, and gives it in Firefox as well, where a
+  label's own `style` is dropped: declarations on its own element, written
+  through the CSSOM. A label, and the CSS an `init` directive carries, can
+  make an element `position: fixed` and as large as the window; tried four
+  ways in both browsers, the element stayed inside the drawing's own box,
+  which the SVG clips, and every point of the Editor outside that box
+  answered to the Editor's own element.
+- **The constructed stylesheet.** The CSS Mermaid makes for a drawing is
+  adopted by the whole document, as the `<style>` it replaced applied to the
+  whole document, and is kept from the rest of the page only by Mermaid
+  scoping each rule to the drawing's id. Thirty-six ways out were tried in
+  each browser through `themeCSS`, `fontFamily` and `themeVariables` in an
+  `init` directive, none of which `securityLevel` shuts — a closing brace, a
+  comment or a string holding one, `&` with a sibling combinator, `:has(&)`,
+  `:is()`, `:root`, and a rule inside `@media`, `@supports`, `@layer`,
+  `@scope`, `@container` and `@starting-style` — and every rule that came out
+  began with the drawing's id; nothing outside the drawing was styled. A
+  constructed sheet takes no `@import`, and no font was asked for —
+  `default-src` would refuse one. What is left is the `url()`, which is a
+  picture, and is under residual risks with the other pictures a Diagram may
+  name.
+- **What a hostile Diagram does in the Editor now.** Sixteen sources were
+  pasted in each browser: markup and handlers in labels, an `init` directive
+  asking for `securityLevel: 'loose'`, `click` with `javascript:`, a sequence
+  diagram with markup in its names, style statements that try to end their
+  rule. No script ran. No element reached the pane with a handler, and no
+  `<script>`, `<iframe>`, `<object>` or `<style>`. The requests that left
+  were for pictures the source named, and each is one the policy allows.
+- **The public page's placement.** The same replacement of `setAttribute`,
+  without the stand-in for `<style>`, because the page's stylesheet for a
+  drawing is still a `<style>` carrying the nonce. Tried on a served page
+  whose Document held a hostile Diagram, a `theme:`, and a `palette:` with a
+  quote and a handler in it: the header was the policy, the one `<style>` on
+  the page carried the nonce, the style statement's fill arrived in both
+  browsers, no request left the origin — each picture the Diagram named was
+  refused by `img-src 'self'` — and the Palette button drew it again with the
+  browser's `setAttribute` back in place afterwards. `bin/test` already holds
+  a page without a Diagram to one nonce, no `<style>` element and a fixed
+  hash, and requires `accent` to change no byte.
+- **Mermaid's feed.** 11.17.2 is still the last release of 11, 12.0.0 still
+  the only 12, and OSV still answers nothing for 11.17.2 on the day of this
+  review. The vendored file's hash is the one its first line names.
+
 ## Residual risks
 
 - This is not impenetrable and does not claim to be. It is a small surface.
@@ -471,17 +685,29 @@ hashes, not a header with a nonce. It is issue 12.
   carry over.
 - The Editor's preview turns whatever an Image Line names into an `<img src>`
   for the browser to fetch, and hands a Diagram's source to Mermaid to draw —
-  and a Diagram can name a picture of its own, in a node's `img` shape or a
-  `url()` in a `classDef`, which the browser fetches as it fetches the Image
-  Line's src. It is the writer's own browser and the writer's own Lines, and
-  the request carries no referrer — but it is a request, and a library is a
-  library. A file opened from somebody else, or markdown pasted from them, is
-  one whose Image Lines and Diagrams somebody else wrote, and the Editor's page
-  names no policy of its own to stand between those and the browser. The
-  Document is the only thing in the tab.
-- A Diagram may carry a `click` link, which Mermaid judges and the Href
-  allowlist never sees: `javascript:` and `data:` refused, and a
-  protocol-relative `//host` allowed that a Line's Href would not be.
+  and a Diagram can name a picture of its own, in a label, in a node's `img`
+  shape or in a `url()` in the CSS its source carries, which the browser
+  fetches as it fetches the Image Line's src. It is the writer's own browser
+  and the writer's own Lines, and the request carries no referrer — but it is
+  a request, and a library is a library. A file opened from somebody else, or
+  markdown pasted from them, is one whose Image Lines and Diagrams somebody
+  else wrote. The Editor's policy stands between those and script, and not
+  between them and a picture: its `img-src` allows any host, because the
+  preview's picture may be on any. The Document is the only thing in the tab.
+- The Editor's policy is a `<meta>` that names `'self'`. On a page opened from
+  the filesystem `'self'` is every file on the disk, so the policy does not
+  keep markup that reached the page from linking a stylesheet that is already
+  there. It does not govern where the tab goes. And it cannot refuse being
+  framed, as a built page's cannot: an Editor that is served can be sent
+  `frame-ancestors` by its host.
+- In the Editor, a Diagram that names a picture on a host that does not answer
+  holds every later Diagram's drawing until the browser gives up on the
+  request. The Document, and everything else the Editor does, is untouched
+  while it waits.
+- A Diagram may carry links of its own, which Mermaid judges and the Href
+  allowlist never sees — a `click` statement's, and an `<a>` in a label:
+  `javascript:` and `data:` refused, and a protocol-relative `//host` allowed
+  that a Line's Href would not be.
 - Mermaid is the one file on the origin with a CVE feed. Upgrading it is part
   of a release, and `bin/test` fails an upgrade that forgets to say so.
 - A built page can be framed: a `<meta>` cannot say `frame-ancestors`. It
@@ -499,14 +725,15 @@ hashes, not a header with a nonce. It is issue 12.
 
 `php bin/build` and `php bin/test` clean at every release: 212 assertions at
 0.1.3, 248 at 0.1.4 and, 0.1.5 having changed no behaviour, still 248 there;
-256 at 0.1.6, 306 at 0.1.7, 477 at 0.1.8, 548 at 0.1.9 and 835 at 0.2.0 —
-721 when the fourth review was written, the rest arriving with the Themes and
-the Editor's policy after it.
+256 at 0.1.6, 306 at 0.1.7, 477 at 0.1.8, 548 at 0.1.9 and 838 at 0.2.0 —
+721 when the fourth review was written, 835 once the Themes and the Editor's
+policy had landed after it, and three more from the fifth.
 
 `tests/editor-probe.html` drives the editor's DOM half through a real browser
 and is the one check the suite cannot run. At 0.1.9 it was 172 assertions, run
-green in Firefox for the third review. At 0.2.0 it is 292, run green in
-headless Chromium and headless Firefox at the release; it was 248, green in
+green in Firefox for the third review. At 0.2.0 it is 293, run green in
+headless Chromium and headless Firefox for the fifth review, which added the
+one that asks the Editor's policy to refuse something; it was 248, green in
 both, for the fourth review — the maintainer's first run
 in Firefox found the probe's synthetic paste empty there, which was the probe's
 own clipboard stand-in and not the Editor, and the probe now pastes the same

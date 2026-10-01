@@ -1850,6 +1850,29 @@
     var wrong = (window.PROBE_REFUSED || ['the watcher did not load']).filter(function (d) { return !/^style-src-attr$/.test(d); });
     ok('the run is refused no script and no stylesheet by the page\'s policy',
        wrong.length === 0, wrong.slice(0, 5).join(', ') + ' (' + wrong.length + ')');
+
+    /* A page with no policy refuses nothing either, so the policy is asked
+       once for what it is there to refuse: a handler written into the page
+       as markup, which is what an escaping miss would write. It does not
+       run, and the watcher hears why. */
+    var heard = (window.PROBE_REFUSED || []).length;
+    var held = document.createElement('div');
+    held.innerHTML = '<button type="button" onclick="document.body.dataset.policy=\'off\'">x</button>';
+    document.body.appendChild(held);
+    held.firstChild.click();
+    until(function () {
+      return (window.PROBE_REFUSED || []).slice(heard).some(function (d) { return /^script-src/.test(d); });
+    }, function (refused) {
+      ok('and the policy is in force: a handler written as markup does not run, and is refused by name',
+         refused && document.body.dataset.policy !== 'off',
+         (refused ? 'refused' : 'not refused') + ', ' + (document.body.dataset.policy === 'off' ? 'ran' : 'did not run'));
+      held.remove();
+      delete document.body.dataset.policy;
+      report();
+    });
+  }
+
+  function report() {
     var bad = out.filter(function (l) { return l.indexOf('FAIL') === 0; }).length;
     var pre = document.createElement('pre');
     pre.style.cssText = 'position:fixed;inset:0;z-index:999;background:#111;color:#ddd;' +

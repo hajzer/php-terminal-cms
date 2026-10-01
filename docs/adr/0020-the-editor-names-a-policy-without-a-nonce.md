@@ -46,8 +46,10 @@ What the policy refuses, the page stops doing:
   outnumber the drawings kept. A drawing the read pane is showing is never
   the one dropped.
 - Mermaid's per-element styles are written back through the CSSOM, one
-  declaration at a time with `setProperty`. Firefox refuses an assignment to
-  `cssText` under this policy as it refuses the attribute.
+  declaration at a time with `setProperty`, which the policy permits where it
+  refuses the attribute. This record first said Firefox refuses an assignment
+  to `cssText` as well. It does not: the fifth review tried it in Firefox 140
+  and 155, and both honour one. What Firefox drops is the attribute's value.
 - While Mermaid draws, its `style` attributes are written under another name,
   and its scratch `<style>` is an inert element whose text is kept beside the
   drawing. Firefox drops a refused `style` attribute's value as it is set, so
@@ -56,16 +58,23 @@ What the policy refuses, the page stops doing:
   every drawing.
 
 `bin/test` holds the directives as written and fails if the `<meta>` is
-removed or any part of it is loosened. The browser probe runs under the
-policy, because it is the same page, and fails if a script or a stylesheet was
-refused during the run.
+removed, moved out of `<head>` or below anything the page loads, or loosened
+in any part. The browser probe runs under the policy, because it is the same
+page, and fails if a script or a stylesheet was refused during the run — or
+if a handler it writes into the page as markup is not.
 
 ## Consequences
 
 - An escaping miss in the Editor no longer runs inline script, handler or
-  stylesheet. Injected markup can still name a script file the policy's
-  `'self'` matches: on a served Editor that is the Editor's own origin, and on
-  a `file://` page a browser may count any local file as `'self'`.
+  stylesheet. Injected markup can still name a file the policy's `'self'`
+  matches: on a served Editor that is the Editor's own origin, and on a
+  `file://` page Chromium and Firefox count any local file as `'self'`. A
+  stylesheet named that way is applied. A script is not run, because the
+  Editor writes markup through `innerHTML` and a browser never runs a
+  `<script>` written that way.
+- The policy does not govern where the tab goes. A link, or a
+  `<meta http-equiv="refresh">` that reached the page as markup, still leaves
+  the page, and the Document with it.
 - `connect-src 'none'` makes the browser enforce what the source scan in
   `bin/test` already asserts: the Editor opens no connection.
 - The policy is the same on every copy of the Editor, and anyone can read it.
