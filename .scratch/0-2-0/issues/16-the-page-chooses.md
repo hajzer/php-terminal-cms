@@ -1,6 +1,6 @@
 # 16 — The page chooses: Meta, Site Config, and the end of `accent`
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 Blocked by: 14
 
@@ -58,16 +58,16 @@ The Editor's switchers, Legend and `Tab`. The ports.
 
 ## Acceptance
 
-- [ ] `bin/test`: every page bullet in spec §6 — Meta wins over Site Config,
+- [x] `bin/test`: every page bullet in spec §6 — Meta wins over Site Config,
   Site Config over `baseline`, an unknown name falls through at each step,
   `palette` reaches the attribute or is absent, `accent` changes no byte, no
   `<style` in the shell, the 404 takes Site Config's, a build prefixes the
   Theme link and ships the file
-- [ ] `bin/test`: the chain resolver's unit tests, one per fall-through
-- [ ] `bin/test`: `Renderer::meta()` prints `theme` and not `palette`
-- [ ] `bin/test`: no `Site::accent`, no `ACCENT`, and one `nonce=` on a page
+- [x] `bin/test`: the chain resolver's unit tests, one per fall-through
+- [x] `bin/test`: `Renderer::meta()` prints `theme` and not `palette`
+- [x] `bin/test`: no `Site::accent`, no `ACCENT`, and one `nonce=` on a page
   without a Diagram
-- [ ] `docs/config.md`, `docs/format.md`, `docs/security.md`,
+- [x] `docs/config.md`, `docs/format.md`, `docs/security.md`,
   `site.php.example` say what this issue made true, and nothing in `docs/`
   still says `accent` is a setting
-- [ ] `php bin/test` green, no generated file edited
+- [x] `php bin/test` green, no generated file edited
