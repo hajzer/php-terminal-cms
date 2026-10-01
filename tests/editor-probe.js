@@ -1461,6 +1461,20 @@
      writePane.width + ' vs ' + readPane.width + ' :: ' + getComputedStyle(sheetEl).maxWidth);
   run('write');
 
+  /* --- the top bar and the tabs fit the window ------------------------- */
+  /* body hides its overflow, so a control past the window's edge is one no
+     pointer can reach. Holds at any width; open the probe at a phone's
+     to make it bite. */
+  var winW = document.documentElement.clientWidth;
+  var pastEdge = [].filter.call(
+    document.querySelectorAll('.topbar button, .topbar select, .tabs button, .tabs .doc'),
+    function (el) {
+      var r = el.getBoundingClientRect();
+      return r.width && (r.left < -0.5 || r.right > winW + 0.5);
+    }).map(function (el) { return el.id || el.textContent.trim(); });
+  ok('every control in the top bar and the tabs is inside the window',
+     pastEdge.length === 0, pastEdge.join(' ') + ' past ' + winW + 'px');
+
   /* --- the Theme: the menu, :theme, and the pane a Document pins ------- */
   /* a colour an element's custom property names, as getComputedStyle spells
      a colour — <html>'s unless another element is asked */

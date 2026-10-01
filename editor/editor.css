@@ -6,15 +6,20 @@
 html, body { height: 100%; }
 body { overflow: hidden; font: 14px/1.6 var(--font-body); }
 
-.app { height: 100vh; height: 100dvh; display: grid; grid-template-rows: auto auto 1fr auto auto auto; }
+/* the one column is the window's width, not the widest row's: a bar that
+   cannot fit has to wrap, not widen the page past the edge */
+.app { height: 100vh; height: 100dvh; display: grid; grid-template-rows: auto auto 1fr auto auto auto;
+  grid-template-columns: minmax(0, 1fr); }
 
-/* ---------------------------------------------------------------- topbar */
+/* ---------------------------------------------------------------- topbar
+   Wider than the screen, the bar wraps rather than run past the edge: body
+   hides overflow, so whatever ran past it could not be reached. */
 .topbar {
-  display: flex; align-items: center;
+  display: flex; flex-wrap: wrap; align-items: center;
   border-bottom: 1px solid var(--border); background: var(--bg);
-  padding: 0 14px; height: 30px; font-size: 12px;
+  padding: 0 14px; min-height: 30px; font-size: 12px;
 }
-.topbar .brand { color: var(--fg-strong); font-weight: 600; padding-right: 18px; }
+.topbar .brand { color: var(--fg-strong); font-weight: 600; padding-right: 18px; white-space: nowrap; }
 /* the same mark the site wears, capped to the bar's line whatever the
    file's own size is, so it fits without moving anything */
 .topbar .brand .logo {
@@ -29,10 +34,11 @@ body { overflow: hidden; font: 14px/1.6 var(--font-body); }
 .topbar .grow { flex: 1; }
 
 /* what the editor can do to the document as a whole, wearing the one control
-   treatment theme.css derives from the theme's own tokens */
-.topbar .acts { display: flex; align-items: stretch; height: 100%; }
+   treatment theme.css derives from the theme's own tokens. Each control is
+   the bar's height less its border, so a row of them is the bar's line. */
+.topbar .acts { display: flex; flex-wrap: wrap; align-items: stretch; align-self: stretch; }
 .topbar .acts button {
-  all: unset; cursor: pointer; display: flex; align-items: center; padding: 0 12px;
+  all: unset; cursor: pointer; display: flex; align-items: center; padding: 0 12px; min-height: 29px;
   color: var(--ctl-fg); white-space: nowrap;
   background: var(--ctl-bg); box-shadow: var(--ctl-edge);
 }
@@ -45,7 +51,7 @@ body { overflow: hidden; font: 14px/1.6 var(--font-body); }
 }
 .topbar .acts select {
   font: inherit; color: var(--ctl-fg); background: var(--ctl-bg); cursor: pointer;
-  border: 0; border-radius: 0; box-shadow: var(--ctl-edge); padding: 0 8px;
+  border: 0; border-radius: 0; box-shadow: var(--ctl-edge); padding: 0 8px; min-height: 29px;
 }
 .topbar .acts select:hover {
   color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); box-shadow: var(--ctl-edge-hover);
@@ -54,7 +60,7 @@ body { overflow: hidden; font: 14px/1.6 var(--font-body); }
 
 /* ------------------------------------------------------------------ tabs */
 .tabs {
-  display: flex; align-items: stretch; height: 26px; font-size: 12px;
+  display: flex; align-items: stretch; min-height: 26px; font-size: 12px;
   border-bottom: 1px solid var(--border); background: var(--block-bg);
 }
 .tabs button {
@@ -417,10 +423,7 @@ body.dropping::after {
    bottom is the writing loop when there is no keyboard to run it from, so it
    has to be hittable at any width. Sizes only — the layout is below. */
 @media (pointer: coarse) {
-  .topbar { height: auto; }
-  .topbar .acts { overflow-x: auto; }
-  .topbar .acts button, .topbar .acts select { padding: 10px 12px; }
-  .tabs { height: auto; }
+  .topbar .acts button, .topbar .acts select { padding: 10px 12px; min-height: 0; }
   .tabs button { padding: 10px 16px; }
   .ln .txt { padding: 5px 4px; }
   .ln .grip { display: none; }        /* dragging is a mouse; J and K are not */

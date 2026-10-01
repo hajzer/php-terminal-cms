@@ -181,6 +181,11 @@ keyboard to run it from: the line types on the left with `link` among them,
 printed beside it does. Tap a line to put the cursor on it, tap it again to
 write in it.
 
+The top bar and the tabs under it wrap onto as many rows as the screen needs
+rather than run past its edge, so every control in them — the document's
+buttons, the Theme menu, undo and redo, the tabs and the swap, zoom,
+light/dark and the file name — is there to tap on a phone.
+
 ## Layout
 
 The picture at the top says which half is which and what happens between them
