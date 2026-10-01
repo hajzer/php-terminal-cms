@@ -1,6 +1,6 @@
 # 10 — The fourth review, and a code read
 
-Status: ready-for-human
+Status: done
 Spec: ../spec.md
 Blocked by: 01, 02, 03, 04, 05, 06, 07, 08, 09
 
@@ -45,7 +45,7 @@ drift rather than exposure.
 - [x] `## 0.2.0 — fourth review` appended, with scope, severity table, what was
   looked at and left alone, and hardening
 - [x] every finding fixed or filed, none recorded and left
-- [ ] the by-hand checks from 05, 06, 07 and 08 re-run on the final tree
+- [x] the by-hand checks from 05, 06, 07 and 08 re-run on the final tree
 - [x] `php bin/test` green
 
 ## Comments
@@ -124,3 +124,7 @@ drift rather than exposure.
   the text column not filling a wide screen is the measure from 0.1.9, by
   design — the page, the browser and what it looked like are what is
   needed.
+- 2026-10-01, human: the probe is green in Firefox and a real `^V` pastes
+  markdown as Lines; the by-hand checks are accepted and the issue is closed.
+  The remark on screen width was about the published page, and nothing there
+  changed since 0.1.9 — left for a separate decision.
