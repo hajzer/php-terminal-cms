@@ -9,6 +9,12 @@
  *   $ firefox tests/editor-probe.html      (or open it any other way) */
 (function () {
   var out = [];
+  /* what the Editor made of the kept Palette as it loaded, before any key */
+  var paletteAtLoad = document.documentElement.getAttribute('data-palette');
+  var paletteKept = paletteStored();
+  function paletteStored() {
+    try { return localStorage.getItem('tcms-palette'); } catch (e) { return 'unreadable'; }
+  }
   function ok(name, cond, got) { out.push((cond ? 'ok   ' : 'FAIL ') + name + (cond ? '' : '  -> ' + got)); }
   function key(k, el, shift, ctrl) {
     (el || document).dispatchEvent(new KeyboardEvent('keydown',
@@ -1331,6 +1337,40 @@
   /* leave split showing read, as a fresh Editor would */
   run('read');
   run('write');
+
+  /* --- the Palette: T flips it, and the Editor keeps it ---------------- */
+  var htmlEl = document.documentElement;
+  ok('the Editor is drawn in Baseline', htmlEl.getAttribute('data-theme') === 'baseline',
+     htmlEl.getAttribute('data-theme'));
+  ok('it opened in the Palette it kept, and in none when it kept none, so a fresh one follows the browser',
+     paletteAtLoad === (paletteKept === 'light' || paletteKept === 'dark' ? paletteKept : null),
+     paletteAtLoad + ' with ' + paletteKept + ' kept');
+  var PAPER = { light: 'rgb(251, 249, 245)', dark: 'rgb(25, 28, 30)' };
+  key('T');
+  var flipped = htmlEl.getAttribute('data-palette');
+  ok('T sets data-palette to light or dark, and says which',
+     (flipped === 'light' || flipped === 'dark') && msg() === 'palette ' + flipped,
+     flipped + ' / ' + msg());
+  ok('and keeps it, which is what a reload opens in', paletteStored() === flipped, paletteStored());
+  ok('and the page is drawn in it', getComputedStyle(document.body).backgroundColor === PAPER[flipped],
+     getComputedStyle(document.body).backgroundColor);
+  key('T');
+  var back = htmlEl.getAttribute('data-palette');
+  ok('T again flips it to the other, and keeps that',
+     back === (flipped === 'dark' ? 'light' : 'dark') && paletteStored() === back &&
+     getComputedStyle(document.body).backgroundColor === PAPER[back],
+     back + ' kept ' + paletteStored());
+  run('palette');
+  ok(':palette flips it the same way', htmlEl.getAttribute('data-palette') === flipped &&
+     msg() === 'palette ' + flipped, htmlEl.getAttribute('data-palette') + ' / ' + msg());
+  run('palette');
+  /* and leave the profile keeping what it kept, so a fresh one stays fresh */
+  try {
+    if (paletteKept === null) localStorage.removeItem('tcms-palette');
+    else localStorage.setItem('tcms-palette', paletteKept);
+  } catch (e) {}
+  if (paletteAtLoad === null) htmlEl.removeAttribute('data-palette');
+  else htmlEl.setAttribute('data-palette', paletteAtLoad);
 
   /* --- the write pane has the read pane's measure ---------------------- */
   /* The two panes have different font bases — the sheet is 14px, the reader

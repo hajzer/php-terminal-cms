@@ -74,14 +74,22 @@
     try { localStorage.setItem(key, String(value)); } catch (e) {}
   }
 
-  (function initTheme() {
-    document.documentElement.setAttribute('data-theme', stored('tcms-theme', 'dark'));
+  /* The Palette is the writer's once they choose one; until then there is no
+     data-palette and the sheet follows the browser's preference. */
+  var prefersDark = matchMedia('(prefers-color-scheme: dark)');
+  (function initPalette() {
+    var p = stored('tcms-palette', '');
+    if (p === 'light' || p === 'dark') document.documentElement.setAttribute('data-palette', p);
   })();
-  function theme() { return document.documentElement.getAttribute('data-theme'); }
-  function toggleTheme() {
-    var next = theme() === 'dark' ? 'normal' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    store('tcms-theme', next);
+  /* the Palette in force, chosen or not */
+  function palette() {
+    return document.documentElement.getAttribute('data-palette') ||
+      (prefersDark.matches ? 'dark' : 'light');
+  }
+  function togglePalette() {
+    var next = palette() === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-palette', next);
+    store('tcms-palette', next);
     drawDiagrams();
     return next;
   }
@@ -370,15 +378,15 @@
      and is drawn over that block here, after every redraw. Nothing is loaded
      until a redraw finds one: then the library is fetched from beside this
      script, with its nonce when the page has one, and each Diagram is drawn
-     once per source and theme and kept, so the redraw every keystroke makes
+     once per source and Palette and kept, so the redraw every keystroke makes
      puts the picture straight back. A Diagram that is already drawn keeps its
-     picture until the one for the new theme is ready. */
+     picture until the one for the new Palette is ready. */
   var own = document.currentScript;
   var nonce = (own && own.nonce) || '';
   var LIBRARY = own ? own.src.replace(/[^\/]*$/, 'mermaid.min.js') : 'mermaid.min.js';
   var SVG_NS = 'http://www.w3.org/2000/svg';
   var libraryIs = '';                /* '', 'loading', 'ready' or 'failed' */
-  var drawings = new Map();          /* theme + source -> { svg } or { error } */
+  var drawings = new Map();          /* Palette + source -> { svg } or { error } */
   var DRAWINGS_KEPT = 32;
   var queue = Promise.resolve(), drawn = 0;
   /* the block a drawing was placed in -> the source and key it was drawn from,
@@ -393,7 +401,7 @@
     });
     if (!blocks.length) return;
     if (libraryIs !== 'ready') { loadLibrary(); return; }
-    var drawnIn = theme();
+    var drawnIn = palette();
     blocks.forEach(function (block) {
       var was = placed.get(block);
       var src = was ? was.src : block.querySelector('pre.code').textContent;
@@ -427,7 +435,7 @@
   }
 
   /* One drawing at a time, each with the configuration of the moment it was
-     asked for, so a theme toggled twice cannot draw one theme in the other's
+     asked for, so a Palette flipped twice cannot draw one in the other's
      colours. */
   function ask(d, src) {
     var config = diagramConfig();
@@ -460,7 +468,7 @@
       theme: 'base',
       fontFamily: font,
       themeVariables: {
-        darkMode: theme() === 'dark',
+        darkMode: palette() === 'dark',
         fontFamily: font,
         background: v('--bg'),
         primaryColor: v('--bg'),
@@ -1359,8 +1367,8 @@
         else say('size up · down · reset');
       } },
 
-    { name: 'theme', help: 'normal ⇄ dark',
-      run: function () { say('theme ' + toggleTheme()); } },
+    { name: 'palette', help: 'light ⇄ dark',
+      run: function () { say('palette ' + togglePalette()); } },
 
     { name: 'help', help: 'this list, and every key',
       run: function () { help.classList.add('on'); } },
@@ -1668,7 +1676,7 @@
     if (k === '+' || k === '=') { bumpScale(1); e.preventDefault(); return; }
     if (k === '-' || k === '_') { bumpScale(-1); e.preventDefault(); return; }
     if (k === '0') { setScale(1); return; }
-    if (k === 'T') { say('theme ' + toggleTheme()); return; }
+    if (k === 'T') { say('palette ' + togglePalette()); return; }
     if (k === 'E') { openExport(); return; }
     if (k === 'N') { newDoc(); return; }
     if (k === 'R') { startName(); return; }

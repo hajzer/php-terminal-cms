@@ -274,14 +274,16 @@ Everything else in the file is text, and text is escaped.
 
 ## Themes
 
-Two, normal and dark. There is no third "follow the system" setting to
-configure: a visitor who has expressed no preference gets whichever their OS
-asks for via `prefers-color-scheme`, and the toggle in the top bar overrides
-that and is remembered in their browser.
+A page is drawn in one Theme, Baseline, in one of two Palettes, light and
+dark. There is no third "follow the system" setting to configure: a visitor who
+has expressed no preference gets whichever their OS asks for via
+`prefers-color-scheme`, and the toggle in the top bar overrides that and is
+remembered in their browser.
 
-To change the palette, edit `shared/theme.css` and run `php bin/build` — it is
-the single source for both the site and the editor. The custom properties are at
-the top of the file; everything below them is structure.
+A Theme's colours, faces, corner and heading weight are in
+`shared/themes/<name>.json`; `php bin/build` writes it into a stylesheet for
+both the site and the editor. `shared/theme.css` is the structure every Theme
+draws, and the tokens a Theme defines are listed at the top of it.
 
 ## The editor
 

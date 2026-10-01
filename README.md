@@ -105,7 +105,7 @@ z        fold output     C        copy the block     Tab     cycle dialect
 a        link / image    Tab ⇧Tab next / prev table cell
 ^K       link at caret   ^← ^→    move the table column
 ^Z ^⇧Z   undo / redo     N        new document       R       name the file
-E        export          T        theme              :       command line
+E        export          T        palette            :       command line
 e v b    write/read/split         B  swap the panes  + - 0   content size
 ^B 1/2/3 write / read / split     ?  keys and commands
 ```
@@ -190,15 +190,15 @@ the files are.
 README.md  LICENSE  VERSION  CONTEXT.md  CHANGELOG.md  AGENTS.md
 docs/          line-types · keymap · format · config · deploy
                security · security-audit · adr/ · agents/ · media/
-shared/        langs.json   theme.css          ← single sources
+shared/        langs.json  theme.css  themes/ ← single sources
 editor/        index.html  editor.js  ui.js    ← the static editor
 site/
-  public/      index.php  .htaccess  theme.css  site.css  media/
+  public/      index.php  .htaccess  theme.css  themes/  site.css  media/
   src/         Router  Markdown  Renderer  Highlighter  Document  Line  Listing
                Language  Page  Site  BasePath
   content/     <category>/<slug>.md   <slug>-<lang>.md
   site.php.example
-bin/           build  test  fmt  package  page-build  manifest.php
+bin/           build  test  fmt  package  page-build  manifest.php  themes.php
 tests/         js-dump.js  js-model.js  js-tables.js  js-inline.js  editor-probe.html
 ```
 
@@ -213,7 +213,7 @@ tab — is the only file that differs between two installations. Copy it from
 | | |
 | --- | --- |
 | `php bin/build` | regenerate derived files from `shared/` |
-| `php bin/test` | the whole suite — round trip, PHP/JS agreement, the editor's model, escaping, link targets, routing, listings, the footer, the page shell, the Page Build, the release manifest |
+| `php bin/test` | the whole suite — round trip, PHP/JS agreement, the editor's model, escaping, link targets, routing, listings, the footer, the Themes, the page shell, the Page Build, the release manifest |
 | `php bin/fmt` | rewrite `content/` into canonical form (`--check` to only report) |
 | `php bin/package` | build `dist/php-terminal-cms-<version>.{tar.gz,zip}` |
 | `php bin/page-build --output=<dir> [--base-url=<url>]` | render every page of the Instance to files, for a host that runs no PHP |
@@ -225,7 +225,8 @@ always drives the page the editor actually is.
 
 `bin/build` exists because three files are derived: `editor/langs.js` (the editor
 must work from `file://`, where `fetch()` is blocked), the two copies of
-`theme.css`, and the probe page above. `bin/test` fails if any has drifted from
+`theme.css`, each Theme's stylesheet in both halves with `editor/themes.js`,
+and the probe page above. `bin/test` fails if any has drifted from
 its source.
 
 ## Requirements

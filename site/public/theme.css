@@ -2,10 +2,39 @@
    by bin/build. Derived from terminal.css (panr.github.io/terminal-css): the
    same structural rules, recoloured for long reading.
 
-   Exactly two modes, normal and dark:
-     :root                                   normal
-     @media (prefers-color-scheme: dark)     dark, when the visitor has not chosen
-     [data-theme="dark"] / ="normal"         an explicit choice always wins        */
+   This sheet is the structure and the metrics. Every colour, face and corner
+   it draws with is a token a Theme gives a value — shared/themes/<name>.json,
+   written by bin/build into themes/<name>.css beside this file — and the
+   rules below reach colour, type and shape through these names only.
+
+   The token contract, what a Theme defines and all it defines:
+
+   In each Palette, light and dark:
+     --bg            the page
+     --block-bg      a block's bar, a note, a table head, a control at rest
+     --code-bg       code, and a control under the pointer
+     --fg            text
+     --fg-strong     headings, bold, code
+     --secondary     quieter text
+     --faint         marks: the ## of a heading, a list's dash, a date
+     --border        every rule and frame
+     --primary       links
+     --accent        emphasis, a note, the prompt, the keyboard's ring
+     --invert-fg     text on --primary
+     --tk-kw --tk-str --tk-num --tk-com --tk-bi --tk-var
+                     the syntax: keyword, string, number, comment, built-in,
+                     variable
+
+   Once, for both Palettes:
+     --font-body       the reading face, and the Editor's
+     --font-heading    headings
+     --mono            code, the CLI prompt, every control
+     --radius          every rounded corner
+     --heading-weight  headings
+
+   A Theme's light values hold under [data-theme="<name>"], its dark ones
+   under data-palette="dark" or, with no data-palette, a browser that
+   prefers dark.                                                            */
 
 :root {
   --global-font-size: 15px;
@@ -18,34 +47,14 @@
   --page-width: calc(var(--page-measure) * 1em);
   --page-width-px: calc(var(--page-measure) * var(--global-font-size));
   --doc-scale: 1;         /* + / - in the editor and on the page; see Page.php */
-  --mono: ui-monospace, SFMono-Regular, "JetBrains Mono", "Fira Code", Menlo, Monaco, Consolas, monospace;
-
-  --bg:        #fbf9f5;   /* warm paper, never #fff */
-  --block-bg:  #f3efe7;
-  --code-bg:   #efeae0;
-  --fg:        #33312c;   /* soft ink, never #000 */
-  --fg-strong: #191813;
-  --secondary: #8a8377;
-  --faint:     #b6afa2;
-  --border:    #ddd6c9;
-  --primary:   #2f6f9f;
-  --accent:    #137a3f;
-  --invert-fg: #fbf9f5;
-
-  --tk-kw:  #7d4f9e;
-  --tk-str: #4a7a3c;
-  --tk-num: #96601f;
-  --tk-com: #9a9386;
-  --tk-bi:  #2f6f9f;
-  --tk-var: #a34a3c;
 
   /* ---------- controls ----------
      One treatment for every control the reader and the writer can press, in
      both halves: a resting state that can be seen, a hover that answers, and
-     a ring for the keyboard. Written in terms of the tokens above, so each
-     mode follows on its own and the page and the editor cannot drift.
+     a ring for the keyboard. Written in terms of the tokens, so each Theme
+     and Palette follows on its own and the page and the editor cannot drift.
      --ctl-bg is one step away from the page and --ctl-bg-hover a step
-     further, whichever mode is on.
+     further, whichever Palette is on.
 
      A control that has a border of its own colours it --ctl-line; one that
      has not draws the same edge as --ctl-edge, a shadow. The ring is an
@@ -63,57 +72,13 @@
   --ctl-ring-offset: -2px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="normal"]) {
-    --bg:        #191c1e;
-    --block-bg:  #1e2225;
-    --code-bg:   #21262a;
-    --fg:        #cbd0d1;
-    --fg-strong: #e8ecec;
-    --secondary: #7c8486;
-    --faint:     #5a6265;
-    --border:    #2d3336;
-    --primary:   #7fb2d9;
-    --accent:    #21e08a;
-    --invert-fg: #191c1e;
-
-    --tk-kw:  #c39ac9;
-    --tk-str: #a3c98f;
-    --tk-num: #d9b06a;
-    --tk-com: #6d7679;
-    --tk-bi:  #7fb2d9;
-    --tk-var: #e0a49a;
-  }
-}
-
-:root[data-theme="dark"] {
-  --bg:        #191c1e;
-  --block-bg:  #1e2225;
-  --code-bg:   #21262a;
-  --fg:        #cbd0d1;
-  --fg-strong: #e8ecec;
-  --secondary: #7c8486;
-  --faint:     #5a6265;
-  --border:    #2d3336;
-  --primary:   #7fb2d9;
-  --accent:    #21e08a;
-  --invert-fg: #191c1e;
-
-  --tk-kw:  #c39ac9;
-  --tk-str: #a3c98f;
-  --tk-num: #d9b06a;
-  --tk-com: #6d7679;
-  --tk-bi:  #7fb2d9;
-  --tk-var: #e0a49a;
-}
-
 * { box-sizing: border-box; }
 
 body.reader {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
-  font: var(--global-font-size)/var(--global-line-height) var(--mono);
+  font: var(--global-font-size)/var(--global-line-height) var(--font-body);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -132,7 +97,7 @@ body.reader {
   border-bottom: 1px dashed var(--border);
 }
 .reader h1, .reader h2, .reader h3 {
-  font-weight: 600; color: var(--fg-strong); line-height: 1.25;
+  font-family: var(--font-heading); font-weight: var(--heading-weight); color: var(--fg-strong); line-height: 1.25;
   margin: calc(var(--global-space) * 3) 0 var(--global-line-height);
 }
 .reader h1 { font-size: 1.9em; margin-top: 0; letter-spacing: -.02em; }
@@ -163,6 +128,7 @@ body.reader {
   margin: calc(var(--global-space) * 2) 0;
   padding: var(--global-space) calc(var(--global-space) * 1.5);
   background: var(--block-bg); border-left: 2px solid var(--accent); color: var(--fg);
+  border-radius: var(--radius);
 }
 .reader .note-tag {
   display: block; color: var(--accent); font-size: 11px;
@@ -180,6 +146,11 @@ body.reader {
 
 /* ---------- code, CLI, output ---------- */
 .reader .block { position: relative; margin: calc(var(--global-space) * 2) 0; }
+.reader .block-bar, .reader pre, .reader code { font-family: var(--mono); }
+/* a block is its bar, its code and its output stacked: the stack is rounded
+   at its outer corners and nowhere between */
+.reader .block > :first-child { border-top-left-radius: var(--radius); border-top-right-radius: var(--radius); }
+.reader .block > :last-child { border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius); }
 .reader .block-bar {
   display: flex; align-items: center; gap: 8px;
   border: 1px solid var(--border); border-bottom: 0;
@@ -192,6 +163,7 @@ body.reader {
 .reader .block-bar .copy {
   all: unset; cursor: pointer; color: var(--ctl-fg); font: 11px/1 var(--mono);
   padding: 3px 8px; border: 1px solid var(--ctl-line); background: var(--ctl-bg);
+  border-radius: var(--radius);
 }
 .reader .block-bar .copy:hover {
   color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); border-color: var(--ctl-line-hover);
@@ -204,7 +176,7 @@ body.reader {
 }
 .reader pre.cli { background: var(--block-bg); }
 .reader pre.cli .pr { color: var(--accent); user-select: none; }
-.reader code { background: var(--code-bg); color: var(--fg-strong); padding: 0 4px; }
+.reader code { background: var(--code-bg); color: var(--fg-strong); padding: 0 4px; border-radius: var(--radius); }
 .reader p code::before, .reader p code::after,
 .reader li code::before, .reader li code::after { content: "`"; color: var(--faint); }
 .reader td code::before, .reader td code::after { content: ""; }
@@ -234,13 +206,13 @@ body.reader {
 }
 
 /* a drawn Diagram is in the frame its source was in, centred at its own width */
-.reader .block:has(> svg) { border: 1px solid var(--border); }
+.reader .block:has(> svg) { border: 1px solid var(--border); border-radius: var(--radius); }
 .reader .block:has(> svg) > .block-bar { border-width: 0 0 1px; }
 .reader .block > svg { display: block; margin: var(--global-space) auto; }
 
 /* ---------- figures ---------- */
 .reader figure { margin: calc(var(--global-space) * 2) 0; }
-.reader figure img { max-width: 100%; display: block; border: 1px solid var(--border); }
+.reader figure img { max-width: 100%; display: block; border: 1px solid var(--border); border-radius: var(--radius); }
 .reader figcaption { color: var(--secondary); font-size: .8em; margin-top: 5px; }
 
 /* ---------- syntax tokens ---------- */

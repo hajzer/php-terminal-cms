@@ -37,6 +37,7 @@ main.reader-page { font-size: calc(var(--global-font-size) * var(--doc-scale)); 
 .topbar .host button {
   all: unset; cursor: pointer; color: var(--ctl-fg); font: 11px/1 var(--mono);
   padding: 4px 8px; border: 1px solid var(--ctl-line); background: var(--ctl-bg);
+  border-radius: var(--radius);
 }
 .topbar .host button:hover {
   color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); border-color: var(--ctl-line-hover);

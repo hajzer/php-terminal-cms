@@ -128,7 +128,7 @@ allowlist the page uses — but it does not stop you committing it.
 | `B` | swap the two panes — editor left or editor right |
 | `+` `-` | content bigger / smaller, in both panes |
 | `0` | content back to 100% |
-| `T` | theme, normal ⇄ dark |
+| `T` | palette, light ⇄ dark |
 | `:` | command line |
 | `?` | the keys and every command, in the editor |
 
@@ -292,7 +292,7 @@ removes one and `y` duplicates one, exactly as they do everywhere else.
 | `write` · `read` · `split` | choose the pane layout |
 | `swap` | swap the panes, switching to split screen if it is not on |
 | `size up\|down\|reset` | content size, the same as `+` `-` `0` |
-| `theme` | normal ⇄ dark |
+| `palette` | light ⇄ dark |
 | `help` | the keys and this table |
 
 `w` is recognised and says there is nothing to save: the editor has nowhere to

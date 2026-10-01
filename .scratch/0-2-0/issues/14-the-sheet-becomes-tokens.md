@@ -63,17 +63,29 @@ A second Theme. Reading `theme:` or `palette:` from anywhere. The select, the
 
 ## Acceptance
 
-- [ ] `bin/test`: `shared/theme.css` holds no hex colour and no face name
+- [x] `bin/test`: `shared/theme.css` holds no hex colour and no face name
   outside the contract comment
-- [ ] `bin/test`: `baseline.json` defines exactly the contract, both Palettes
-- [ ] `bin/test`: the generated files in both halves and `themes.js` match
+- [x] `bin/test`: `baseline.json` defines exactly the contract, both Palettes
+- [x] `bin/test`: the generated files in both halves and `themes.js` match
   `bin/build`'s output; `editor/index.html` links every Theme file and no
   other
-- [ ] `bin/test`: a rendered page carries `data-theme="baseline"`, links
+- [x] `bin/test`: a rendered page carries `data-theme="baseline"`, links
   `theme.css`, `themes/baseline.css`, `site.css` in that order, each through
   the Base Path in a build, and carries no `data-palette`
-- [ ] `tests/editor-probe.html`: `T` flips `data-palette` between `light`
+- [x] `tests/editor-probe.html`: `T` flips `data-palette` between `light`
   and `dark`, the value survives a reload, and a fresh profile has none
 - [ ] by hand: the Editor and a page, light and dark, are what they were
   before this issue, to the eye
-- [ ] `php bin/test` green, `php bin/build` run, no generated file edited
+- [x] `php bin/test` green, `php bin/build` run, no generated file edited
+
+## Notes
+
+- Probe: 255 of 255 in headless Chromium and Firefox, with the browser
+  preferring light and preferring dark, fresh and after a reload; an old
+  `tcms-theme` of `dark` leaves no `data-palette` on either surface.
+- The by-hand box, measured headlessly: screenshots of `/`,
+  `/about/everything-is-a-line`, `/guides/writing-in-the-editor`,
+  `/guides/install-in-five-minutes` and the Editor, in both Palettes and
+  both browser preferences, are byte-identical to HEAD's. The box waits for
+  the maintainer's eye.
+- No token was added to the contract.

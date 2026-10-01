@@ -13,6 +13,9 @@ final class Page
      */
     private const MERMAID = '/mermaid.min.js';
 
+    /** The Theme every page is drawn in. */
+    private const THEME = 'baseline';
+
     /**
      * @param array<string,mixed> $site
      * @param array{status:int,title:string,body:string,active:?string,lang?:string} $r
@@ -86,7 +89,7 @@ final class Page
         }
 
         return '<!doctype html>
-<html lang="' . e($lang) . '">
+<html lang="' . e($lang) . '" data-theme="' . self::THEME . '">
 <head>' .
 ($ownPolicy ? "\n" . '<meta http-equiv="Content-Security-Policy" content="' . Policy::forMeta($nonce) . '">' : '') . '
 <meta charset="utf-8">
@@ -95,6 +98,7 @@ final class Page
 ($tagline !== '' ? "\n" . '<meta name="description" content="' . e($tagline) . '">' : '') .
 $iconLink . '
 <link rel="stylesheet" href="' . e($at->local('/theme.css')) . '">
+<link rel="stylesheet" href="' . e($at->local('/themes/' . self::THEME . '.css')) . '">
 <link rel="stylesheet" href="' . e($at->local('/site.css')) . '">
 <style' . self::nonceAttr($nonce) . '>:root{--accent:' . e($accent) . '}</style>
 </head>
@@ -173,7 +177,7 @@ $iconLink . '
 
     /**
      * The page is complete and readable with this script blocked or disabled:
-     * on every page it adds a copy button to code blocks, a theme toggle and a
+     * on every page it adds a copy button to code blocks, a Palette toggle and a
      * text-size control, and it is inline so there is no third-party origin to
      * trust. No content depends on it. Remove it and you lose those
      * conveniences, not any words.
@@ -199,16 +203,18 @@ $iconLink . '
   function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 
-  var t = get('tcms-theme');
-  if (t) document.documentElement.setAttribute('data-theme', t);
+  /* the Palette: the reader's own choice, and until there is one the
+     browser's preference, which the sheet answers with no attribute at all */
+  var p = get('tcms-palette');
+  if (p === 'light' || p === 'dark') document.documentElement.setAttribute('data-palette', p);
   var b = document.getElementById('theme');
   b.hidden = false;
   b.addEventListener('click', function () {
-    var cur = document.documentElement.getAttribute('data-theme');
-    if (!cur) cur = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'normal';
-    var next = cur === 'dark' ? 'normal' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    set('tcms-theme', next);
+    var cur = document.documentElement.getAttribute('data-palette');
+    if (!cur) cur = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    var next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-palette', next);
+    set('tcms-palette', next);
   });
 
   var scale = parseFloat(get('tcms-scale')) || 1;
@@ -262,7 +268,7 @@ HTML
      * goes into one <style> made here with the nonce, and each style attribute
      * is taken off and written back through the CSSOM once the SVG is in the
      * page, which the policy permits. A source that does not parse keeps its
-     * code block, and the page says nothing about it. The theme toggle draws
+     * code block, and the page says nothing about it. The Palette toggle draws
      * every Diagram again in the new colours.
      *
      * The Editor's read pane draws the same way, with the same configuration,
@@ -298,7 +304,7 @@ HTML
   var queue = Promise.resolve(), drawn = 0;
 
   /* one drawing at a time, each with the colours of the moment it was asked
-     for, so a theme toggled twice cannot draw one theme in the other's */
+     for, so a Palette flipped twice cannot draw one in the other's */
   function drawAll() {
     var config = diagramConfig();
     diagrams.forEach(function (d) {
@@ -315,7 +321,7 @@ HTML
     var root = document.documentElement;
     var css = getComputedStyle(root);
     function v(name) { return css.getPropertyValue(name).trim(); }
-    var chosen = root.getAttribute('data-theme');
+    var chosen = root.getAttribute('data-palette');
     var dark = chosen ? chosen === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
     var font = getComputedStyle(document.querySelector('main') || document.body).fontFamily;
     return {

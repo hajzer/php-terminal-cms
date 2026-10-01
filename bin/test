@@ -107,7 +107,7 @@ $checks = [
     '/site/public/mermaid.min.js' => (string) file_get_contents($root . '/shared/mermaid.min.js'),
     '/site/public/media/architecture.svg'
                               => (string) file_get_contents($root . '/docs/media/architecture.svg'),
-];
+] + (require $root . '/bin/themes.php')($root);
 /* the probe page is the editor page; undo the rewrites bin/build makes and
    what is left has to be byte-identical to editor/index.html */
 $probe = (string) @file_get_contents($root . '/tests/editor-probe.html');
@@ -134,6 +134,121 @@ foreach ($checks as $rel => $want) {
     ok(is_file($root . $rel) && file_get_contents($root . $rel) === $want,
        "$rel matches its source", 'run bin/build');
 }
+
+/* a generated Theme file whose JSON is gone is drift too: the directory is
+   the list, and nothing outside it may answer to a Theme name */
+$strays = [];
+foreach (['/editor/themes', '/site/public/themes'] as $dir) {
+    foreach (glob($root . $dir . '/*') ?: [] as $f) {
+        if (!isset($checks[substr($f, strlen($root))])) {
+            $strays[] = substr($f, strlen($root) + 1);
+        }
+    }
+}
+ok($strays === [], 'and no Theme file is there that shared/themes/ does not make',
+   implode("\n", $strays) . "\nremove it, or add its JSON");
+
+/* ------------------------------------------------------------------ Themes */
+echo "\nthemes\n";
+$sheet = (string) file_get_contents($root . '/shared/theme.css');
+$opening = preg_match('~^/\*.*?\*/~s', $sheet, $m) === 1 ? $m[0] : '';
+/** The contract tokens listed in the sheet's opening comment between two headings. */
+function contract(string $comment, string $from, string $to): array
+{
+    $at  = strpos($comment, $from);
+    $end = $to === '' ? strlen($comment) : strpos($comment, $to);
+    if ($at === false || $end === false) {
+        return [];
+    }
+    preg_match_all('~--[a-z][a-z-]*~', substr($comment, $at, $end - $at), $t);
+    return array_values(array_unique($t[0]));
+}
+$perPalette = contract($opening, 'In each Palette', 'Once, for both');
+$once       = contract($opening, 'Once, for both', '');
+ok(count($perPalette) === 17 && count($once) === 5
+   && array_intersect(['--bg', '--invert-fg', '--tk-kw', '--tk-var'], $perPalette) === ['--bg', '--invert-fg', '--tk-kw', '--tk-var']
+   && $once === ['--font-body', '--font-heading', '--mono', '--radius', '--heading-weight'],
+   'shared/theme.css opens with the token contract: seventeen colours per Palette and five tokens once',
+   implode(' ', $perPalette) . "\n" . implode(' ', $once));
+
+/* below the contract the sheet is structure: no colour, no face, and no
+   value for any token a Theme gives one */
+$structure = (string) preg_replace('~/\*.*?\*/~s', '', substr($sheet, strlen($opening)));
+preg_match_all('~#[0-9a-fA-F]{3,8}\b~', $structure, $hex);
+ok($hex[0] === [], 'shared/theme.css holds no hex colour outside the contract comment', implode(' ', $hex[0]));
+$faces = [];
+preg_match_all('~(?<![-\w])font(?:-family)?\s*:\s*([^;}]*)~', $structure, $decls);
+foreach ($decls[1] as $value) {
+    $left = trim((string) preg_replace(['~var\(--[a-z-]+\)~', '~[\d.]+(?:px|em|rem|%)?~', '~/~'], ' ', $value));
+    if ($left !== '' && $left !== 'inherit') {
+        $faces[] = trim($value);
+    }
+}
+preg_match_all('~\b(?:monospace|sans-serif|serif|system-ui|ui-monospace)\b~', $structure, $generic);
+ok($faces === [] && $generic[0] === [],
+   'and no face: font and font-family reach type only through var(--…)',
+   implode("\n", array_merge($faces, $generic[0])));
+preg_match_all('~(--[a-z][a-z-]*)\s*:~', $structure, $defined);
+$own = array_values(array_intersect($defined[1], array_merge($perPalette, $once)));
+ok($own === [], 'and gives none of the contract tokens a value of its own', implode(' ', $own));
+preg_match_all('~var\((--[a-z][a-z-]*)~', $structure, $used);
+ok(array_diff(array_merge($perPalette, $once), $used[1]) === [],
+   'and draws with every one of them',
+   implode(' ', array_diff(array_merge($perPalette, $once), $used[1])));
+
+$themeFiles = glob($root . '/shared/themes/*.json') ?: [];
+ok(in_array($root . '/shared/themes/baseline.json', $themeFiles, true), 'Baseline is a Theme');
+foreach ($themeFiles as $f) {
+    $file  = basename($f);
+    $t     = json_decode((string) file_get_contents($f), true);
+    $t     = is_array($t) ? $t : [];
+    $wrong = [];
+    $name  = (string) ($t['name'] ?? '');
+    if ($name !== basename($f, '.json') || preg_match('~^[a-z0-9]+(?:-[a-z0-9]+)*$~', $name) !== 1) {
+        $wrong[] = "name " . json_encode($t['name'] ?? null) . " is not the file's, or not a slug";
+    }
+    if (!is_string($t['label'] ?? null) || trim($t['label']) === '') {
+        $wrong[] = 'no label';
+    }
+    $src = is_array($t['source'] ?? null) ? $t['source'] : [];
+    foreach (['repo', 'author', 'copyright'] as $k) {
+        if (!is_string($src[$k] ?? null) || trim($src[$k]) === '') {
+            $wrong[] = "no source.$k";
+        }
+    }
+    if (($src['license'] ?? null) !== 'MIT') {
+        $wrong[] = 'source.license is not MIT';
+    }
+    $top = array_diff(array_keys($t), ['name', 'label', 'source', 'light', 'dark']);
+    if (array_values($top) != $once) {
+        $wrong[] = 'once-only tokens: ' . implode(' ', $top);
+    }
+    foreach ($once as $k) {
+        if (!is_string($t[$k] ?? null) || trim($t[$k]) === '') {
+            $wrong[] = "$k has no value";
+        }
+    }
+    foreach (['light', 'dark'] as $p) {
+        $map  = is_array($t[$p] ?? null) ? $t[$p] : [];
+        $keys = array_keys($map);
+        if (array_diff($perPalette, $keys) !== [] || array_diff($keys, $perPalette) !== []) {
+            $wrong[] = "$p: missing " . implode(' ', array_diff($perPalette, $keys))
+                     . '; extra ' . implode(' ', array_diff($keys, $perPalette));
+        }
+        foreach ($map as $k => $v) {
+            if (!is_string($v) || preg_match('~^#[0-9a-fA-F]{6}$~', $v) !== 1) {
+                $wrong[] = "$p $k is not six hex digits: " . json_encode($v);
+            }
+        }
+    }
+    ok($wrong === [], "shared/themes/$file defines exactly the contract, in both Palettes", implode("\n", $wrong));
+}
+
+/* the Editor wears every Theme the build makes, and nothing else */
+preg_match_all('~<link rel="stylesheet" href="(themes/[^"]+)">~', (string) file_get_contents($root . '/editor/index.html'), $linked);
+$made = array_map(static fn (string $f): string => 'themes/' . basename($f, '.json') . '.css', $themeFiles);
+ok($linked[1] === $made, 'editor/index.html links every Theme\'s stylesheet and no other',
+   implode(' ', $linked[1]) . ' vs ' . implode(' ', $made));
 
 /* ---------------------------------------------------- the vendored library
  *
@@ -777,7 +892,7 @@ foreach ($routes as $uri => [$title, $lang]) {
     ok($r['status'] === 200 && $r['title'] === $title && $r['lang'] === $lang,
        sprintf('%-16s is %s in %s', $uri, $title, $lang),
        $r['status'] . ' ' . $r['title'] . ' ' . $r['lang']);
-    ok(str_contains(TerminalCms\Page::html($multi, $r), '<html lang="' . $lang . '">'),
+    ok(str_contains(TerminalCms\Page::html($multi, $r), '<html lang="' . $lang . '" '),
        'and the page says so', $lang);
 }
 
@@ -943,6 +1058,24 @@ ok(!str_contains(TerminalCms\Page::html($site, $home), 'nonce='),
 ok(str_contains($nonced, '(function () {') && !str_contains($nonced, '$nonceAttr'),
    'the script is emitted as written, not read as PHP', $nonced);
 
+/** The stylesheets a page links, in the order it links them. */
+function stylesheets(string $html): array
+{
+    preg_match_all('~<link rel="stylesheet" href="([^"]*)">~', $html, $m);
+    return $m[1];
+}
+/* the page is drawn in one Theme, and leaves the Palette to the reader */
+$plainShell = TerminalCms\Page::html($site, $home);
+ok(str_contains($plainShell, '<html lang="en" data-theme="baseline">'),
+   'a page is drawn in Baseline, named on <html>', $plainShell);
+ok(stylesheets($plainShell) === ['/theme.css', '/themes/baseline.css', '/site.css'],
+   'and links the sheet, the Theme, then the site\'s chrome, in that order',
+   implode(' ', stylesheets($plainShell)));
+ok(preg_match_all('~<[a-z]+ [^>]*data-palette~', $plainShell) === 0,
+   'and names no Palette: a reader who has not chosen one gets their browser\'s');
+ok(str_contains($plainShell, "get('tcms-palette')") && !str_contains($plainShell, 'tcms-theme'),
+   'the toggle keeps the reader\'s Palette under tcms-palette, so an old tcms-theme is not read');
+
 /* the policy those nonces answer to, written once: the header the entry point
    sends, and the <meta> a built page carries, which cannot say
    frame-ancestors */
@@ -1001,14 +1134,17 @@ ok(count($refused) === 6,
 
 /* A page without a Diagram carries nothing of the drawing, to the byte. The
    hash is of a fixed shell, so it moves only when the shell does — and a
-   change to it is a change to every page on every Instance, made on purpose. */
+   change to it is a change to every page on every Instance, made on purpose.
+   The shell it pins names its Theme on <html>, links that Theme's
+   stylesheet after theme.css, and keeps the reader's Palette as
+   data-palette and tcms-palette. */
 $fixedSite  = ['title' => 'Shell', 'tagline' => 'a fixed site', 'accent' => '#21e08a',
                'categories' => [['slug' => 'guides', 'label' => 'Guides']]];
 $fixedRoute = ['status' => 200, 'title' => 'A page', 'body' => '<h1>A page</h1>', 'active' => 'guides'];
 ok(hash('sha256', TerminalCms\Page::html($fixedSite, $fixedRoute, 'N0NCE'))
-       === 'a93683f949ad6412df542dd4ac4cfb38e54658b2fc55c264b7b0ed92be400dc0'
+       === '592ec707283bce9f55a711e0c86701771c6638d1ea5653791e5c248e7408e34c'
    && hash('sha256', TerminalCms\Page::html($fixedSite, $fixedRoute))
-       === '8c07af37028173da874da083854ea97b0bac873c2379adb647cd6abf9e3b8dca',
+       === '04b786db32f2cad1531de4e51eb25ae2ef50ca5f9c2473c2aaed0db3e9270ed0',
    'the shell of a page without a Diagram is byte for byte what it was');
 
 /** The page's one <script> element, tag to end tag. */
@@ -1345,25 +1481,27 @@ $built = TerminalCms\Page::html(
     '', $proj
 );
 foreach (['href="/proj/about/"', 'href="/proj/guides/"', 'class="brand" href="/proj/"',
-          'href="/proj/theme.css"', 'href="/proj/site.css"', 'href="/proj/favicon.ico"',
+          'href="/proj/theme.css"', 'href="/proj/themes/baseline.css"', 'href="/proj/site.css"', 'href="/proj/favicon.ico"',
           'src="/proj/media/logo.png"', 'data-mermaid="/proj/mermaid.min.js"', 'href="/proj/about/">← about', 'href="/proj/about">home'] as $want) {
     ok(str_contains($built, $want), "a built page carries $want");
 }
+ok(stylesheets($built) === ['/proj/theme.css', '/proj/themes/baseline.css', '/proj/site.css'],
+   'and its stylesheets are in the order the request-time page has them', implode(' ', stylesheets($built)));
 
 /* The request-time site with the default Base Path, to the byte: every
    sample address, the policy's nonce fixed. The sample content or the shell
    changing on purpose is what re-records them. */
 $before = [
-    '/'                                 => 'b5c8773eb6d0cf6dbf8533d893a1a3c6d3272ed95bdd6df726934c08b7d9a388',
-    '/about'                            => '5133d5ad79bc91dded8c08a4096406f5038b57f77d956f2a37e1db6cd64ad9aa',
-    '/guides'                           => '4d351b7b4b29b187d1d67d6fc765f14d9798afb26bf1f970753a2bbba361b415',
-    '/about/everything-is-a-line'       => '23472696247749345a0d9b34b4764f2d14ff5ca37e6630da4e7fe55efc6cdff3',
-    '/about/what-it-is'                 => 'd8403eb5e842e5984db475416fb66ba24d43b118ecca251a013f745699f25851',
-    '/about/what-it-is-sk'              => '5884a99e0c1d772904f0367af48636d1461f7155026124a9bb02ce776b93a343',
-    '/guides/install-in-five-minutes'   => 'a1d8329f057e7afb384e00044d4525d7ea4b585b3bb62f39b46915f4732b3769',
-    '/guides/publishing-is-a-file-copy' => 'f5e064aa32187ed4e82059161fa8fae28bb27833cc6f44e4cb21b4a245351ca8',
-    '/guides/writing-in-the-editor'     => '3e785e02e78796bce5e0de5ed291fb9648a800505f4693f0a7e737b24d1573ef',
-    '/404.html'                         => '9442cbd663a6bc0c6596a066ec1af4b666b42c7100f25f95ad6d53b52de0474b',
+    '/'                                 => '77e8423c26014115f0821e6b26b78b8e62491f7b6481bb9df7efa64fb2df28bf',
+    '/about'                            => '733385f1c1e37907de655b6b024077acf44620f2a08c709d2ae6c88535d70f81',
+    '/guides'                           => '7a6181e0c5ea78c13d4f09ffb578655f779a378850594ea473894e8c341407c0',
+    '/about/everything-is-a-line'       => '0137377c2e933f0407c19ffcb8c9a0ff249a6635a299207dab743fcfc734b9d7',
+    '/about/what-it-is'                 => 'a741e8a38cf3bd75f4f2b1943db43f3b88ccb98bc5dd952d4662d9e58ca540f9',
+    '/about/what-it-is-sk'              => 'eb36c0ecba5128ec3d6efc64d96138e58f93037085aeb8c5f272a2a9e82fac80',
+    '/guides/install-in-five-minutes'   => '366d827ef653fe318f330213ff196ce6cc4dbdff84ace3a8d1f54663e8eb56dd',
+    '/guides/publishing-is-a-file-copy' => 'b0844f0cf5f3bac81999d60747540b5adb35dd8e69d65d6f6817e246c8503186',
+    '/guides/writing-in-the-editor'     => '89a20e97b1e32a5dd296a0e2599726b215910c9f434c8c8ff33d4c822d6100c6',
+    '/404.html'                         => '681664a358618df517f1540ae75eb596dd6f45f0373fd28682b575118fd8ea6e',
 ];
 foreach ($before as $uri => $hash) {
     ok(hash('sha256', TerminalCms\Page::html($site, $router->route($uri), 'N0NCE')) === $hash
@@ -1412,7 +1550,7 @@ if (!$up) {
 } else {
     /* the bug this exists for: a router script sees every request, including
        real files, so index.php has to hand static assets back to the server */
-    foreach (['/theme.css' => 'text/css', '/site.css' => 'text/css',
+    foreach (['/theme.css' => 'text/css', '/themes/baseline.css' => 'text/css', '/site.css' => 'text/css',
               '/favicon.ico' => 'image/'] as $path => $type) {
         $body = @file_get_contents($base . $path);
         $head = implode(' ', $http_response_header ?? []);
@@ -1552,7 +1690,7 @@ $expected = [
     'about/everything-is-a-line/index.html', 'about/what-it-is/index.html', 'about/what-it-is-sk/index.html',
     'guides/install-in-five-minutes/index.html', 'guides/publishing-is-a-file-copy/index.html',
     'guides/writing-in-the-editor/index.html',
-    'theme.css', 'site.css', 'favicon.ico', 'mermaid.min.js',
+    'theme.css', 'themes/baseline.css', 'site.css', 'favicon.ico', 'mermaid.min.js',
     'media/logo.png', 'media/architecture.svg',
 ];
 $files = array_keys(array_filter(snapshot($out), static fn (string $v) => $v !== 'dir'));

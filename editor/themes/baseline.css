@@ -1,0 +1,70 @@
+/* GENERATED from shared/themes/baseline.json by bin/build — do not edit.
+   Baseline, from hajzer/php-terminal-cms by Ladislav Hajzer, MIT
+   Copyright (c) 2026 Ladislav Hajzer */
+
+[data-theme="baseline"] {
+  --font-body: ui-monospace, SFMono-Regular, "JetBrains Mono", "Fira Code", Menlo, Monaco, Consolas, monospace;
+  --font-heading: ui-monospace, SFMono-Regular, "JetBrains Mono", "Fira Code", Menlo, Monaco, Consolas, monospace;
+  --mono: ui-monospace, SFMono-Regular, "JetBrains Mono", "Fira Code", Menlo, Monaco, Consolas, monospace;
+  --radius: 0;
+  --heading-weight: 600;
+  --bg: #fbf9f5;
+  --block-bg: #f3efe7;
+  --code-bg: #efeae0;
+  --fg: #33312c;
+  --fg-strong: #191813;
+  --secondary: #8a8377;
+  --faint: #b6afa2;
+  --border: #ddd6c9;
+  --primary: #2f6f9f;
+  --accent: #137a3f;
+  --invert-fg: #fbf9f5;
+  --tk-kw: #7d4f9e;
+  --tk-str: #4a7a3c;
+  --tk-num: #96601f;
+  --tk-com: #9a9386;
+  --tk-bi: #2f6f9f;
+  --tk-var: #a34a3c;
+}
+
+[data-theme="baseline"][data-palette="dark"] {
+  --bg: #191c1e;
+  --block-bg: #1e2225;
+  --code-bg: #21262a;
+  --fg: #cbd0d1;
+  --fg-strong: #e8ecec;
+  --secondary: #7c8486;
+  --faint: #5a6265;
+  --border: #2d3336;
+  --primary: #7fb2d9;
+  --accent: #21e08a;
+  --invert-fg: #191c1e;
+  --tk-kw: #c39ac9;
+  --tk-str: #a3c98f;
+  --tk-num: #d9b06a;
+  --tk-com: #6d7679;
+  --tk-bi: #7fb2d9;
+  --tk-var: #e0a49a;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="baseline"]:not([data-palette="light"]) {
+    --bg: #191c1e;
+    --block-bg: #1e2225;
+    --code-bg: #21262a;
+    --fg: #cbd0d1;
+    --fg-strong: #e8ecec;
+    --secondary: #7c8486;
+    --faint: #5a6265;
+    --border: #2d3336;
+    --primary: #7fb2d9;
+    --accent: #21e08a;
+    --invert-fg: #191c1e;
+    --tk-kw: #c39ac9;
+    --tk-str: #a3c98f;
+    --tk-num: #d9b06a;
+    --tk-com: #6d7679;
+    --tk-bi: #7fb2d9;
+    --tk-var: #e0a49a;
+  }
+}

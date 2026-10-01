@@ -4,7 +4,7 @@
    in em, so one variable is enough. */
 
 html, body { height: 100%; }
-body { overflow: hidden; font: 14px/1.6 var(--mono); }
+body { overflow: hidden; font: 14px/1.6 var(--font-body); }
 
 .app { height: 100vh; height: 100dvh; display: grid; grid-template-rows: auto auto 1fr auto auto auto; }
 
@@ -146,25 +146,28 @@ body { overflow: hidden; font: 14px/1.6 var(--mono); }
 .ln .ph { color: var(--faint); font-style: normal; }
 
 /* each line already wears its own style — the sheet is the preview */
-.ln.h1 .txt { font-size: 1.9em; font-weight: 600; color: var(--fg-strong);
+.ln.h1 .txt, .ln.h2 .txt, .ln.h3 .txt { font-family: var(--font-heading); font-weight: var(--heading-weight); }
+.ln.h1 .txt { font-size: 1.9em; color: var(--fg-strong);
   letter-spacing: -.02em; line-height: 1.25; padding-top: 14px; }
-.ln.h2 .txt { font-size: 1.25em; font-weight: 600; color: var(--fg-strong); padding-top: 16px; }
-.ln.h3 .txt { font-size: 1.05em; font-weight: 600; color: var(--secondary); padding-top: 10px; }
+.ln.h2 .txt { font-size: 1.25em; color: var(--fg-strong); padding-top: 16px; }
+.ln.h3 .txt { font-size: 1.05em; color: var(--secondary); padding-top: 10px; }
 .ln.list .txt { padding-left: 22px; position: relative; }
 .ln.list .txt::before { content: "-"; position: absolute; left: 6px; color: var(--secondary); }
 .ln.quote .txt { font-style: italic; color: var(--secondary);
   border-left: 1px solid var(--border); padding-left: 14px; }
-.ln.note .txt { background: var(--block-bg); border-left: 2px solid var(--accent); padding: 4px 12px; }
+.ln.note .txt { background: var(--block-bg); border-left: 2px solid var(--accent); padding: 4px 12px;
+  border-radius: var(--radius); }
 .ln.rule .txt { border-bottom: 1px dashed var(--border); height: 0; overflow: hidden; margin: 14px 0; }
 .ln.meta .txt { color: var(--faint); font-size: .86em; }
 .ln.img .txt { border: 1px solid var(--border); background: var(--block-bg);
   color: var(--faint); text-align: center; padding: 24px; font-size: .86em; }
 
 /* a run of code / CLI / table lines is one visual block */
-.run { margin: 16px 0; border: 1px solid var(--border); }
+.run { margin: 16px 0; border: 1px solid var(--border); border-radius: var(--radius); font-family: var(--mono); }
 .run .runbar {
   display: flex; align-items: center; gap: 8px; padding: 2px 8px 2px 12px;
   background: var(--block-bg); border-bottom: 1px solid var(--border);
+  border-radius: var(--radius) var(--radius) 0 0;
 }
 .run .runbar .lang { flex: 1; color: var(--faint); font-size: 10px;
   letter-spacing: .14em; text-transform: uppercase; }
