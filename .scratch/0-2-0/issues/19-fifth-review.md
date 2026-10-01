@@ -1,6 +1,6 @@
 # 19 — The fifth review: what landed after the fourth
 
-Status: ready-for-human
+Status: done
 Spec: ../spec.md
 Blocked by: 12, 14, 15, 16, 17, 18
 
@@ -50,7 +50,7 @@ code touches it. A version bump: this is 0.2.0, unreleased.
 - [x] `## Residual risks` and `## Validation` say what is true now
 - [x] `php bin/test` green, no generated file edited
 - [x] the probe green in headless Chromium and headless Firefox
-- [ ] the maintainer has run `tests/editor-probe.html` in their own browser:
+- [x] the maintainer has run `tests/editor-probe.html` in their own browser:
   the probe gained an assertion, and `editor/ui.js` and the page's drawing
   script each lost a sentence from a comment
 
@@ -114,3 +114,5 @@ code touches it. A version bump: this is 0.2.0, unreleased.
   293 in headless Chromium and in headless Firefox. Nothing was committed.
   The CHANGELOG's 0.2.0 entry gained a bullet for this review, since 11 had
   already written the fourth's; 11's counts are noted there.
+- 2026-10-01, human: the probe is green in the maintainer's own browser. The
+  box is ticked and the issue is closed.
