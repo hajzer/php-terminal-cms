@@ -1,0 +1,53 @@
+{
+  "name": "flexoki",
+  "label": "Flexoki",
+  "source": {
+    "repo": "kepano/flexoki-obsidian",
+    "author": "kepano",
+    "license": "MIT",
+    "copyright": "Copyright (c) 2023 Steph Ango"
+  },
+  "--font-body": "ui-sans-serif, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, system-ui, sans-serif",
+  "--font-heading": "ui-sans-serif, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, system-ui, sans-serif",
+  "--mono": "ui-monospace, SFMono-Regular, \"JetBrains Mono\", \"Fira Code\", Menlo, Monaco, Consolas, monospace",
+  "--radius": "8px",
+  "--heading-weight": "700",
+  "light": {
+    "--bg": "#fffcf0",
+    "--block-bg": "#f2f0e5",
+    "--code-bg": "#f2f0e5",
+    "--fg": "#100f0f",
+    "--fg-strong": "#090808",
+    "--secondary": "#6e6d68",
+    "--faint": "#aeaba1",
+    "--border": "#e5e3d7",
+    "--primary": "#24857d",
+    "--accent": "#24857d",
+    "--invert-fg": "#090808",
+    "--tk-kw": "#a02f6f",
+    "--tk-str": "#5d740a",
+    "--tk-num": "#5e409d",
+    "--tk-com": "#8e8a7c",
+    "--tk-bi": "#8a6801",
+    "--tk-var": "#217972"
+  },
+  "dark": {
+    "--bg": "#100f0f",
+    "--block-bg": "#1c1b1a",
+    "--code-bg": "#1c1b1a",
+    "--fg": "#cecdc3",
+    "--fg-strong": "#e4e4de",
+    "--secondary": "#878580",
+    "--faint": "#575653",
+    "--border": "#282726",
+    "--primary": "#24857d",
+    "--accent": "#24857d",
+    "--invert-fg": "#000000",
+    "--tk-kw": "#ce5d97",
+    "--tk-str": "#879a39",
+    "--tk-num": "#8b7ec8",
+    "--tk-com": "#686763",
+    "--tk-bi": "#d0a215",
+    "--tk-var": "#3aa99f"
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "name": "wasp",
+  "label": "Wasp",
+  "source": {
+    "repo": "santiyounger/Wasp-Obsidian-Theme",
+    "author": "Santi Younger",
+    "license": "MIT",
+    "copyright": "Copyright (c) 2020-2026 Santi Younger"
+  },
+  "--font-body": "ui-sans-serif, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, system-ui, sans-serif",
+  "--font-heading": "ui-sans-serif, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, system-ui, sans-serif",
+  "--mono": "\"Source Code Pro\", ui-monospace, SFMono-Regular, \"JetBrains Mono\", \"Fira Code\", Menlo, Monaco, Consolas, monospace",
+  "--radius": "8px",
+  "--heading-weight": "700",
+  "light": {
+    "--bg": "#faf6f0",
+    "--block-bg": "#e8dfd0",
+    "--code-bg": "#fffcf7",
+    "--fg": "#2c2419",
+    "--fg-strong": "#9a4e12",
+    "--secondary": "#5c5044",
+    "--faint": "#6b5e4f",
+    "--border": "#c87628",
+    "--primary": "#9b3a1a",
+    "--accent": "#96671e",
+    "--invert-fg": "#faf6f0",
+    "--tk-kw": "#7d4f9e",
+    "--tk-str": "#4a7a3c",
+    "--tk-num": "#96601f",
+    "--tk-com": "#999285",
+    "--tk-bi": "#9b3a1a",
+    "--tk-var": "#a34a3c"
+  },
+  "dark": {
+    "--bg": "#242424",
+    "--block-bg": "#191919",
+    "--code-bg": "#242424",
+    "--fg": "#faf2d6",
+    "--fg-strong": "#f8c537",
+    "--secondary": "#bdae93",
+    "--faint": "#787061",
+    "--border": "#f8c537",
+    "--primary": "#f8c537",
+    "--accent": "#f8c537",
+    "--invert-fg": "#1a2023",
+    "--tk-kw": "#c39ac9",
+    "--tk-str": "#a3c98f",
+    "--tk-num": "#d9b06a",
+    "--tk-com": "#6d7679",
+    "--tk-bi": "#f8c537",
+    "--tk-var": "#e0a49a"
+  }
+}

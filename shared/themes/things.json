@@ -1,0 +1,53 @@
+{
+  "name": "things",
+  "label": "Things",
+  "source": {
+    "repo": "colineckert/obsidian-things",
+    "author": "colineckert",
+    "license": "MIT",
+    "copyright": "Copyright (c) 2020-2021 Stephan Ango (@kepano)"
+  },
+  "--font-body": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Inter, Ubuntu, system-ui, sans-serif",
+  "--font-heading": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Inter, Ubuntu, system-ui, sans-serif",
+  "--mono": "\"JetBrains Mono\", \"Fira Code\", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+  "--radius": "8px",
+  "--heading-weight": "700",
+  "light": {
+    "--bg": "#ffffff",
+    "--block-bg": "#f6f7f8",
+    "--code-bg": "#f6f7f8",
+    "--fg": "#222222",
+    "--fg-strong": "#131313",
+    "--secondary": "#555e68",
+    "--faint": "#a2aab3",
+    "--border": "#e2e5e9",
+    "--primary": "#2773e1",
+    "--accent": "#367de3",
+    "--invert-fg": "#ffffff",
+    "--tk-kw": "#c32b74",
+    "--tk-str": "#098339",
+    "--tk-num": "#795adc",
+    "--tk-com": "#86909c",
+    "--tk-bi": "#8e6a29",
+    "--tk-var": "#1f7e7c"
+  },
+  "dark": {
+    "--bg": "#1c2127",
+    "--block-bg": "#181c20",
+    "--code-bg": "#282c34",
+    "--fg": "#dadada",
+    "--fg-strong": "#ebebeb",
+    "--secondary": "#bec6cf",
+    "--faint": "#5d6d7e",
+    "--border": "#35393e",
+    "--primary": "#79a9ec",
+    "--accent": "#367de3",
+    "--invert-fg": "#1c2127",
+    "--tk-kw": "#c39ac9",
+    "--tk-str": "#a3c98f",
+    "--tk-num": "#d9b06a",
+    "--tk-com": "#6d7679",
+    "--tk-bi": "#79a9ec",
+    "--tk-var": "#e0a49a"
+  }
+}

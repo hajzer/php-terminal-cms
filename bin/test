@@ -197,6 +197,8 @@ ok(array_diff(array_merge($perPalette, $once), $used[1]) === [],
    implode(' ', array_diff(array_merge($perPalette, $once), $used[1])));
 
 $themeFiles = glob($root . '/shared/themes/*.json') ?: [];
+$notices    = (string) @file_get_contents($root . '/shared/themes/LICENSE');
+$unnoticed  = [];
 ok(in_array($root . '/shared/themes/baseline.json', $themeFiles, true), 'Baseline is a Theme');
 foreach ($themeFiles as $f) {
     $file  = basename($f);
@@ -218,6 +220,16 @@ foreach ($themeFiles as $f) {
     }
     if (($src['license'] ?? null) !== 'MIT') {
         $wrong[] = 'source.license is not MIT';
+    }
+    /* the notice is the one under this source's repository heading, and holds
+       this Theme's copyright line and the MIT grant */
+    $repo   = (string) ($src['repo'] ?? '');
+    $at     = $repo === '' ? false : strpos($notices, "\n$repo\n" . str_repeat('=', strlen($repo)) . "\n");
+    $next   = $at === false ? false : strpos($notices, "\n\n\n", $at + 1);
+    $notice = $at === false ? '' : substr($notices, $at, ($next === false ? strlen($notices) : $next) - $at);
+    if ($notice === '' || !is_string($src['copyright'] ?? null) || !str_contains($notice, $src['copyright'])
+        || !str_contains($notice, 'Permission is hereby granted, free of charge')) {
+        $unnoticed[] = $file;
     }
     $top = array_diff(array_keys($t), ['name', 'label', 'source', 'light', 'dark']);
     if (array_values($top) != $once) {
@@ -243,6 +255,8 @@ foreach ($themeFiles as $f) {
     }
     ok($wrong === [], "shared/themes/$file defines exactly the contract, in both Palettes", implode("\n", $wrong));
 }
+ok(count($themeFiles) === 12, 'there are twelve Themes', implode(' ', array_map('basename', $themeFiles)));
+ok($unnoticed === [], 'shared/themes/LICENSE carries every Theme\'s notice under its repository', implode(' ', $unnoticed));
 
 /* the Editor wears every Theme the build makes, and nothing else */
 preg_match_all('~<link rel="stylesheet" href="(themes/[^"]+)">~', (string) file_get_contents($root . '/editor/index.html'), $linked);

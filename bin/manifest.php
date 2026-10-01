@@ -16,7 +16,7 @@ return [
         '.gitignore',
         'docs/adr', 'docs/agents', 'docs/media',
         'docs/line-types.md', 'docs/keymap.md',
-        'docs/format.md', 'docs/config.md', 'docs/deploy.md', 'docs/security.md',
+        'docs/format.md', 'docs/config.md', 'docs/themes.md', 'docs/deploy.md', 'docs/security.md',
         'docs/security-audit.md',
         'shared', 'editor', 'site', 'bin', 'tests',
     ],

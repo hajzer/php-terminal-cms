@@ -1,0 +1,53 @@
+{
+  "name": "underwater",
+  "label": "Underwater",
+  "source": {
+    "repo": "seniblue/Underwater",
+    "author": "seniblue",
+    "license": "MIT",
+    "copyright": "Copyright (c) 2024 Seni"
+  },
+  "--font-body": "Lexend, Inter, system-ui, sans-serif",
+  "--font-heading": "Lexend, Inter, system-ui, sans-serif",
+  "--mono": "ui-monospace, SFMono-Regular, \"JetBrains Mono\", \"Fira Code\", Menlo, Monaco, Consolas, monospace",
+  "--radius": "8px",
+  "--heading-weight": "700",
+  "light": {
+    "--bg": "#fffaf3",
+    "--block-bg": "#f2e9e1",
+    "--code-bg": "#faf4ed",
+    "--fg": "#575279",
+    "--fg-strong": "#a34e66",
+    "--secondary": "#6c677b",
+    "--faint": "#9893a5",
+    "--border": "#e7e0db",
+    "--primary": "#c54b46",
+    "--accent": "#c54b46",
+    "--invert-fg": "#fffaf3",
+    "--tk-kw": "#c3443e",
+    "--tk-str": "#9e6210",
+    "--tk-num": "#7e649b",
+    "--tk-com": "#908b9e",
+    "--tk-bi": "#467881",
+    "--tk-var": "#286983"
+  },
+  "dark": {
+    "--bg": "#1f1d2e",
+    "--block-bg": "#26233a",
+    "--code-bg": "#191724",
+    "--fg": "#e0def4",
+    "--fg-strong": "#eb6f92",
+    "--secondary": "#8d89a2",
+    "--faint": "#6e6a86",
+    "--border": "#323043",
+    "--primary": "#ebbcba",
+    "--accent": "#ebbcba",
+    "--invert-fg": "#1f1d2e",
+    "--tk-kw": "#ebbcba",
+    "--tk-str": "#f6c177",
+    "--tk-num": "#c4a7e7",
+    "--tk-com": "#6e6a86",
+    "--tk-bi": "#9ccfd8",
+    "--tk-var": "#3a8aaa"
+  }
+}

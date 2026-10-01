@@ -1,0 +1,70 @@
+/* GENERATED from shared/themes/retroma.json by bin/build — do not edit.
+   Retroma, from emarpiee/Retroma by emarpiee, MIT
+   Copyright (c) 2026 emarpiee */
+
+[data-theme="retroma"] {
+  --font-body: "VT323", "Press Start 2P", system-ui, sans-serif;
+  --font-heading: "VT323", "Press Start 2P", system-ui, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "JetBrains Mono", "Fira Code", Menlo, Monaco, Consolas, monospace;
+  --radius: 10px;
+  --heading-weight: 700;
+  --bg: #cbe9ff;
+  --block-bg: #c4d0f5;
+  --code-bg: #c2dfff;
+  --fg: #5b5480;
+  --fg-strong: #8a453f;
+  --secondary: #48406d;
+  --faint: #938bc4;
+  --border: #abc2dc;
+  --primary: #645898;
+  --accent: #7651ec;
+  --invert-fg: #e2ffff;
+  --tk-kw: #7a4d9b;
+  --tk-str: #416b34;
+  --tk-num: #85551c;
+  --tk-com: #847c6e;
+  --tk-bi: #645898;
+  --tk-var: #9d473a;
+}
+
+[data-theme="retroma"][data-palette="dark"] {
+  --bg: #000720;
+  --block-bg: #040014;
+  --code-bg: #00041b;
+  --fg: #ada8d0;
+  --fg-strong: #ff857a;
+  --secondary: #9e99c0;
+  --faint: #635e82;
+  --border: #262a46;
+  --primary: #ae9bff;
+  --accent: #7651ec;
+  --invert-fg: #000720;
+  --tk-kw: #c39ac9;
+  --tk-str: #a3c98f;
+  --tk-num: #d9b06a;
+  --tk-com: #6d7679;
+  --tk-bi: #ae9bff;
+  --tk-var: #e0a49a;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="retroma"]:not([data-palette="light"]) {
+    --bg: #000720;
+    --block-bg: #040014;
+    --code-bg: #00041b;
+    --fg: #ada8d0;
+    --fg-strong: #ff857a;
+    --secondary: #9e99c0;
+    --faint: #635e82;
+    --border: #262a46;
+    --primary: #ae9bff;
+    --accent: #7651ec;
+    --invert-fg: #000720;
+    --tk-kw: #c39ac9;
+    --tk-str: #a3c98f;
+    --tk-num: #d9b06a;
+    --tk-com: #6d7679;
+    --tk-bi: #ae9bff;
+    --tk-var: #e0a49a;
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "name": "shimmering-focus",
+  "label": "Shimmering Focus",
+  "source": {
+    "repo": "chrisgrieser/shimmering-focus",
+    "author": "Chris Grieser",
+    "license": "MIT",
+    "copyright": "Copyright (c) 2024 Christopher Grieser"
+  },
+  "--font-body": "\"iA Writer Quattro S\", system-ui, sans-serif",
+  "--font-heading": "Optima, \"Recursive S\", system-ui, sans-serif",
+  "--mono": "ui-monospace, SFMono-Regular, \"JetBrains Mono\", \"Fira Code\", Menlo, Monaco, Consolas, monospace",
+  "--radius": "8px",
+  "--heading-weight": "700",
+  "light": {
+    "--bg": "#fbfcfd",
+    "--block-bg": "#eff0f5",
+    "--code-bg": "#eff0f5",
+    "--fg": "#1f295c",
+    "--fg-strong": "#111733",
+    "--secondary": "#434a70",
+    "--faint": "#969dc0",
+    "--border": "#d9dbe8",
+    "--primary": "#108189",
+    "--accent": "#118991",
+    "--invert-fg": "#ffffff",
+    "--tk-kw": "#ca247c",
+    "--tk-str": "#49783b",
+    "--tk-num": "#96601f",
+    "--tk-com": "#928a7c",
+    "--tk-bi": "#0f7880",
+    "--tk-var": "#a34a3c"
+  },
+  "dark": {
+    "--bg": "#1a1c23",
+    "--block-bg": "#23252f",
+    "--code-bg": "#23252f",
+    "--fg": "#c3c8df",
+    "--fg-strong": "#dee1ed",
+    "--secondary": "#b0b3c4",
+    "--faint": "#575c75",
+    "--border": "#303241",
+    "--primary": "#18c1cd",
+    "--accent": "#118991",
+    "--invert-fg": "#1a1c23",
+    "--tk-kw": "#ed5aa8",
+    "--tk-str": "#a3c98f",
+    "--tk-num": "#d9b06a",
+    "--tk-com": "#6d7679",
+    "--tk-bi": "#18c1cd",
+    "--tk-var": "#e0a49a"
+  }
+}

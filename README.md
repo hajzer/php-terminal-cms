@@ -188,7 +188,7 @@ the files are.
 
 ```
 README.md  LICENSE  VERSION  CONTEXT.md  CHANGELOG.md  AGENTS.md
-docs/          line-types · keymap · format · config · deploy
+docs/          line-types · keymap · format · config · themes · deploy
                security · security-audit · adr/ · agents/ · media/
 shared/        langs.json  theme.css  themes/ ← single sources
 editor/        index.html  editor.js  ui.js    ← the static editor
@@ -241,6 +241,7 @@ halves agree.
 - [keymap.md](docs/keymap.md) — every key and `:` command
 - [format.md](docs/format.md) — the markdown contract and its limits
 - [config.md](docs/config.md) — `site.php`
+- [themes.md](docs/themes.md) — the twelve Themes and where each comes from
 - [deploy.md](docs/deploy.md) — installing both halves, publishing (also as static pages on GitLab or GitHub), upgrading
 - [security.md](docs/security.md) — what a deployment exposes, and what it does not
 - [security-audit.md](docs/security-audit.md) — what the reviews looked at and found
@@ -250,4 +251,5 @@ halves agree.
 
 ## Licence
 
-MIT.
+MIT. The Themes are derived from MIT-licensed Obsidian themes, whose notices
+are in `shared/themes/LICENSE`.

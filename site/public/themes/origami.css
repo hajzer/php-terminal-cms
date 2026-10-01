@@ -1,0 +1,70 @@
+/* GENERATED from shared/themes/origami.json by bin/build — do not edit.
+   Origami, from 7368697661/Origami by kneecaps, MIT
+   Copyright (c) 2022 kneecaps */
+
+[data-theme="origami"] {
+  --font-body: "IAWriter", system-ui, sans-serif;
+  --font-heading: "Fraunces", system-ui, sans-serif;
+  --mono: "Monaspace", ui-monospace, SFMono-Regular, "JetBrains Mono", "Fira Code", Menlo, Monaco, Consolas, monospace;
+  --radius: 8px;
+  --heading-weight: 900;
+  --bg: #f8f5f3;
+  --block-bg: #e9e9e9;
+  --code-bg: #e4e1de;
+  --fg: #222222;
+  --fg-strong: #000000;
+  --secondary: #686868;
+  --faint: #a6a6a6;
+  --border: #d3d3d3;
+  --primary: #8b5df5;
+  --accent: #855ff7;
+  --invert-fg: #000000;
+  --tk-kw: #b80d95;
+  --tk-str: #496e1e;
+  --tk-num: #744cb4;
+  --tk-com: #808080;
+  --tk-bi: #756202;
+  --tk-var: #2c6d74;
+}
+
+[data-theme="origami"][data-palette="dark"] {
+  --bg: #202020;
+  --block-bg: #2d2d2d;
+  --code-bg: #444444;
+  --fg: #b3b3b3;
+  --fg-strong: #dadada;
+  --secondary: #999999;
+  --faint: #707070;
+  --border: #555555;
+  --primary: #8b5df5;
+  --accent: #855ff7;
+  --invert-fg: #000000;
+  --tk-kw: #fc88e2;
+  --tk-str: #95f745;
+  --tk-num: #d19bfb;
+  --tk-com: #8f8f8f;
+  --tk-bi: #f7cc44;
+  --tk-var: #45cef7;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="origami"]:not([data-palette="light"]) {
+    --bg: #202020;
+    --block-bg: #2d2d2d;
+    --code-bg: #444444;
+    --fg: #b3b3b3;
+    --fg-strong: #dadada;
+    --secondary: #999999;
+    --faint: #707070;
+    --border: #555555;
+    --primary: #8b5df5;
+    --accent: #855ff7;
+    --invert-fg: #000000;
+    --tk-kw: #fc88e2;
+    --tk-str: #95f745;
+    --tk-num: #d19bfb;
+    --tk-com: #8f8f8f;
+    --tk-bi: #f7cc44;
+    --tk-var: #45cef7;
+  }
+}

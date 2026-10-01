@@ -1345,7 +1345,7 @@
   ok('it opened in the Palette it kept, and in none when it kept none, so a fresh one follows the browser',
      paletteAtLoad === (paletteKept === 'light' || paletteKept === 'dark' ? paletteKept : null),
      paletteAtLoad + ' with ' + paletteKept + ' kept');
-  var PAPER = { light: 'rgb(251, 249, 245)', dark: 'rgb(25, 28, 30)' };
+  var PAPER = { light: 'rgb(255, 255, 255)', dark: 'rgb(30, 30, 30)' };   /* Baseline's --bg */
   key('T');
   var flipped = htmlEl.getAttribute('data-palette');
   ok('T sets data-palette to light or dark, and says which',

@@ -1,0 +1,70 @@
+/* GENERATED from shared/themes/reverie.json by bin/build — do not edit.
+   Reverie, from santiyounger/Reverie-Obsidian-Theme by Santi Younger, MIT
+   Copyright (c) 2020-2026 Santi Younger */
+
+[data-theme="reverie"] {
+  --font-body: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  --font-heading: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  --mono: "Source Code Pro", ui-monospace, SFMono-Regular, "JetBrains Mono", "Fira Code", Menlo, Monaco, Consolas, monospace;
+  --radius: 8px;
+  --heading-weight: 500;
+  --bg: #e7e7e7;
+  --block-bg: #e3e3e3;
+  --code-bg: #bebebe;
+  --fg: #1a2023;
+  --fg-strong: #063530;
+  --secondary: #534a42;
+  --faint: #96918c;
+  --border: #0a4a44;
+  --primary: #0c5249;
+  --accent: #0c5249;
+  --invert-fg: #ffffff;
+  --tk-kw: #623e7c;
+  --tk-str: #34562a;
+  --tk-num: #6c4516;
+  --tk-com: #6e675c;
+  --tk-bi: #0c5249;
+  --tk-var: #7c382e;
+}
+
+[data-theme="reverie"][data-palette="dark"] {
+  --bg: #1a2023;
+  --block-bg: #222b2f;
+  --code-bg: #073334;
+  --fg: #faf2d6;
+  --fg-strong: #c1dde1;
+  --secondary: #bdae93;
+  --faint: #746e61;
+  --border: #95c1bb;
+  --primary: #2ccab7;
+  --accent: #0e969b;
+  --invert-fg: #1a2023;
+  --tk-kw: #c39ac9;
+  --tk-str: #a3c98f;
+  --tk-num: #d9b06a;
+  --tk-com: #6f797c;
+  --tk-bi: #2ccab7;
+  --tk-var: #e0a49a;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="reverie"]:not([data-palette="light"]) {
+    --bg: #1a2023;
+    --block-bg: #222b2f;
+    --code-bg: #073334;
+    --fg: #faf2d6;
+    --fg-strong: #c1dde1;
+    --secondary: #bdae93;
+    --faint: #746e61;
+    --border: #95c1bb;
+    --primary: #2ccab7;
+    --accent: #0e969b;
+    --invert-fg: #1a2023;
+    --tk-kw: #c39ac9;
+    --tk-str: #a3c98f;
+    --tk-num: #d9b06a;
+    --tk-com: #6f797c;
+    --tk-bi: #2ccab7;
+    --tk-var: #e0a49a;
+  }
+}
