@@ -1,6 +1,6 @@
 # 0.2.0 — diagrams, markdown in by paste, the raw face, twelve Themes, and a site that needs no PHP
 
-Status: ready-for-agent
+Status: done
 
 ## Problem Statement
 

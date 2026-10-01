@@ -1,6 +1,6 @@
 # 11 — Words, docs and the version
 
-Status: ready-for-human
+Status: done
 Spec: ../spec.md
 Blocked by: 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 12, 14, 15, 16, 17, 18, 19, 20
 
@@ -54,7 +54,7 @@ The 0.2.0 entry. `VERSION` → `0.2.0` and the `<i class="ver">` in
 - [x] `php bin/test` green, including the version and derived-files checks
 - [x] no generated file edited by hand
 - [x] every acceptance box in every issue under `Blocked by` ticked, and each of them `done`
-- [ ] **Stop here.** `bin/package` is not run and nothing is pushed until the
+- [x] **Stop here.** `bin/package` is not run and nothing is pushed until the
   maintainer has opened `tests/editor-probe.html` in a browser and reviewed a
   request-time page and a Page Build with a Diagram themselves.
 
@@ -162,3 +162,10 @@ The 0.2.0 entry. `VERSION` → `0.2.0` and the `<i class="ver">` in
   bullet for each, ADR-0021 records the second, and `docs/format.md`,
   `docs/keymap.md`, `docs/security.md`, CONTEXT.md's **Editor** and the
   audit's residual risks and validation say what is true now.
+- 2026-10-01, human: the probe is green in the maintainer's own browser on the
+  final tree, 299 of 299; a link clicked in the read pane, a URL dropped on
+  the page and text dropped into an open Line do what 0.1.9's issue 12 says;
+  a request-time page and a Page Build with a Diagram were looked at and are
+  right. The box is ticked, and this issue and the spec are done. Packaging,
+  the merge to `main`, the tag and the push are the maintainer's, and are not
+  done by this note.
