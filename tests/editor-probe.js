@@ -1364,6 +1364,13 @@
   ok(':palette flips it the same way', htmlEl.getAttribute('data-palette') === flipped &&
      msg() === 'palette ' + flipped, htmlEl.getAttribute('data-palette') + ' / ' + msg());
   run('palette');
+  var paletteBtn = document.getElementById('palette');
+  if (paletteBtn) paletteBtn.click();
+  ok('the light/dark button in the top bar flips it too',
+     !!paletteBtn && paletteBtn.textContent === 'light/dark' &&
+     htmlEl.getAttribute('data-palette') === flipped && msg() === 'palette ' + flipped,
+     (paletteBtn && paletteBtn.textContent) + ' / ' + htmlEl.getAttribute('data-palette'));
+  if (paletteBtn) paletteBtn.click();
   /* and leave the profile keeping what it kept, so a fresh one stays fresh */
   try {
     if (paletteKept === null) localStorage.removeItem('tcms-palette');

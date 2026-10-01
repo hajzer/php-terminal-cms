@@ -1075,6 +1075,9 @@ ok(preg_match_all('~<[a-z]+ [^>]*data-palette~', $plainShell) === 0,
    'and names no Palette: a reader who has not chosen one gets their browser\'s');
 ok(str_contains($plainShell, "get('tcms-palette')") && !str_contains($plainShell, 'tcms-theme'),
    'the toggle keeps the reader\'s Palette under tcms-palette, so an old tcms-theme is not read');
+ok(str_contains($plainShell, '<button type="button" id="palette" hidden>light/dark</button>')
+   && !str_contains($plainShell, 'id="theme"'),
+   'and the reader\'s one look control is light/dark: the Theme is not theirs to choose');
 
 /* the policy those nonces answer to, written once: the header the entry point
    sends, and the <meta> a built page carries, which cannot say
@@ -1136,15 +1139,15 @@ ok(count($refused) === 6,
    hash is of a fixed shell, so it moves only when the shell does — and a
    change to it is a change to every page on every Instance, made on purpose.
    The shell it pins names its Theme on <html>, links that Theme's
-   stylesheet after theme.css, and keeps the reader's Palette as
-   data-palette and tcms-palette. */
+   stylesheet after theme.css, and keeps the reader's Palette, flipped by
+   the light/dark button, as data-palette and tcms-palette. */
 $fixedSite  = ['title' => 'Shell', 'tagline' => 'a fixed site', 'accent' => '#21e08a',
                'categories' => [['slug' => 'guides', 'label' => 'Guides']]];
 $fixedRoute = ['status' => 200, 'title' => 'A page', 'body' => '<h1>A page</h1>', 'active' => 'guides'];
 ok(hash('sha256', TerminalCms\Page::html($fixedSite, $fixedRoute, 'N0NCE'))
-       === '592ec707283bce9f55a711e0c86701771c6638d1ea5653791e5c248e7408e34c'
+       === 'f67c36b733e45967e55a0daacc427b47a8d356f0ab10db049cc10270b1372c5c'
    && hash('sha256', TerminalCms\Page::html($fixedSite, $fixedRoute))
-       === '04b786db32f2cad1531de4e51eb25ae2ef50ca5f9c2473c2aaed0db3e9270ed0',
+       === 'bd6ceae8be3a09f9b5e4ede13be5c9ea0adbfe4a07ce9ac0673878ee54d410f1',
    'the shell of a page without a Diagram is byte for byte what it was');
 
 /** The page's one <script> element, tag to end tag. */
@@ -1492,16 +1495,16 @@ ok(stylesheets($built) === ['/proj/theme.css', '/proj/themes/baseline.css', '/pr
    sample address, the policy's nonce fixed. The sample content or the shell
    changing on purpose is what re-records them. */
 $before = [
-    '/'                                 => '77e8423c26014115f0821e6b26b78b8e62491f7b6481bb9df7efa64fb2df28bf',
-    '/about'                            => '733385f1c1e37907de655b6b024077acf44620f2a08c709d2ae6c88535d70f81',
-    '/guides'                           => '7a6181e0c5ea78c13d4f09ffb578655f779a378850594ea473894e8c341407c0',
-    '/about/everything-is-a-line'       => '0137377c2e933f0407c19ffcb8c9a0ff249a6635a299207dab743fcfc734b9d7',
-    '/about/what-it-is'                 => 'a741e8a38cf3bd75f4f2b1943db43f3b88ccb98bc5dd952d4662d9e58ca540f9',
-    '/about/what-it-is-sk'              => 'eb36c0ecba5128ec3d6efc64d96138e58f93037085aeb8c5f272a2a9e82fac80',
-    '/guides/install-in-five-minutes'   => '366d827ef653fe318f330213ff196ce6cc4dbdff84ace3a8d1f54663e8eb56dd',
-    '/guides/publishing-is-a-file-copy' => 'b0844f0cf5f3bac81999d60747540b5adb35dd8e69d65d6f6817e246c8503186',
-    '/guides/writing-in-the-editor'     => '89a20e97b1e32a5dd296a0e2599726b215910c9f434c8c8ff33d4c822d6100c6',
-    '/404.html'                         => '681664a358618df517f1540ae75eb596dd6f45f0373fd28682b575118fd8ea6e',
+    '/'                                 => '7a4b1b6a82bb243409f902df08c4ad2acd61d1086a6081b35e61a1b70271c7ba',
+    '/about'                            => '9ce930ab3b26c0a39e1a122e208797e5591a0378689ca287f7aa9033d87351fe',
+    '/guides'                           => 'd64f6fa3210618f42b547b2b99c9e686d23a5160da0773fb557275b0229113c9',
+    '/about/everything-is-a-line'       => '93bfa7ea8edad3c17de1954b5a3956c0001eead28826913baabd525919518c25',
+    '/about/what-it-is'                 => 'b75d5059efc3de0c4db51328080e96074689c7ebd103fe587336a9bfdeb5bc6b',
+    '/about/what-it-is-sk'              => '93f0df36b5a19774e1eb2a2590706dad98fddf197aa1deb27e90910dabd870e6',
+    '/guides/install-in-five-minutes'   => 'e13935e41ec03eac9935fd4fd2aa3dea455be42a6e7d5a90f7f3dd8c3899a406',
+    '/guides/publishing-is-a-file-copy' => '378720a0edd0f5b4d356cd45ad2ca6dc48367e45492ab56c4ef177dcb8687421',
+    '/guides/writing-in-the-editor'     => '300bf807dfa952e344ce20ca1eb6a6c08aa57972fe3fbd2cebf1fa4364ccc1eb',
+    '/404.html'                         => 'ae94e3401ed9331fc2ed6a165db0ddb51c97bc52d6e8082dd50cc7ebf0c50d1f',
 ];
 foreach ($before as $uri => $hash) {
     ok(hash('sha256', TerminalCms\Page::html($site, $router->route($uri), 'N0NCE')) === $hash

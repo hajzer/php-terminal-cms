@@ -110,7 +110,7 @@ $iconLink . '
   <div class="host">
     <button type="button" id="smaller" hidden title="smaller text">A&minus;</button>
     <button type="button" id="bigger" hidden title="bigger text">A+</button>
-    <button type="button" id="theme" hidden>theme</button>
+    <button type="button" id="palette" hidden>light/dark</button>
   </div>
 </div>
 
@@ -207,7 +207,7 @@ $iconLink . '
      browser's preference, which the sheet answers with no attribute at all */
   var p = get('tcms-palette');
   if (p === 'light' || p === 'dark') document.documentElement.setAttribute('data-palette', p);
-  var b = document.getElementById('theme');
+  var b = document.getElementById('palette');
   b.hidden = false;
   b.addEventListener('click', function () {
     var cur = document.documentElement.getAttribute('data-palette');
@@ -379,7 +379,7 @@ HTML
   if (nonce) s.nonce = nonce;
   s.onload = function () { if (window.mermaid) drawAll(); };
   document.head.appendChild(s);
-  document.getElementById('theme').addEventListener('click', function () {
+  document.getElementById('palette').addEventListener('click', function () {
     if (window.mermaid) drawAll();
   });
 })();

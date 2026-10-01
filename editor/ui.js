@@ -1618,6 +1618,9 @@
   });
   document.getElementById('zoomOut').addEventListener('click', function () { bumpScale(-1); });
   document.getElementById('zoomIn').addEventListener('click', function () { bumpScale(1); });
+  document.getElementById('palette').addEventListener('click', function () {
+    say('palette ' + togglePalette());
+  });
   document.getElementById('zoomPct').addEventListener('click', function () { setScale(1); });
   document.querySelectorAll('[data-close]').forEach(function (b) {
     b.addEventListener('click', function () { b.closest('.ov').classList.remove('on'); });

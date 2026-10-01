@@ -41,8 +41,8 @@ copy you perform with a tool that already has your credentials.
 No database. No login. No session, cookie, form or upload. No admin panel. No
 build step. No composer dependency, no npm package, no CDN, and not one byte of
 third-party JavaScript. The published page runs no script of its own except one
-short inline enhancement that adds a copy button, a theme toggle and a text-size
-control — remove it and every page still reads perfectly.
+short inline enhancement that adds a copy button, a light/dark toggle and a
+text-size control — remove it and every page still reads perfectly.
 
 ## Quick start
 
@@ -139,8 +139,8 @@ and `?` lists every command with what it does.
 
 `b` puts the lines and the rendered page side by side, both live as you type;
 `B` swaps which side each is on. `+` and `-` size the document in both panes
-(and on the published page, next to the theme toggle), `0` returns it to 100%.
-Both settings are remembered per browser.
+(and on the published page, next to the light/dark toggle), `0` returns it to
+100%. Both settings are remembered per browser.
 
 Full reference: [docs/keymap.md](docs/keymap.md).
 
