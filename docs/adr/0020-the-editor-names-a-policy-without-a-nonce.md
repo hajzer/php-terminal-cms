@@ -72,9 +72,10 @@ if a handler it writes into the page as markup is not.
   stylesheet named that way is applied. A script is not run, because the
   Editor writes markup through `innerHTML` and a browser never runs a
   `<script>` written that way.
-- The policy does not govern where the tab goes. A link, or a
-  `<meta http-equiv="refresh">` that reached the page as markup, still leaves
-  the page, and the Document with it.
+- The policy does not govern where the tab goes. A
+  `<meta http-equiv="refresh">` that reached the page as markup still leaves
+  the page, and the Document with it. What the Editor does about a link and a
+  drop is its own code's, and is ADR-0021.
 - `connect-src 'none'` makes the browser enforce what the source scan in
   `bin/test` already asserts: the Editor opens no connection.
 - The policy is the same on every copy of the Editor, and anyone can read it.

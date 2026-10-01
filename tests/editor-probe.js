@@ -1838,10 +1838,70 @@
       ok('an image whose src does not load shows the box with its file name',
          !!b && !b.hidden && b.textContent === 'no-such-picture.png', f && f.innerHTML);
       ok('and the picture is hidden', !!img && img.hidden, f && f.innerHTML);
-      document.getElementById('actClear').click();
-      run('write');
-      finish();
+      leaving();
     });
+  }
+
+  /* The Document is in this tab and nowhere else, so neither a link in the
+     read pane nor something let go of over the page may take the tab. */
+  function leaving() {
+    function raw() { return document.querySelector('#raw pre').textContent; }
+    document.getElementById('actClear').click();
+    paste('See [the docs](https://example.invalid/docs), [below](#below) and ' +
+          '[mail](mailto:a@example.invalid).\n\n## Below\n');
+    run('split');
+    var links = [].slice.call(readEl.querySelectorAll('a'));
+    ok('the read pane writes a link as the page does, with no target of its own',
+       links.length === 3 && !links.some(function (a) { return a.hasAttribute('target'); }),
+       readEl.innerHTML.slice(0, 300));
+    /* what the Editor made of each click is read where the click ends, and
+       the probe stops it there: nothing is to open while it runs */
+    var seen = [];
+    function watch(e) {
+      var a = e.target.closest('a');
+      seen.push({ target: a && a.getAttribute('target'), rel: a && a.getAttribute('rel'),
+                  stopped: e.defaultPrevented });
+      e.preventDefault();
+    }
+    document.addEventListener('click', watch);
+    links.forEach(function (a) {
+      a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    });
+    document.removeEventListener('click', watch);
+    ok('a link clicked in the read pane goes to a tab of its own, and the click goes on',
+       seen.length === 3 && seen[0].target === '_blank' && seen[0].rel === 'noopener noreferrer' &&
+       !seen[0].stopped && /new tab/.test(msg()), JSON.stringify(seen[0]) + ' ' + msg());
+    ok('a fragment and a mailto: go as they are, since neither leaves the page',
+       seen.length === 3 && seen[1].target === null && seen[2].target === null && !seen[1].stopped,
+       JSON.stringify(seen.slice(1)));
+
+    /* a drop the Editor's listeners can read in either browser: they ask the
+       event for its files and its target and nothing else */
+    function drop(el, files) {
+      var ev = new Event('drop', { bubbles: true, cancelable: true });
+      Object.defineProperty(ev, 'dataTransfer', {
+        value: { files: files || [], getData: function () { return 'https://example.invalid/elsewhere'; } }
+      });
+      el.dispatchEvent(ev);
+      return ev;
+    }
+    var before = raw();
+    var onPane = drop(readEl), saidOnPane = msg();
+    var onSheet = drop(document.getElementById('sheet'));
+    ok('a URL let go of over the page is refused, and the Editor says why',
+       onPane.defaultPrevented && onSheet.defaultPrevented && /nothing to open/.test(saidOnPane), saidOnPane);
+    key('i');
+    var open = box();
+    var onBox = open ? drop(open) : null;
+    ok('text let go of over an open edit box is left to the browser, which puts it there',
+       !!onBox && !onBox.defaultPrevented, onBox ? 'refused' : 'no open box');
+    if (open) key('Escape', open);
+    ok('and through all of it the Document is what it was', raw() === before && /the docs/.test(before),
+       raw().slice(0, 120));
+
+    document.getElementById('actClear').click();
+    run('write');
+    finish();
   }
 
   function finish() {

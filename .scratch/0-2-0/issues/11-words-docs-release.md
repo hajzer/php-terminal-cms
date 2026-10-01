@@ -2,7 +2,7 @@
 
 Status: ready-for-human
 Spec: ../spec.md
-Blocked by: 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 12, 14, 15, 16, 17, 18, 19
+Blocked by: 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 12, 14, 15, 16, 17, 18, 19, 20
 
 ## CONTEXT.md
 
@@ -153,3 +153,12 @@ The 0.2.0 entry. `VERSION` → `0.2.0` and the `<i class="ver">` in
   the fourth's. `docs/security.md`'s editor paragraphs and ADR-0020 are
   corrected in three places, which 19 lists. Issue 20 is filed from it and
   does not block the release.
+- 2026-10-01, agent: two more issues closed before the release, at the
+  maintainer's word: 20 here, and 12 of 0.1.9, which had waited since the
+  third review. Both change the Editor — how it reads Meta, and a link or a
+  drop no longer taking the tab — so the browser run in the box above is
+  owed again. `php bin/test` is 860 of 860 and the probe 299 of 299 in
+  headless Chromium and headless Firefox. The CHANGELOG's 0.2.0 entry has a
+  bullet for each, ADR-0021 records the second, and `docs/format.md`,
+  `docs/keymap.md`, `docs/security.md`, CONTEXT.md's **Editor** and the
+  audit's residual risks and validation say what is true now.

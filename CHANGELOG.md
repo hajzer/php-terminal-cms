@@ -125,6 +125,19 @@ What an instance has to know before upgrading is at the end.
   if the editor's own scripts write a `style` attribute or make a `<style>`
   element, and if any stylesheet either half ships holds a `url()`, an
   `@import` or an `@font-face`.
+- The editor's preview keeps the tab the document is in. A link clicked in
+  the read pane — the page's own, or one a Diagram draws — opens in a new
+  tab, where it used to take this one and the document with it; a link to a
+  heading still scrolls the pane. What is dropped on the page is a `.md` to
+  open or is refused, where a dropped URL used to be opened in place of the
+  editor; text dropped into a box that is being typed in still lands there.
+  The preview's markup is unchanged, and is still the page's byte for byte
+  (`docs/adr/0021-the-preview-keeps-the-tab.md`).
+- The editor reads a document's meta as the page does: the key is what stands
+  before a line's first colon, trimmed, and a key written twice is read from
+  the last line that has it. It read the first, and took `theme : things` for
+  no key at all, so for such a file the preview's Theme, the file's name and
+  its directory were not the page's. `bin/test` compares the two readers.
 - CONTEXT.md gains **Diagram**, **Page Build**, **Base Path**, **Theme** and
   **Palette**.
 

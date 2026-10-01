@@ -544,7 +544,9 @@ the last on the page and in the first in the Editor's read pane, and
 none to the Editor. Both names are judged before either is used, so it is
 drift between the two readers of Meta and not exposure — and it is older than
 the Themes, which only made it visible: `title:` is read the same two ways.
-Which reader moves is a decision about Meta. It is issue 20.
+Which reader moves is a decision about Meta. It is issue 20, and the decision
+was made before the release: the Editor reads Meta as the page does, and
+`bin/test` compares the two.
 
 ### Looked at and left alone
 
@@ -718,22 +720,27 @@ Which reader moves is a decision about Meta. It is issue 20.
   until the next build or a hand removes them. `site/public/` is copied
   following symlinks, as a web server serves them.
 - The editor holds the document in the browser tab and nowhere else. Anything
-  that navigates the tab away loses it: a link clicked in the preview, or a URL
-  dropped on the page, does today. Export before either.
+  that navigates the tab away loses it. A link clicked in the preview and a
+  URL dropped on the page did, until 0.2.0: the one opens in a tab of its own
+  now and the other is refused. Closing the tab, reloading it and going back
+  still do. Export first.
 
 ## Validation
 
 `php bin/build` and `php bin/test` clean at every release: 212 assertions at
 0.1.3, 248 at 0.1.4 and, 0.1.5 having changed no behaviour, still 248 there;
-256 at 0.1.6, 306 at 0.1.7, 477 at 0.1.8, 548 at 0.1.9 and 838 at 0.2.0 —
+256 at 0.1.6, 306 at 0.1.7, 477 at 0.1.8, 548 at 0.1.9 and 860 at 0.2.0 —
 721 when the fourth review was written, 835 once the Themes and the Editor's
-policy had landed after it, and three more from the fifth.
+policy had landed after it, 838 with the fifth, and the rest from the two
+issues closed after that: the Editor's reading of Meta, and the preview
+keeping the tab.
 
 `tests/editor-probe.html` drives the editor's DOM half through a real browser
 and is the one check the suite cannot run. At 0.1.9 it was 172 assertions, run
-green in Firefox for the third review. At 0.2.0 it is 293, run green in
-headless Chromium and headless Firefox for the fifth review, which added the
-one that asks the Editor's policy to refuse something; it was 248, green in
+green in Firefox for the third review. At 0.2.0 it is 299, run green in
+headless Chromium and headless Firefox: 293 for the fifth review, which added
+the one that asks the Editor's policy to refuse something, and six more for
+the links and the drops that no longer take the tab; it was 248, green in
 both, for the fourth review — the maintainer's first run
 in Firefox found the probe's synthetic paste empty there, which was the probe's
 own clipboard stand-in and not the Editor, and the probe now pastes the same

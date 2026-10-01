@@ -1,7 +1,9 @@
 /* php-terminal-cms editor — the browser half. A document is never sent
    anywhere. What this page fetches is an image a line names, to show it in the
    preview, and — once the document holds a Diagram — its own copy of the
-   library that draws one.
+   library that draws one. Nor does the preview take the tab, where the
+   document is: a link clicked in it opens in a tab of its own, and what is
+   dropped on the page is a file to open or is refused.
 
    The model lives in editor.js; this file is only keyboard, mouse and DOM.
 
@@ -1108,10 +1110,19 @@
       document.body.classList.remove('dropping');
     });
   });
+  /* What is let go of over the page is a file to open, or it is refused: a
+     URL or a run of text the browser would open in this tab, in place of the
+     Document. The one drop left to the browser is text over a box that is
+     being typed in, which the browser puts there. */
   document.addEventListener('drop', function (e) {
     var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-    if (!f) return;
+    var over = e.target && (e.target.nodeType === 1 ? e.target : e.target.parentElement);
+    if (!f && over && over.closest('input, textarea, [contenteditable]')) return;
     e.preventDefault();
+    if (!f) {
+      if (dragFrom < 0) say('nothing to open — a drop is a markdown file');
+      return;
+    }
     var fr = new FileReader();
     fr.onload = function () { loadMarkdown(String(fr.result), f.name); };
     fr.readAsText(f);
@@ -1693,6 +1704,21 @@
     var b = e.target.closest('button.copy');
     if (!b) return;
     copyText(blockText(b.closest('.block')), b);
+  });
+  /* A link in the read pane is the page's own link, markup for markup, and
+     followed in this tab it would take the Document, which is nowhere else,
+     with it. So a click on one is sent to a tab of its own: the target is
+     set here as the click passes, and what renderDoc wrote stays what the
+     site writes. A fragment stays in the pane and a mailto: never leaves the
+     page, so both go as they are. A link a Diagram draws goes the same way. */
+  read.addEventListener('click', function (e) {
+    var a = e.target.closest('a');
+    if (!a || !read.contains(a)) return;
+    var href = a.getAttribute('href') || a.getAttribute('xlink:href') || '';
+    if (href === '' || href.charAt(0) === '#' || /^mailto:/i.test(href)) return;
+    a.setAttribute('target', '_blank');
+    a.setAttribute('rel', 'noopener noreferrer');
+    say('opened in a new tab — the Document stays in this one');
   });
   /* The prompt is presentation, not content — it is a <span class="pr"> the
      renderer put there, so take it out again rather than guessing at prefixes.

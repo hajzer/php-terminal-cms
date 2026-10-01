@@ -129,7 +129,9 @@ browser tab, opens markdown from a file picker or a drop, takes it in by
 paste, and emits it by download — the Document is never sent anywhere. What
 it fetches is an image a Line names, so that the preview shows the picture,
 and — once the Document holds a Diagram — its own copy of the library that
-draws one. It knows nothing of the Category list — a Document's Category is a
+draws one. Its preview keeps the tab the Document is in: a Link clicked there
+opens in another tab, and a drop that is not a file is refused. It knows
+nothing of the Category list — a Document's Category is a
 Meta Line like any other, and the Editor only reads it to say which directory
 the file belongs in. Nor does it know the Instance's Theme: it is drawn in the
 writer's own, and its preview is read in the Document's where the Document

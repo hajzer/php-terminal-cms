@@ -215,6 +215,12 @@ is `w` and then `b`, and the choice is remembered in the browser like the swap
 and the size. Raw is read-only — there is one way to edit a document and one
 undo — and its text can be selected and copied.
 
+The read pane's links are the page's, and a click on one opens it in a new
+tab: the document is in this tab and nowhere else, so the preview never takes
+it. A link to a heading scrolls the pane. For the same reason, what is dropped
+on the page is a `.md` to open or is refused — a URL let go of over the
+editor does nothing — except text dropped into a box that is being typed in.
+
 ## Theme and Palette
 
 The menu in the top bar, after **Clear**, lists the twelve Themes; the one

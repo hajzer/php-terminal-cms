@@ -104,9 +104,12 @@ What it is not:
   editor's one deliberate outbound request. Markup injected into the page could
   make the same kind of request.
 - **Not a stop on leaving the page.** No directive governs where the tab goes.
-  A link in the preview, a link a Diagram draws, or a
-  `<meta http-equiv="refresh">` that reached the page as markup takes the tab
-  elsewhere, and the document with it.
+  The editor's own script keeps the two ordinary ways out from taking the
+  document: a link clicked in the preview, the page's or a Diagram's, opens in
+  a tab of its own, and a drop that is not a file is refused
+  ([ADR-0021](adr/0021-the-preview-keeps-the-tab.md)). A
+  `<meta http-equiv="refresh">` that reached the page as markup would still
+  take the tab, and the document with it.
 - **Not quiet.** Mermaid measures each drawing in a scratch element with inline
   styles, which the policy refuses; Chromium reports each one as a
   `style-src-attr` violation. The picture is right because the placement
