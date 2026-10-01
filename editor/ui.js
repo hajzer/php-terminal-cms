@@ -21,7 +21,10 @@
   'use strict';
 
   var L = window.TerminalCms;
-  var doc = new L.Doc(L.parse(window.STARTER || ''));
+  /* the starter is markdown the page carries in an inert <script> element,
+     read here because the page runs no script of its own */
+  var starter = document.getElementById('starter');
+  var doc = new L.Doc(L.parse(starter ? starter.textContent : ''));
   var hist = new L.History();
 
   var sheet    = document.getElementById('sheet');
@@ -410,21 +413,34 @@
     draw();
   }
 
+  /* An Image Line's picture whose src does not load gives way to the box
+     with the file name that renderDoc put after it. An error does not
+     bubble, so the pane hears it on the way down. */
+  read.addEventListener('error', function (e) {
+    var img = e.target;
+    if (img.nodeName !== 'IMG' || !img.parentNode || img.parentNode.nodeName !== 'FIGURE') return;
+    var box = img.nextElementSibling;
+    if (!box || !box.classList.contains('imgbox')) return;
+    img.hidden = true;
+    box.hidden = false;
+  }, true);
+
   /* --------------------------------------------------------- diagrams */
 
   /* A Diagram reaches the read pane as the code block renderDoc made of it,
      and is drawn over that block here, after every redraw. Nothing is loaded
      until a redraw finds one: then the library is fetched from beside this
-     script, with its nonce when the page has one, and each Diagram is drawn
-     once per source, Theme and Palette and kept, so the redraw every keystroke
-     makes puts the picture straight back. A Diagram that is already drawn
-     keeps its picture until the one for the new Theme or Palette is ready. */
+     script, and each Diagram is drawn once per source, Theme and Palette and
+     kept, so the redraw every keystroke makes puts the picture straight back.
+     A Diagram that is already drawn keeps its picture until the one for the
+     new Theme or Palette is ready. */
   var own = document.currentScript;
-  var nonce = (own && own.nonce) || '';
   var LIBRARY = own ? own.src.replace(/[^\/]*$/, 'mermaid.min.js') : 'mermaid.min.js';
-  var SVG_NS = 'http://www.w3.org/2000/svg';
   var libraryIs = '';                /* '', 'loading', 'ready' or 'failed' */
-  var drawings = new Map();          /* Theme + Palette + source -> { svg } or { error } */
+  /* Theme + Palette + source -> { svg, css, sheet } or { error }; a
+     drawing's sheet is adopted by the document for as long as the drawing
+     is kept */
+  var drawings = new Map();
   var DRAWINGS_KEPT = 32;
   var queue = Promise.resolve(), drawn = 0;
   /* the block a drawing was placed in -> the source and key it was drawn from,
@@ -444,11 +460,11 @@
       var was = placed.get(block);
       var src = was ? was.src : block.querySelector('pre.code').textContent;
       var key = drawnIn + '\n' + src;
-      if (was && was.key === key) return;
       var d = drawings.get(key);
       if (d) { drawings.delete(key); drawings.set(key, d); }
-      else { d = {}; drawings.set(key, d); ask(d, src); forget(); }
-      if (d.svg) place(block, d.svg, src, key);
+      if (was && was.key === key) return;
+      if (!d) { d = {}; drawings.set(key, d); ask(d, src); forget(); }
+      if (d.svg) place(block, d, src, key);
       else if (d.error && !block.querySelector('.derr')) fail(block, d.error);
     });
   }
@@ -458,7 +474,6 @@
     libraryIs = 'loading';
     var s = document.createElement('script');
     s.src = LIBRARY;
-    if (nonce) s.nonce = nonce;
     function failed() {
       libraryIs = 'failed';
       say('mermaid.min.js did not load — a Diagram stays as its source');
@@ -479,18 +494,82 @@
     var config = diagramConfig();
     function one() {
       window.mermaid.initialize(config);
-      return window.mermaid.render('tcms-diagram-' + (++drawn), src).then(
-        function (r) { d.svg = r.svg; },
+      return keepingStyles(function () {
+        return window.mermaid.render('tcms-diagram-' + (++drawn), src);
+      }).then(
+        function (r) { d.svg = r.svg; d.css = r.css; },
         function (e) { d.error = String((e && e.message) || e); }
       ).then(drawDiagrams);
     }
     queue = queue.then(one, one);
   }
-  /* the least recently used, once there are more than a document needs */
+
+  /* Mermaid draws in a scratch element under <body>, where the policy
+     refuses what it writes inline. Two parts of the picture would be lost
+     to that, so while Mermaid draws they are kept off the page:
+
+     - the stylesheet it writes into a <style> element it makes, which the
+       policy refuses and reports; the element is left empty and its text
+       is handed back with the drawing as `css`;
+     - the declarations it has for one element — a style statement's fill,
+       an edge's stroke — written as a style attribute, whose value Firefox
+       drops as it is set; the attribute is written under another name,
+       which place() reads back.
+
+     Both stand for the whole page while a drawing is made, so nothing else
+     in this file writes a style attribute or makes a <style> element. A
+     drawing whose stylesheet does reach its SVG is placed the same way:
+     place() takes the text of every <style> it finds. */
+  var KEPT_STYLE = 'data-tcms-style', KEPT_SHEET = 'tcms-sheet';
+  function keepingStyles(draw) {
+    var setAttribute = Element.prototype.setAttribute;
+    var createElement = Document.prototype.createElement;
+    var css = '';
+    Element.prototype.setAttribute = function (name, value) {
+      return setAttribute.call(this, String(name).toLowerCase() === 'style' ? KEPT_STYLE : name, value);
+    };
+    Document.prototype.createElement = function (name) {
+      if (String(name).toLowerCase() !== 'style') return createElement.apply(this, arguments);
+      var el = createElement.call(this, 'template');
+      el.className = KEPT_SHEET;
+      ['innerHTML', 'textContent'].forEach(function (prop) {
+        Object.defineProperty(el, prop, {
+          configurable: true,
+          get: function () { return ''; },
+          set: function (text) { css += text + '\n'; }
+        });
+      });
+      return el;
+    };
+    function done() {
+      Element.prototype.setAttribute = setAttribute;
+      Document.prototype.createElement = createElement;
+    }
+    var drawing;
+    try { drawing = Promise.resolve(draw()); } catch (e) { done(); return Promise.reject(e); }
+    return drawing.then(function (r) { done(); return { svg: r.svg, css: css }; },
+                        function (e) { done(); throw e; });
+  }
+  /* the least recently used, once there are more than a document needs,
+     and the stylesheet with each — but never one the read pane is showing,
+     whose picture would lose its colours with its sheet */
   function forget() {
-    drawings.forEach(function (d, key) {
-      if (drawings.size > DRAWINGS_KEPT && (d.svg || d.error)) drawings.delete(key);
+    var gone = [], shown = {};
+    [].forEach.call(read.querySelectorAll('.block'), function (b) {
+      var was = placed.get(b);
+      if (was) shown[was.key] = true;
     });
+    drawings.forEach(function (d, key) {
+      if (drawings.size > DRAWINGS_KEPT && (d.svg || d.error) && !shown[key]) {
+        drawings.delete(key);
+        if (d.sheet) gone.push(d.sheet);
+      }
+    });
+    if (gone.length) {
+      document.adoptedStyleSheets = document.adoptedStyleSheets.filter(function (sh) {
+        return gone.indexOf(sh) < 0;
+      });
+    }
   }
 
   function diagramConfig() {
@@ -528,37 +607,59 @@
   }
 
   /* The SVG arrives as a string with a <style> element and style attributes
-     in it, both of which a nonce policy refuses. It is parsed inert, each
-     <style>'s text goes into one stylesheet made here with the nonce, and
-     each style attribute is taken off and written back through the CSSOM
-     once the SVG is in the page, which a policy permits. */
-  function place(block, markup, src, key) {
-    var from = new DOMParser().parseFromString(markup, 'text/html').querySelector('svg');
+     in it, both of which the page's policy refuses. It is parsed inert in a
+     <template>, each <style>'s text goes into one constructed stylesheet the
+     document adopts — which no style-src governs, and whose rules Mermaid
+     scopes to the drawing's own id — and each style attribute is taken off
+     and written back through the CSSOM once the SVG is in the page, one
+     declaration at a time: the policy permits setProperty, and Firefox
+     refuses an assignment to cssText as it does the attribute. */
+  function place(block, d, src, key) {
+    var parse = document.createElement('template');
+    parse.innerHTML = d.svg;
+    var from = parse.content.querySelector('svg');
     if (!from) return;
-    var css = '';
+    var css = d.css || '';
+    from.querySelectorAll('template.' + KEPT_SHEET).forEach(function (el) { el.remove(); });
     from.querySelectorAll('style').forEach(function (el) {
       css += el.textContent + '\n';
       el.remove();
     });
+    if (!d.sheet && drawings.get(key) === d) {
+      d.sheet = new CSSStyleSheet();
+      d.sheet.replaceSync(css);
+      document.adoptedStyleSheets = document.adoptedStyleSheets.concat([d.sheet]);
+    }
     var all = andBelow(from);
     var inline = all.map(function (el) {
-      var style = el.getAttribute('style');
+      var style = [el.getAttribute('style'), el.getAttribute(KEPT_STYLE)].join(';');
       el.removeAttribute('style');
+      el.removeAttribute(KEPT_STYLE);
       return style;
     });
     var svg = document.importNode(from, true);
     var live = andBelow(svg);
-    var sheet = document.createElementNS(SVG_NS, 'style');
-    if (nonce) sheet.setAttribute('nonce', nonce);
-    sheet.textContent = css;
-    svg.insertBefore(sheet, svg.firstChild);
     (block.querySelector(':scope > svg') || block.querySelector('pre.code')).replaceWith(svg);
     live.forEach(function (el, i) {
-      if (inline[i] && /[^\s;]/.test(inline[i])) el.style.cssText = inline[i];
+      if (inline[i] && /[^\s;]/.test(inline[i])) restyle(el, inline[i]);
     });
     placed.set(block, { src: src, key: key });
     var err = block.querySelector('.derr');
     if (err) err.remove();
+  }
+
+  /* A style attribute's declarations, read by the browser's own parser in a
+     sheet the document never adopts, and set on the element one by one. */
+  var scratch = new CSSStyleSheet();
+  function restyle(el, declarations) {
+    scratch.replaceSync('x{' + declarations + '}');
+    var rule = scratch.cssRules[0];
+    if (!rule || !rule.style) return;
+    for (var i = 0; i < rule.style.length; i++) {
+      var name = rule.style[i];
+      el.style.setProperty(name, rule.style.getPropertyValue(name),
+                           rule.style.getPropertyPriority(name));
+    }
   }
 
   /* an element and every element inside it, in document order — the same

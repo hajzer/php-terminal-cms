@@ -51,6 +51,56 @@ loads is the browser acting on the `<img>` the editor wrote, which no scan of
 the source can see and the paragraph above is what says. The same section checks
 that the page names `no-referrer`.
 
+The editor's page also names a policy, in a `<meta>`, so that markup reaching
+its DOM by an escaping miss cannot run:
+
+```output
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self';
+               img-src 'self' https: http: data:; connect-src 'none';
+               base-uri 'none'; form-action 'none'; object-src 'none'">
+```
+
+Script runs only from the editor's own files beside the page — `'self'`,
+which matches a page opened from the filesystem as well as one served — and
+nothing inline: not an `<script>` element, not an `on…=` attribute. The page
+carries none. The starter document sits in an inert
+`<script type="text/markdown">` that `ui.js` reads, and an image that does not
+load is swapped for its box by a listener `ui.js` attaches. Stylesheets come
+only from the files the page links. A Diagram's stylesheet is a constructed
+`CSSStyleSheet` the document adopts, which no `style-src` governs, and
+Mermaid's per-element styles are written back through the CSSOM, as on a
+published page. `connect-src 'none'` makes the browser refuse what the source
+scan says the editor never does.
+
+What it is not:
+
+- **Not a nonce.** A `file://` page has no request to make one for, and a
+  nonce the page printed is one injected markup could copy. The policy names
+  no nonce and no hash.
+- **Not a fence around the editor's own files.** `'self'` on a page opened
+  from the filesystem may match any local file, so injected markup that named
+  a script already on the disk could load it. On an editor served over HTTP,
+  `'self'` is that origin.
+- **The same on every copy.** It is part of `editor/index.html`, not made per
+  load; anyone can read it, and nothing about it is secret.
+- **Not a stop on the image request.** `img-src` allows any `http:`, `https:`
+  or `data:` src, because showing the picture an Image Line names is the
+  editor's one deliberate outbound request. Markup injected into the page could
+  make the same kind of request.
+- **Not quiet.** Mermaid measures each drawing in a scratch element with inline
+  styles, which the policy refuses; Chromium reports each one as a
+  `style-src-attr` violation. The picture is right because the placement
+  carries the styles.
+
+`bin/test` fails if the `<meta>` is removed, if any directive names
+`'unsafe-inline'`, `'unsafe-eval'`, `'unsafe-hashes'`, a nonce or a hash, if
+`connect-src` is anything but `'none'`, or if the page or the read pane's
+markup carries an inline script or an event-handler attribute. The browser
+probe runs under the same policy, since it is the same page, and fails if the
+policy refused any script or stylesheet during the run
+([ADR-0020](adr/0020-the-editor-names-a-policy-without-a-nonce.md)).
+
 ## The renderer
 
 `Renderer.php` never passes file bytes into its output. It matches a line to a

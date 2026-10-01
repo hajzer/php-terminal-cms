@@ -574,12 +574,12 @@
         case 'img': {
           /* The real picture, so the writer can see whether it is the right
              one. The box with the file name in it is what an src that does not
-             load falls back to — the caption is the alt either way. */
+             load falls back to, swapped in by the page's own listener — the
+             caption is the alt either way. */
           var box = '<div class="imgbox"' + (f.text ? ' hidden' : '') + '>' +
             esc(f.text) + '</div>';
           var pic = f.text
-            ? '<img src="' + esc(f.text) + '" alt="' + esc(f.sub || '') + '" onerror="' +
-              'this.hidden=true;this.nextElementSibling.hidden=false">'
+            ? '<img src="' + esc(f.text) + '" alt="' + esc(f.sub || '') + '">'
             : '';
           html.push('<figure>' + pic + box +
             '<figcaption>' + esc(f.sub || 'figure') + '</figcaption></figure>');

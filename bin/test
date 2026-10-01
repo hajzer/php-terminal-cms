@@ -2158,5 +2158,102 @@ ok(str_contains((string) file_get_contents($root . '/editor/index.html'),
                 '<meta name="referrer" content="no-referrer">'),
    'and the one request it causes carries no referrer');
 
+/* The Editor's page names its own policy, the same in every copy, with no
+   nonce and no hash. What it refuses is any
+   script but the Editor's own files, any stylesheet the page does not link,
+   and any connection — the last is what the scan above says, enforced. What
+   it allows is an Image Line's src, anywhere. Each fault is named, so a
+   loosened policy says which part loosened. */
+function editorPolicyFaults(string $page): array
+{
+    $faults = [];
+    preg_match_all('~<meta http-equiv="Content-Security-Policy" content="([^"]*)">~i', $page, $metas);
+    if (count($metas[1]) !== 1) {
+        return ['the page names ' . count($metas[1]) . ' policies, not one'];
+    }
+    /* a browser obeys the first of two directives with one name, so a
+       second is a fault whatever it says */
+    $directives = [];
+    foreach (array_filter(array_map('trim', explode(';', $metas[1][0]))) as $d) {
+        $words = preg_split('~\s+~', $d);
+        $name  = strtolower((string) array_shift($words));
+        if (isset($directives[$name])) {
+            $faults[] = "the policy names $name twice";
+            continue;
+        }
+        $directives[$name] = implode(' ', $words);
+    }
+    foreach (["'unsafe-inline'", "'unsafe-eval'", "'unsafe-hashes'", "'nonce-", "'sha256-", "'sha384-", "'sha512-",
+              "'strict-dynamic'", "'wasm-unsafe-eval'"] as $loose) {
+        if (stripos($metas[1][0], $loose) !== false) {
+            $faults[] = "the policy names $loose";
+        }
+    }
+    $wanted = ['default-src' => "'none'", 'script-src' => "'self'", 'style-src' => "'self'",
+               'connect-src' => "'none'", 'base-uri' => "'none'", 'form-action' => "'none'",
+               'object-src' => "'none'", 'img-src' => "'self' https: http: data:"];
+    foreach ($wanted as $name => $want) {
+        if (($directives[$name] ?? null) !== $want) {
+            $faults[] = "$name is " . ($directives[$name] ?? 'missing') . ", not $want";
+        }
+    }
+    foreach (array_diff_key($directives, $wanted) as $name => $_) {
+        $faults[] = "the policy names $name as well";
+    }
+    /* what the policy would refuse, the page does not carry either */
+    preg_match_all('~<script\b([^>]*)>~i', $page, $scripts);
+    foreach ($scripts[1] as $attrs) {
+        if (!preg_match('~\ssrc="~', $attrs) && trim($attrs) !== 'type="text/markdown" id="starter"') {
+            $faults[] = "an inline <script$attrs>";
+        }
+    }
+    if (preg_match('~<[a-z][^>]*\son[a-z]+\s*=~i', $page, $on)) {
+        $faults[] = 'an event-handler attribute: ' . $on[0];
+    }
+    if (preg_match('~<style\b|\sstyle="~i', $page, $style)) {
+        $faults[] = 'an inline style: ' . $style[0];
+    }
+    return $faults;
+}
+$editorPage = (string) file_get_contents($root . '/editor/index.html');
+$faults = editorPolicyFaults($editorPage);
+ok($faults === [], 'the Editor\'s page names its policy: no inline script, no stylesheet it does not link, no connection',
+   implode("\n", $faults));
+$loosened = [
+    'removed'            => preg_replace('~<meta http-equiv="Content-Security-Policy"[^>]*>\n~', '', $editorPage),
+    'unsafe-inline'      => str_replace("script-src 'self'", "script-src 'self' 'unsafe-inline'", $editorPage),
+    'unsafe-eval'        => str_replace("script-src 'self'", "script-src 'self' 'unsafe-eval'", $editorPage),
+    'styles inline'      => str_replace("style-src 'self'", "style-src 'self' 'unsafe-inline'", $editorPage),
+    'a nonce'            => str_replace("style-src 'self'", "style-src 'self' 'nonce-abc'", $editorPage),
+    'connect-src opened' => str_replace("connect-src 'none'", 'connect-src *', $editorPage),
+    'connect-src gone'   => str_replace("connect-src 'none'; ", '', $editorPage),
+    'script-src twice'   => str_replace("default-src 'none'; ", "default-src 'none'; script-src *; ", $editorPage),
+    'an inline script'   => str_replace('</body>', "<script>alert(1)</script>\n</body>", $editorPage),
+    'an on… attribute'   => str_replace('<body class="reader">', '<body class="reader" onload="x()">', $editorPage),
+];
+$missed = array_keys(array_filter($loosened, static fn (string $page) => editorPolicyFaults($page) === []
+                                                                         || $page === $editorPage));
+ok($missed === [], 'and a page with its policy removed or loosened is caught', implode(', ', $missed));
+
+/* the read pane's markup carries no handler either: the Editor's own script
+   attaches what it needs as a listener, or assigns it as a property */
+function handlerAttributes(string $code): array
+{
+    preg_match_all('~\son[a-z]+=\\\\?["\']~i', $code, $m);
+    return $m[0];
+}
+$found = [];
+foreach (['editor.js', 'ui.js'] as $f) {
+    $on = handlerAttributes((string) file_get_contents($root . '/editor/' . $f));
+    if ($on !== []) {
+        $found[] = "$f: " . implode(' ', $on);
+    }
+}
+ok($found === [], 'the Editor writes no event-handler attribute into markup', implode("\n", $found));
+ok(handlerAttributes("'<img src=\"' + src + '\" onerror=\"' + 'this.hidden=true\">'") !== []
+   && handlerAttributes("'<img onload=\\'x()\\'>'") !== []
+   && handlerAttributes('s.onerror = failed;') === [],
+   'and one written into a string of markup is caught, where one assigned as a property is not');
+
 echo "\n$pass passed, $fail failed\n";
 exit($fail === 0 ? 0 : 1);

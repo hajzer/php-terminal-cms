@@ -22,6 +22,11 @@
     try { return localStorage.getItem('tcms-theme'); } catch (e) { return 'unreadable'; }
   }
   var THEME_NAMES = (window.THEMES || []).map(function (t) { return t.name; });
+  /* what the page's policy refused during the run */
+  var refused = [];
+  document.addEventListener('securitypolicyviolation', function (e) {
+    refused.push(e.violatedDirective || e.effectiveDirective);
+  });
   function ok(name, cond, got) { out.push((cond ? 'ok   ' : 'FAIL ') + name + (cond ? '' : '  -> ' + got)); }
   function key(k, el, shift, ctrl) {
     (el || document).dispatchEvent(new KeyboardEvent('keydown',
@@ -71,6 +76,14 @@
     b.textContent = text;
     return true;
   }
+
+  /* the Document the Editor opens with is the starter the page carries */
+  var starter = document.getElementById('starter').textContent;
+  var opened = exported();
+  ok('the Editor opens with the starter document',
+     /# Start typing/.test(starter) &&
+     opened === window.TerminalCms.toMarkdown(window.TerminalCms.parse(starter)),
+     opened.slice(0, 120));
 
   /* start clean: one meta + one heading */
   var n0 = rows().length;
@@ -1661,36 +1674,49 @@
                     function (p) { return p.textContent === 'echo plain'; }),
        readEl.querySelectorAll('pre.code').length);
 
-    var sheets = svg ? svg.querySelectorAll('style') : [];
-    ok('the SVG carries one stylesheet, the one the placement made',
-       sheets.length === 1 && svg.firstElementChild === sheets[0], sheets.length);
+    /* a <style> is what the page's policy refuses: the drawing's stylesheet
+       is one the document adopts, which no style-src governs */
+    ok('the SVG carries no <style> element',
+       !!svg && !svg.querySelector('style') && !document.querySelector('style'),
+       svg && svg.querySelectorAll('style').length);
     var bg = colourOf('--bg'), a = fill(svg, 'A');
     ok('a node\'s fill is the page\'s background, read from its custom properties',
        a === bg, a + ' vs ' + bg);
-    if (sheets.length === 1) {
-      var parent = sheets[0].parentNode, next = sheets[0].nextSibling;
-      sheets[0].remove();
+    var adopted = document.adoptedStyleSheets.slice();
+    var mine = adopted.filter(function (sh) {
+      return [].some.call(sh.cssRules, function (r) {
+        return svg && r.selectorText && r.selectorText.indexOf('#' + svg.id) > -1;
+      });
+    });
+    ok('the drawing\'s stylesheet is one the document adopted', mine.length === 1,
+       mine.length + ' of ' + adopted.length);
+    if (mine.length === 1) {
+      document.adoptedStyleSheets = adopted.filter(function (sh) { return sh !== mine[0]; });
       var bare = fill(svg, 'A');
-      parent.insertBefore(sheets[0], next);
+      document.adoptedStyleSheets = adopted;
       ok('and it comes from the placed stylesheet — without it the fill is not that',
          bare !== a && fill(svg, 'A') === a, bare + ' / ' + fill(svg, 'A'));
     }
     ok('a style statement in the source still colours its node',
        fill(svg, 'C') === 'rgb(255, 153, 255)', fill(svg, 'C'));
 
-    /* A style attribute in markup is what a nonce policy refuses. What the
+    /* A style attribute in markup is what the policy refuses. What the
        placement may leave is one it wrote through the CSSOM once the SVG was
-       in the page — seen here as a change from no attribute at all. */
+       in the page, a declaration at a time — seen here as each element's
+       first change starting from no attribute at all. */
     var inSvg = styled.filter(function (r) { return svg && svg.contains(r.target); });
+    var firsts = inSvg.filter(function (r, i) {
+      return !inSvg.slice(0, i).some(function (q) { return q.target === r.target; });
+    });
     var carried = svg ? [svg].concat([].slice.call(svg.querySelectorAll('*')))
       .filter(function (el) { return el.hasAttribute('style'); }) : [];
     ok('no element in the placed SVG has a style attribute it arrived with',
-       carried.length > 0 && inSvg.every(function (r) { return r.oldValue === null; }) &&
+       carried.length > 0 && firsts.every(function (r) { return r.oldValue === null; }) &&
        carried.every(function (el) {
          return inSvg.some(function (r) { return r.target === el; });
        }),
-       carried.length + ' styled, ' + inSvg.length + ' written, ' +
-       inSvg.filter(function (r) { return r.oldValue !== null; }).length + ' had one before');
+       carried.length + ' styled, ' + firsts.length + ' written, ' +
+       firsts.filter(function (r) { return r.oldValue !== null; }).length + ' had one before');
     watch.disconnect();
 
     key('k');
@@ -1765,6 +1791,58 @@
       key('k');
       ok('a redraw prints the message once, not once more',
          readEl.querySelectorAll('.derr').length === 1, readEl.querySelectorAll('.derr').length);
+      many();
+    });
+  }
+
+  /* every redraw of a changed source or in another Theme is a new drawing,
+     and the stylesheets go with the drawings the Editor keeps, not with
+     every one it ever made */
+  function many() {
+    document.getElementById('actClear').click();
+    var n = 0, last = '';
+    (function next() {
+      if (n === 40) {
+        until(function () { return drawing() && drawing().textContent.indexOf(last) > -1; }, function (seen) {
+          var kept = document.adoptedStyleSheets.length;
+          ok('forty redrawn sources leave no more adopted stylesheets than drawings kept',
+             seen && kept > 0 && kept <= 32, kept);
+          themes(0);
+        });
+        return;
+      }
+      last = 'N' + (++n);
+      document.getElementById('actClear').click();
+      paste('```mermaid\ngraph TD\n  A[' + last + '] --> B\n```\n');
+      until(function () { return drawing() && drawing().textContent.indexOf(last) > -1; }, next);
+    })();
+  }
+
+  function themes(i) {
+    if (i === THEME_NAMES.length * 3) {
+      choose('baseline');
+      var kept = document.adoptedStyleSheets.length;
+      ok('and so does switching Themes, time after time',
+         kept > 0 && kept <= 32, kept);
+      missing();
+      return;
+    }
+    var was = drawing() && drawing().id, name = THEME_NAMES[i % THEME_NAMES.length];
+    if (name === document.documentElement.getAttribute('data-theme')) return themes(i + 1);
+    choose(name);
+    until(function () { return drawing() && drawing().id !== was; }, function () { themes(i + 1); });
+  }
+
+  /* an src that does not load falls back to the box with its file name */
+  function missing() {
+    document.getElementById('actClear').click();
+    paste('![nothing there](no-such-picture.png)\n');
+    function fig() { return readEl.querySelector('figure'); }
+    until(function () { return fig() && fig().querySelector('img').hidden; }, function () {
+      var f = fig(), img = f && f.querySelector('img'), b = f && f.querySelector('.imgbox');
+      ok('an image whose src does not load shows the box with its file name',
+         !!b && !b.hidden && b.textContent === 'no-such-picture.png', f && f.innerHTML);
+      ok('and the picture is hidden', !!img && img.hidden, f && f.innerHTML);
       document.getElementById('actClear').click();
       run('write');
       finish();
@@ -1772,6 +1850,11 @@
   }
 
   function finish() {
+    /* Mermaid's measuring pass writes style attributes the policy refuses,
+       and Chromium reports each; nothing else may be refused */
+    var wrong = refused.filter(function (d) { return !/^style-src-attr$/.test(d); });
+    ok('the run is refused no script and no stylesheet by the page\'s policy',
+       wrong.length === 0, wrong.slice(0, 5).join(', ') + ' (' + wrong.length + ')');
     var bad = out.filter(function (l) { return l.indexOf('FAIL') === 0; }).length;
     var pre = document.createElement('pre');
     pre.style.cssText = 'position:fixed;inset:0;z-index:999;background:#111;color:#ddd;' +
