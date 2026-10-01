@@ -50,18 +50,19 @@ Writing a Meta Line from the menu. Any Editor knowledge of Site Config.
 
 ## Acceptance
 
-- [ ] `tests/js-model.js`: the pinned-Theme method and the three `Tab`
+- [x] `tests/js-model.js`: the pinned-Theme method and the three `Tab`
   cases in spec §6's last bullet
-- [ ] `bin/test`: `metaBar()` and `Renderer::meta()` agree on a sample with
+- [x] `bin/test`: `metaBar()` and `Renderer::meta()` agree on a sample with
   `theme:` and `palette:` — `theme` printed, `palette` not
-- [ ] `bin/test`: `tcms-theme` is applied only through `THEMES`, and the
+- [x] `bin/test`: `tcms-theme` is applied only through `THEMES`, and the
   `?` overlay's command table lists `theme` and `palette`
-- [ ] `tests/editor-probe.html`: spec §7 in full — the menu sets
+- [x] `tests/editor-probe.html`: spec §7 in full — the menu sets
   `data-theme`, `T` flips `data-palette`, both survive a reload, the pane
   carries a pin while `<html>` keeps the writer's, removing the pin or
   misspelling it puts the pane back, a Diagram is redrawn in the new Theme's
   fill
 - [ ] by hand, in a browser: the menu on a phone-width window is reachable,
-  and a note under 13 says it exists
-- [ ] `docs/keymap.md` and `README.md` say what this issue made true
-- [ ] `php bin/test` green, `php bin/build` run, no generated file edited
+  and a note under 13 says it exists — the note is there; the menu is not
+  reachable at 360px, past the edge with undo and redo, until 13 lands
+- [x] `docs/keymap.md` and `README.md` say what this issue made true
+- [x] `php bin/test` green, `php bin/build` run, no generated file edited

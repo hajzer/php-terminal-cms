@@ -32,6 +32,7 @@
       <button type="button" id="actNew" title="start a new document (N)">New .md</button>
       <button type="button" id="actExport" title="the markdown, and the path it belongs at (E)">Export .md</button>
       <button type="button" id="actClear" title="empty this document">Clear</button>
+      <select id="theme" title="the Theme the Editor is drawn in (:theme)"></select>
       <span class="bar"></span>
       <button type="button" id="actUndo" title="undo (Ctrl+Z)">↶ undo</button>
       <button type="button" id="actRedo" title="redo (Ctrl+Shift+Z)">↷ redo</button>
@@ -108,7 +109,7 @@
     <div class="row"><kbd>t</kbd><span>table row — a run of them is one table</span></div>
     <div class="row"><kbd>c · s · u</kbd><span>code · CLI · output</span></div>
     <div class="row"><kbd>r · f · m</kbd><span>rule · figure · meta</span></div>
-    <div class="row"><kbd>Tab ⇧Tab</kbd><span>cycle the dialect of a code or CLI line</span></div>
+    <div class="row"><kbd>Tab ⇧Tab</kbd><span>cycle the dialect of a code or CLI line — or the value of a theme: or palette: meta line</span></div>
     <div class="row"><kbd>:lang &lt;name&gt;</kbd><span>pick a dialect by name instead of cycling to it</span></div>
     <div class="row"><kbd>code</kbd><span class="subs" id="helpCode"></span></div>
     <div class="row"><kbd>CLI</kbd><span class="subs" id="helpCli"></span></div>
@@ -127,7 +128,7 @@
     <div class="row"><kbd>w · ^B 4</kbd><span>raw — the markdown Export writes, live; split shows whichever of read and raw came last</span></div>
     <div class="row"><kbd>B</kbd><span>swap the panes — editor left or editor right</span></div>
     <div class="row"><kbd>+ − 0</kbd><span>content bigger · smaller · back to 100%</span></div>
-    <div class="row"><kbd>T</kbd><span>palette light ⇄ dark</span></div>
+    <div class="row"><kbd>T</kbd><span>palette, light ⇄ dark</span></div>
     <div class="row"><kbd>?</kbd><span>this help</span></div>
     <h5>addressing</h5>
     <div class="row"><kbd>a</kbd><span>the links in this line — or an image's file and caption</span></div>
@@ -202,6 +203,7 @@ Press **E** when you are done — you get the markdown, the path it belongs at, 
 window.STARTER = document.getElementById('starter').textContent;
 </script>
 <script src="langs.js"></script>
+<script src="themes.js"></script>
 <script src="editor.js"></script>
 <script src="ui.js"></script>
 </body>

@@ -81,7 +81,7 @@ One key each. Applies to the line under the cursor.
 | `r` | rule |
 | `f` | figure / image |
 | `m` | meta |
-| `Tab` / `⇧Tab` | cycle the dialect of a code or CLI line |
+| `Tab` / `⇧Tab` | cycle the dialect of a code or CLI line — or, on a `theme:` or `palette:` meta line, its value |
 | `:lang <name>` | pick a dialect by name, which is faster past the first few |
 
 ## Blocks
@@ -129,6 +129,7 @@ allowlist the page uses — but it does not stop you committing it.
 | `+` `-` | content bigger / smaller, in both panes |
 | `0` | content back to 100% |
 | `T` | palette, light ⇄ dark |
+| the Theme menu | the Theme the editor is drawn in |
 | `:` | command line |
 | `?` | the keys and every command, in the editor |
 
@@ -203,6 +204,24 @@ narrower than 900px the two panes stack instead of sitting side by side.
 
 The write pane keeps the keyboard in split mode: every editing key does what it
 does in the write pane alone, and the reader half just follows along.
+
+## Theme and Palette
+
+The menu in the top bar, after **Clear**, lists the twelve Themes; the one
+chosen is what the editor is drawn in, and `:theme <name>` chooses from the
+keyboard — alone it says which Theme is on, and a name the editor has not got
+is refused with the list. `T` flips the Palette between light and dark, and so
+do the **light/dark** button and `:palette`; `:palette light` and
+`:palette dark` name one. Both are the writer's own, remembered in the browser:
+a fresh editor opens in Baseline and in the browser's Palette.
+
+A document can pin its own: a `theme:` meta line naming a Theme the editor has
+draws the read pane in it, in the Palette the editor is in, so the preview is
+the page; the chrome and the write pane stay in the writer's Theme. A name the
+editor has not got pins nothing, and removing the line puts the pane back.
+`Tab` on a `theme:` line steps through the Themes, and on a `palette:` line
+between `light` and `dark`, so neither has to be spelled. Which Theme and
+Palette the published page opens in is [docs/config.md](config.md)'s.
 
 ## Content size
 
@@ -292,7 +311,8 @@ removes one and `y` duplicates one, exactly as they do everywhere else.
 | `write` · `read` · `split` | choose the pane layout |
 | `swap` | swap the panes, switching to split screen if it is not on |
 | `size up\|down\|reset` | content size, the same as `+` `-` `0` |
-| `palette` | light ⇄ dark |
+| `theme [name]` | draw the editor in that Theme; no argument says which it is in |
+| `palette [light\|dark]` | light ⇄ dark, the same as `T`; with an argument, that one |
 | `help` | the keys and this table |
 
 `w` is recognised and says there is nothing to save: the editor has nowhere to

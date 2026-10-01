@@ -264,6 +264,22 @@ $made = array_map(static fn (string $f): string => 'themes/' . basename($f, '.js
 ok($linked[1] === $made, 'editor/index.html links every Theme\'s stylesheet and no other',
    implode(' ', $linked[1]) . ' vs ' . implode(' ', $made));
 
+/* The writer's Theme is kept in tcms-theme and read back once, through the
+   one function that asks THEMES — a stored name THEMES lacks is no choice,
+   and Baseline stands. */
+$uiJs = (string) file_get_contents($root . '/editor/ui.js');
+preg_match_all("~stored\\('tcms-theme'~", $uiJs, $reads);
+ok(count($reads[0]) === 1 && str_contains($uiJs, "knownTheme(stored('tcms-theme'")
+   && preg_match('~function knownTheme\(name\) \{[^}]*themeNames~', $uiJs) === 1
+   && str_contains($uiJs, 'var themeNames = L.themeNames();'),
+   'the Editor applies a stored tcms-theme only when THEMES has it');
+
+/* the ? overlay's command table is COMMANDS, so the two switchers are in it */
+ok(preg_match("~\{ name: 'theme', arg: '\[name\]'~", $uiJs) === 1
+   && preg_match("~\{ name: 'palette', arg: '\[light\|dark\]'~", $uiJs) === 1
+   && str_contains($uiJs, "getElementById('cmdlist').innerHTML = COMMANDS.map("),
+   'the ? overlay lists :theme and :palette');
+
 /* ---------------------------------------------------- the vendored library
  *
  * The one third-party file. What its first line says about itself is checked
@@ -1060,19 +1076,19 @@ $looksHtml = Renderer::render($looks);
 ok(str_contains($looksHtml, '<div class="doc-meta">theme: things · date: 2026-01-02</div>'),
    'the meta prints theme: and leaves out palette:', $looksHtml);
 
-/* The agreement test: the editor's meta bar is the page's, byte for byte.
-   The sample holds no palette: — metaBar() still prints it until the
-   Editor's half of the Themes leaves it out too, and then it joins here. */
+/* The agreement test: the editor's meta bar is the page's, byte for byte,
+   over a sample with both keys the two leave out and theme:, which they print. */
 if ($node !== '') {
     $sample = (string) tempnam(sys_get_temp_dir(), 'tcms-meta');
-    file_put_contents($sample, "---\ntitle: A title\ncategory: about\ntheme: things\ndate: 2026-01-02\n---\n\n# A title\n");
+    file_put_contents($sample, "---\ntitle: A title\ncategory: about\ntheme: things\npalette: dark\ndate: 2026-01-02\n---\n\n# A title\n");
     $js = json_decode((string) shell_exec($node . ' ' . escapeshellarg($root . '/tests/js-dump.js') . ' ' . escapeshellarg($sample)), true);
     [, $sampleLines] = Markdown::parse((string) file_get_contents($sample));
     unlink($sample);
     preg_match('~<div class="doc-meta">.*?</div>~', Renderer::render($sampleLines), $phpMeta);
     ok(is_array($js) && $js['meta'] === ($phpMeta[0] ?? null)
-       && str_contains($js['meta'], 'theme: things') && !str_contains($js['meta'], 'title:'),
-       'php and js print the same meta bar, theme: in it and title: not',
+       && str_contains($js['meta'], 'theme: things') && !str_contains($js['meta'], 'title:')
+       && !str_contains($js['meta'], 'palette:'),
+       'php and js print the same meta bar, theme: in it and title: and palette: not',
        'php: ' . ($phpMeta[0] ?? '') . "\njs : " . (is_array($js) ? $js['meta'] : ''));
 }
 

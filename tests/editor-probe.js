@@ -15,6 +15,13 @@
   function paletteStored() {
     try { return localStorage.getItem('tcms-palette'); } catch (e) { return 'unreadable'; }
   }
+  /* and of the kept Theme */
+  var themeAtLoad = document.documentElement.getAttribute('data-theme');
+  var themeKept = themeStored();
+  function themeStored() {
+    try { return localStorage.getItem('tcms-theme'); } catch (e) { return 'unreadable'; }
+  }
+  var THEME_NAMES = (window.THEMES || []).map(function (t) { return t.name; });
   function ok(name, cond, got) { out.push((cond ? 'ok   ' : 'FAIL ') + name + (cond ? '' : '  -> ' + got)); }
   function key(k, el, shift, ctrl) {
     (el || document).dispatchEvent(new KeyboardEvent('keydown',
@@ -1340,8 +1347,11 @@
 
   /* --- the Palette: T flips it, and the Editor keeps it ---------------- */
   var htmlEl = document.documentElement;
-  ok('the Editor is drawn in Baseline', htmlEl.getAttribute('data-theme') === 'baseline',
-     htmlEl.getAttribute('data-theme'));
+  ok('it opened in the Theme it kept, and in Baseline when it kept none or one it has not got',
+     themeAtLoad === (THEME_NAMES.indexOf(themeKept) > -1 ? themeKept : 'baseline'),
+     themeAtLoad + ' with ' + themeKept + ' kept');
+  /* the colours below are Baseline's, so the Palette is flipped in it */
+  run('theme baseline');
   ok('it opened in the Palette it kept, and in none when it kept none, so a fresh one follows the browser',
      paletteAtLoad === (paletteKept === 'light' || paletteKept === 'dark' ? paletteKept : null),
      paletteAtLoad + ' with ' + paletteKept + ' kept');
@@ -1451,6 +1461,131 @@
      writePane.width + ' vs ' + readPane.width + ' :: ' + getComputedStyle(sheetEl).maxWidth);
   run('write');
 
+  /* --- the Theme: the menu, :theme, and the pane a Document pins ------- */
+  /* a colour an element's custom property names, as getComputedStyle spells
+     a colour — <html>'s unless another element is asked */
+  function colourOf(prop, el) {
+    var probe = document.createElement('i');
+    probe.style.color = getComputedStyle(el || document.documentElement).getPropertyValue(prop).trim();
+    document.body.appendChild(probe);
+    var c = getComputedStyle(probe).color;
+    probe.remove();
+    return c;
+  }
+  var themeSel = document.getElementById('theme');
+  ok('the top bar has a Theme menu after Clear, one entry per Theme, by label',
+     !!themeSel && themeSel.previousElementSibling.id === 'actClear' &&
+     themeSel.options.length === THEME_NAMES.length &&
+     window.THEMES.every(function (t, i) {
+       return themeSel.options[i].value === t.name && themeSel.options[i].textContent === t.label;
+     }), themeSel && themeSel.options.length);
+  ok('and it shows the Theme the Editor is in', !!themeSel && themeSel.value === 'baseline',
+     themeSel && themeSel.value);
+  var baselineBg = colourOf('--bg');
+  function choose(name) {
+    themeSel.value = name;
+    themeSel.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  /* Retroma, because its paper is not Baseline's white in either Palette */
+  choose('retroma');
+  ok('the Editor is drawn in the Theme the menu chooses',
+     getComputedStyle(document.body).backgroundColor === colourOf('--bg') && colourOf('--bg') !== baselineBg,
+     getComputedStyle(document.body).backgroundColor + ' vs ' + baselineBg);
+  choose('things');
+  ok('choosing Things sets data-theme on <html>, keeps it, and says so',
+     htmlEl.getAttribute('data-theme') === 'things' && themeStored() === 'things' &&
+     msg() === 'theme things', htmlEl.getAttribute('data-theme') + ' kept ' + themeStored() + ' / ' + msg());
+  ok('and the menu gives the keys back', document.activeElement !== themeSel);
+  run('theme');
+  ok(':theme alone says which Theme it is', msg() === 'theme things', msg());
+  run('theme nope');
+  ok(':theme refuses a name it has not got, and lists the ones it has',
+     htmlEl.getAttribute('data-theme') === 'things' && /^no Theme "nope" — /.test(msg()) &&
+     msg().indexOf(THEME_NAMES.join(' ')) > -1, msg());
+  run('theme wasp');
+  ok(':theme <name> sets it as the menu does, and the menu follows',
+     htmlEl.getAttribute('data-theme') === 'wasp' && themeStored() === 'wasp' &&
+     themeSel.value === 'wasp' && msg() === 'theme wasp', themeSel.value + ' / ' + msg());
+  run('theme things');
+  run('palette dark');
+  ok(':palette dark sets it', htmlEl.getAttribute('data-palette') === 'dark' &&
+     paletteStored() === 'dark' && msg() === 'palette dark', msg());
+  run('palette light');
+  ok(':palette light sets it', htmlEl.getAttribute('data-palette') === 'light' &&
+     msg() === 'palette light', msg());
+  run('palette tuesday');
+  ok(':palette refuses another word and leaves it', htmlEl.getAttribute('data-palette') === 'light' &&
+     msg() === 'palette light · dark', msg());
+  var helpCmds = document.getElementById('cmdlist').textContent;
+  ok('the ? overlay lists :theme and :palette',
+     helpCmds.indexOf('theme [name]') > -1 && helpCmds.indexOf('palette [light|dark]') > -1, helpCmds);
+  ok('and its T row says it is the palette',
+     [].some.call(document.querySelectorAll('#help .row'), function (r) {
+       return r.querySelector('kbd').textContent === 'T' &&
+         r.querySelector('span').textContent === 'palette, light ⇄ dark';
+     }));
+
+  run('palette dark');
+  document.getElementById('actClear').click();
+  paste('---\ntheme: wasp\n---\n\n# Pinned\n');
+  ok('a Document that pins wasp puts it on the read pane, and <html> keeps the writer\'s',
+     readEl.getAttribute('data-theme') === 'wasp' && htmlEl.getAttribute('data-theme') === 'things',
+     readEl.getAttribute('data-theme') + ' / ' + htmlEl.getAttribute('data-theme'));
+  ok('with a copy of the Palette', readEl.getAttribute('data-palette') === 'dark',
+     readEl.getAttribute('data-palette'));
+  ok('and the pane is drawn in Wasp, dark',
+     colourOf('--bg', readEl) !== colourOf('--bg') &&
+     getComputedStyle(readEl).backgroundColor === colourOf('--bg', readEl),
+     getComputedStyle(readEl).backgroundColor + ' / ' + colourOf('--bg', readEl));
+  var waspDark = colourOf('--bg', readEl);
+  key('T');
+  ok('T flips the pane\'s copy with <html>',
+     readEl.getAttribute('data-palette') === 'light' && colourOf('--bg', readEl) !== waspDark,
+     readEl.getAttribute('data-palette'));
+  ok('the raw face is not pinned', !document.getElementById('raw').hasAttribute('data-theme'));
+  key('g');
+  ok('the pin is the first Line', doc0() === 'meta:theme: wasp', doc0());
+  key('Tab');
+  var after = THEME_NAMES[(THEME_NAMES.indexOf('wasp') + 1) % THEME_NAMES.length];
+  ok('Tab on theme: steps to the next Theme, wrapping, and the pane follows',
+     doc0() === 'meta:theme: ' + after && readEl.getAttribute('data-theme') === after &&
+     msg() === 'theme: ' + after, doc0() + ' / ' + readEl.getAttribute('data-theme'));
+  key('Tab', document, true);
+  ok('⇧Tab steps back', doc0() === 'meta:theme: wasp', doc0());
+  key('D');
+  ok('removing the pin puts the pane back in the writer\'s Theme',
+     !readEl.hasAttribute('data-theme') && !readEl.hasAttribute('data-palette') &&
+     colourOf('--bg', readEl) === colourOf('--bg'), readEl.getAttribute('data-theme'));
+  key('z', document, false, true);
+  key('g');
+  key('i');
+  type('theme: nope');
+  key('Escape', box());
+  ok('a misspelled pin leaves the pane in the writer\'s',
+     doc0() === 'meta:theme: nope' && !readEl.hasAttribute('data-theme'), doc0());
+  key('Tab');
+  ok('and Tab on it starts the list', doc0() === 'meta:theme: ' + THEME_NAMES[0], doc0());
+  paste('---\npalette: light\n---\n');
+  key('g');
+  key('j');
+  key('Tab');
+  ok('Tab on palette: steps to dark', rows()[1] === 'meta*:palette: dark', rows()[1]);
+  ok('and palette: is not printed under the title',
+     readEl.querySelector('.doc-meta').textContent.indexOf('palette') < 0,
+     readEl.querySelector('.doc-meta').textContent);
+  document.getElementById('actClear').click();
+  /* back to Baseline in the Palette it was, keeping what the profile kept */
+  run('theme baseline');
+  try {
+    if (themeKept === null) localStorage.removeItem('tcms-theme');
+    else localStorage.setItem('tcms-theme', themeKept);
+    if (paletteKept === null) localStorage.removeItem('tcms-palette');
+    else localStorage.setItem('tcms-palette', paletteKept);
+  } catch (e) {}
+  if (paletteAtLoad === null) htmlEl.removeAttribute('data-palette');
+  else htmlEl.setAttribute('data-palette', paletteAtLoad);
+  function doc0() { return rows()[0].replace('*', ''); }
+
 
   /* --- a Diagram in the read pane -------------------------------------- */
   /* Drawing is asynchronous — the library arrives by a <script> and draws
@@ -1466,15 +1601,6 @@
     })();
   }
   function library() { return document.querySelectorAll('script[src$="mermaid.min.js"]'); }
-  /* a colour the page names, as getComputedStyle spells a colour */
-  function colourOf(prop) {
-    var probe = document.createElement('i');
-    probe.style.color = getComputedStyle(document.documentElement).getPropertyValue(prop).trim();
-    document.body.appendChild(probe);
-    var c = getComputedStyle(probe).color;
-    probe.remove();
-    return c;
-  }
   function drawing() { return readEl.querySelector('.block > svg'); }
   function shape(svg, node) {
     return svg && svg.querySelector('[id*="flowchart-' + node + '-"] :is(rect, polygon, path)');
@@ -1577,10 +1703,37 @@
       key('T');
       until(function () { return fill(drawing(), 'A') === dark; }, function (back) {
         ok('and T again draws it as it was', back, fill(drawing(), 'A') + ' vs ' + dark);
-        broken();
+        themed();
       });
     });
   });
+
+  /* a Theme change redraws as a Palette flip does, in the Theme the pane is
+     in: the writer's from the menu, the Document's from a theme: Meta Line */
+  function themed() {
+    var was = fill(drawing(), 'A');
+    choose('retroma');
+    until(function () { return fill(drawing(), 'A') && fill(drawing(), 'A') !== was; }, function () {
+      ok('a Theme from the menu redraws the Diagram, in a fill from the new Theme',
+         fill(drawing(), 'A') !== was && fill(drawing(), 'A') === colourOf('--bg'),
+         was + ' -> ' + fill(drawing(), 'A') + ' vs ' + colourOf('--bg'));
+      var inRetroma = fill(drawing(), 'A');
+      paste('---\ntheme: wasp\n---\n');
+      until(function () { return fill(drawing(), 'A') && fill(drawing(), 'A') !== inRetroma; }, function () {
+        ok('and a theme: Meta Line redraws it in the pinned Theme\'s fill',
+           fill(drawing(), 'A') === colourOf('--bg', readEl) && colourOf('--bg', readEl) !== inRetroma,
+           inRetroma + ' -> ' + fill(drawing(), 'A') + ' vs ' + colourOf('--bg', readEl));
+        choose('baseline');
+        try {
+          if (themeKept === null) localStorage.removeItem('tcms-theme');
+          else localStorage.setItem('tcms-theme', themeKept);
+          if (paletteKept === null) localStorage.removeItem('tcms-palette');
+          else localStorage.setItem('tcms-palette', paletteKept);
+        } catch (e) {}
+        broken();
+      });
+    });
+  }
 
   function broken() {
     document.getElementById('actClear').click();

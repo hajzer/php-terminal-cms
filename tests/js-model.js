@@ -4,6 +4,7 @@
 'use strict';
 var path = require('path');
 global.window = {};
+require(path.join(path.dirname(__dirname), 'editor', 'themes.js'));
 var L = require(path.join(path.dirname(__dirname), 'editor', 'editor.js'));
 
 var results = [];
@@ -787,5 +788,35 @@ Object.keys(L.PROMPTS).forEach(function (dia) {
      back.length === 1 && back[0].type === 'cli' && back[0].sub === dia && back[0].text === 'hello',
      JSON.stringify(back));
 });
+
+/* ---------------------------------------------------------------- Themes */
+var NAMES = window.THEMES.map(function (t) { return t.name; });
+function metaDoc(texts) {
+  return new L.Doc(texts.map(function (t) { return L.mk('meta', t); }).concat([L.mk('h1', 'x')]));
+}
+eq('a Document that pins a Theme the Editor has gets its name',
+   metaDoc(['title: x', 'theme: wasp']).theme(), 'wasp');
+eq('a misspelled pin is no pin', metaDoc(['theme: nope']).theme(), null);
+eq('a Document with no theme: pins nothing', metaDoc(['title: x']).theme(), null);
+
+d = metaDoc(['theme: ' + NAMES[0]]);
+var walked = [];
+for (n = 0; n < NAMES.length; n++) { d.cycleMeta(1); walked.push(d.meta('theme')); }
+eq('Tab on theme: walks the Themes in order and wraps',
+   walked, NAMES.slice(1).concat(NAMES[0]));
+d.cycleMeta(-1);
+eq('Shift-Tab on theme: walks back', d.meta('theme'), NAMES[NAMES.length - 1]);
+d = metaDoc(['theme: nope']);
+d.cycleMeta(1);
+eq('Tab on a misspelled theme: starts the list', d.meta('theme'), NAMES[0]);
+
+d = metaDoc(['palette: light']);
+walked = [];
+for (n = 0; n < 3; n++) { d.cycleMeta(1); walked.push(d.meta('palette')); }
+eq('Tab on palette: walks light, dark and wraps', walked, ['dark', 'light', 'dark']);
+
+d = metaDoc(['date: 2026-10-01']);
+ok('Tab on date: does what it did', d.cycleMeta(1) === false && d.cycleSub(1) === false && d.meta('date') === '2026-10-01',
+   d.lines[0].text);
 
 process.stdout.write(JSON.stringify(results));

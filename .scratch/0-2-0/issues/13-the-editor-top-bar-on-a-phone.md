@@ -25,6 +25,12 @@ browsers, a drawn Diagram included (338px wide at 360, its natural 485px
 above that). The README says both halves are built for a touch screen; the
 Editor's legend and tap-to-edit are, and the top bar is not.
 
+Since issue 17 the bar holds one more control: the Theme menu, a
+`<select id="theme">` after *Clear*. Measured at 360px with a touch pointer
+it sits at 463–612px, past the edge with undo and redo, so a phone cannot
+reach it either; on a keyboard `:theme` does the same. Whatever layout this
+issue chooses has the menu to place as well.
+
 ## Why it waits
 
 A choice, not a fix: let the row wrap onto a second line, collapse the

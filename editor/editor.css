@@ -43,6 +43,13 @@ body { overflow: hidden; font: 14px/1.6 var(--font-body); }
 .topbar .acts button[disabled], .topbar .acts button[disabled]:hover {
   color: var(--faint); cursor: default; background: transparent; box-shadow: none;
 }
+.topbar .acts select {
+  font: inherit; color: var(--ctl-fg); background: var(--ctl-bg); cursor: pointer;
+  border: 0; border-radius: 0; box-shadow: var(--ctl-edge); padding: 0 8px;
+}
+.topbar .acts select:hover {
+  color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); box-shadow: var(--ctl-edge-hover);
+}
 .topbar .acts .bar { width: 1px; background: var(--border); margin: 5px 8px; }
 
 /* ------------------------------------------------------------------ tabs */
@@ -237,6 +244,14 @@ body { overflow: hidden; font: 14px/1.6 var(--font-body); }
   font-size: calc(var(--global-font-size) * var(--doc-scale));
 }
 
+/* a Document that pins a Theme is read in it: the pane takes the page's
+   ground, face and ink from its own tokens, across the pane's whole width */
+.readwrap .reader-page[data-theme] {
+  min-height: 100%;
+  background: var(--bg); color: var(--fg); font-family: var(--font-body);
+  box-shadow: 0 0 0 100vmax var(--bg); clip-path: inset(0 -100vmax);
+}
+
 /* the raw face: the Export bytes as they are, wrapped for reading only —
    a copy of them is the file */
 .readwrap .raw-page {
@@ -388,6 +403,7 @@ body.dropping::after {
    left out of it. The file name while it is being edited is not in it: the
    accent box it already wears is the same mark said once. */
 .topbar .acts button:focus-visible,
+.topbar .acts select:focus-visible,
 .tabs button:focus-visible,
 .tabs .zoom button:focus-visible,
 .tabs .doc b:not([contenteditable]):focus-visible,
@@ -403,7 +419,7 @@ body.dropping::after {
 @media (pointer: coarse) {
   .topbar { height: auto; }
   .topbar .acts { overflow-x: auto; }
-  .topbar .acts button { padding: 10px 12px; }
+  .topbar .acts button, .topbar .acts select { padding: 10px 12px; }
   .tabs { height: auto; }
   .tabs button { padding: 10px 16px; }
   .ln .txt { padding: 5px 4px; }

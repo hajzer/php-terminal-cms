@@ -47,7 +47,12 @@
   --page-width: calc(var(--page-measure) * 1em);
   --page-width-px: calc(var(--page-measure) * var(--global-font-size));
   --doc-scale: 1;         /* + / - in the editor and on the page; see Page.php */
+}
 
+/* Declared wherever a Theme is, so that an element drawn in a Theme of its
+   own — the Editor's read pane, when its Document pins one — derives these
+   from that Theme's tokens rather than inheriting <html>'s. */
+:root, [data-theme] {
   /* ---------- controls ----------
      One treatment for every control the reader and the writer can press, in
      both halves: a resting state that can be seen, a hover that answers, and

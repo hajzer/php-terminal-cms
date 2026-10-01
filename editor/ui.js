@@ -48,6 +48,7 @@
   var nameEl   = document.getElementById('docname');
   var undoBtn  = document.getElementById('actUndo');
   var redoBtn  = document.getElementById('actRedo');
+  var themeSel = document.getElementById('theme');
 
   /* the one piece of editing state: null, or { line, span } — the *line
      object*, not its index, so a commit lands where the typing started even if
@@ -86,12 +87,48 @@
     return document.documentElement.getAttribute('data-palette') ||
       (prefersDark.matches ? 'dark' : 'light');
   }
-  function togglePalette() {
-    var next = palette() === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-palette', next);
-    store('tcms-palette', next);
+  function setPalette(p) {
+    document.documentElement.setAttribute('data-palette', p);
+    store('tcms-palette', p);
+    dressPane();
     drawDiagrams();
-    return next;
+    return p;
+  }
+  function togglePalette() {
+    return setPalette(palette() === 'dark' ? 'light' : 'dark');
+  }
+
+  /* The Theme is the writer's as well, kept by name. A stored name the Editor
+     has no Theme for is no choice at all, and Baseline stands. */
+  var themeNames = L.themeNames();
+  function knownTheme(name) {
+    return themeNames.indexOf(name) > -1 ? name : 'baseline';
+  }
+  document.documentElement.setAttribute('data-theme', knownTheme(stored('tcms-theme', '')));
+  /* the Theme the chrome is drawn in */
+  function theme() {
+    return document.documentElement.getAttribute('data-theme');
+  }
+  function setTheme(name) {
+    document.documentElement.setAttribute('data-theme', name);
+    store('tcms-theme', name);
+    themeSel.value = name;
+    drawDiagrams();
+    say('theme ' + name);
+  }
+
+  /* The read pane is drawn in the Theme its Document pins, when it pins one
+     the Editor has; the Palette it copies from <html>, because a Theme's dark
+     selector names both attributes on one element. With no pin it carries
+     neither and wears the chrome's. */
+  function dressPane() {
+    var pin = doc.theme(), p = document.documentElement.getAttribute('data-palette');
+    if (pin) read.setAttribute('data-theme', pin); else read.removeAttribute('data-theme');
+    if (pin && p) read.setAttribute('data-palette', p); else read.removeAttribute('data-palette');
+  }
+  /* the Theme the read pane is in, pinned or the chrome's */
+  function paneTheme() {
+    return read.getAttribute('data-theme') || theme();
   }
 
   /* ------------------------------------------------- content size */
@@ -340,6 +377,7 @@
     drawSheet();
     drawLegend();
     read.innerHTML = L.renderDoc(doc.lines);
+    dressPane();
     drawDiagrams();
     rawPre.textContent = L.toMarkdown(doc.lines);
     /* the sub is a Dialect from a closed list on a Code or CLI Line, and on an
@@ -378,15 +416,15 @@
      and is drawn over that block here, after every redraw. Nothing is loaded
      until a redraw finds one: then the library is fetched from beside this
      script, with its nonce when the page has one, and each Diagram is drawn
-     once per source and Palette and kept, so the redraw every keystroke makes
-     puts the picture straight back. A Diagram that is already drawn keeps its
-     picture until the one for the new Palette is ready. */
+     once per source, Theme and Palette and kept, so the redraw every keystroke
+     makes puts the picture straight back. A Diagram that is already drawn
+     keeps its picture until the one for the new Theme or Palette is ready. */
   var own = document.currentScript;
   var nonce = (own && own.nonce) || '';
   var LIBRARY = own ? own.src.replace(/[^\/]*$/, 'mermaid.min.js') : 'mermaid.min.js';
   var SVG_NS = 'http://www.w3.org/2000/svg';
   var libraryIs = '';                /* '', 'loading', 'ready' or 'failed' */
-  var drawings = new Map();          /* Palette + source -> { svg } or { error } */
+  var drawings = new Map();          /* Theme + Palette + source -> { svg } or { error } */
   var DRAWINGS_KEPT = 32;
   var queue = Promise.resolve(), drawn = 0;
   /* the block a drawing was placed in -> the source and key it was drawn from,
@@ -401,7 +439,7 @@
     });
     if (!blocks.length) return;
     if (libraryIs !== 'ready') { loadLibrary(); return; }
-    var drawnIn = palette();
+    var drawnIn = paneTheme() + '\n' + palette();
     blocks.forEach(function (block) {
       var was = placed.get(block);
       var src = was ? was.src : block.querySelector('pre.code').textContent;
@@ -436,7 +474,7 @@
 
   /* One drawing at a time, each with the configuration of the moment it was
      asked for, so a Palette flipped twice cannot draw one in the other's
-     colours. */
+     colours, nor a Theme changed twice. */
   function ask(d, src) {
     var config = diagramConfig();
     function one() {
@@ -456,13 +494,16 @@
   }
 
   function diagramConfig() {
-    var css = getComputedStyle(document.documentElement);
+    /* the colours are the pane's own, which are a pinned Theme's when the
+       Document pins one */
+    var css = getComputedStyle(read);
     function v(name) { return css.getPropertyValue(name).trim(); }
-    var font = getComputedStyle(read).fontFamily;
     /* Mermaid measures each label in a scratch element under <body>, where
-       the policy refuses its styles, so the label is measured at <body>'s
-       size; it is drawn at that size too, or its box is too small for it */
-    var size = getComputedStyle(document.body).fontSize;
+       the policy refuses its styles, so the label is measured in <body>'s
+       face and size; it is drawn in them too — even in a pane whose pinned
+       Theme names another face — or its box is not the size of its words */
+    var body = getComputedStyle(document.body);
+    var font = body.fontFamily, size = body.fontSize;
     return {
       startOnLoad: false,
       securityLevel: 'strict',
@@ -1372,8 +1413,23 @@
         else say('size up · down · reset');
       } },
 
-    { name: 'palette', help: 'light ⇄ dark',
-      run: function () { say('palette ' + togglePalette()); } },
+    { name: 'theme', arg: '[name]', help: 'draw the Editor in a Theme — alone, says which it is in',
+      items: function (w) { return w.length === 2 ? themeNames : []; },
+      run: function (a) {
+        if (!a[1]) return say('theme ' + theme());
+        if (themeNames.indexOf(a[1]) < 0) {
+          return say('no Theme "' + a[1] + '" — ' + themeNames.join(' '));
+        }
+        setTheme(a[1]);
+      } },
+
+    { name: 'palette', arg: '[light|dark]', help: 'light ⇄ dark, the same as T — or name one',
+      items: function (w) { return w.length === 2 ? L.PALETTES : []; },
+      run: function (a) {
+        if (!a[1]) return say('palette ' + togglePalette());
+        if (L.PALETTES.indexOf(a[1]) < 0) return say('palette ' + L.PALETTES.join(' · '));
+        say('palette ' + setPalette(a[1]));
+      } },
 
     { name: 'help', help: 'this list, and every key',
       run: function () { help.classList.add('on'); } },
@@ -1626,6 +1682,12 @@
   document.getElementById('palette').addEventListener('click', function () {
     say('palette ' + togglePalette());
   });
+  /* chosen with the pointer, the keys go back to the Document: a select
+     that kept the focus would take the next letter as a Theme's initial */
+  themeSel.addEventListener('change', function () {
+    setTheme(themeSel.value);
+    themeSel.blur();
+  });
   document.getElementById('zoomPct').addEventListener('click', function () { setScale(1); });
   document.querySelectorAll('[data-close]').forEach(function (b) {
     b.addEventListener('click', function () { b.closest('.ov').classList.remove('on'); });
@@ -1635,6 +1697,8 @@
   document.addEventListener('keydown', function (e) {
     if (typing()) return;
     var k = e.key;
+    /* the menu has the keys while it has the focus; Esc hands them back */
+    if (e.target === themeSel) { if (k === 'Escape') themeSel.blur(); return; }
     if (addr) { addrKey(e); return; }
 
     if (prefix) {
@@ -1709,6 +1773,7 @@
     if (k === 'Tab') {
       e.preventDefault();
       if (doc.cycleSub(e.shiftKey ? -1 : 1)) { render(); say(doc.line().sub); }
+      else if (doc.cycleMeta(e.shiftKey ? -1 : 1)) { render(); say(doc.line().text); }
       else say('no dialects for this type');
       return;
     }
@@ -1729,6 +1794,10 @@
     return '<div class="row"><kbd>' + L.esc(c.name + (c.arg ? ' ' + c.arg : '')) +
       '</kbd><span>' + L.esc(c.help) + '</span></div>';
   }).join('');
+  themeSel.innerHTML = (window.THEMES || []).map(function (t) {
+    return '<option value="' + L.esc(t.name) + '">' + L.esc(t.label) + '</option>';
+  }).join('');
+  themeSel.value = theme();
   document.getElementById('helpCode').textContent = L.byId.code.subs.join(' ');
   document.getElementById('helpCli').textContent = L.byId.cli.subs.join(' ');
 

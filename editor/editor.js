@@ -67,6 +67,21 @@
   function langs() {
     return (typeof window !== 'undefined' && window.LANGS) ? window.LANGS : {};
   }
+  /* The Themes bin/build wrote into themes.js, as [{name, label}, …] in the
+     order the menu lists them. */
+  function themes() {
+    return (typeof window !== 'undefined' && window.THEMES) ? window.THEMES : [];
+  }
+  function themeNames() {
+    return themes().map(function (t) { return t.name; });
+  }
+  /* The values Tab walks on a Meta Line, by key: the two Meta the page
+     validates against a closed list. Any other key has none. */
+  var PALETTES = ['light', 'dark'];
+  function metaValues(key) {
+    return key === 'theme' ? themeNames() : key === 'palette' ? PALETTES : null;
+  }
+
   /* The tokenizer tables for one Dialect. A Dialect may borrow another's with
      "like" — psql is sql, node is js. One level only: an alias never points at
      another alias. */
@@ -519,10 +534,12 @@
   /* -------------------------------------------------------------- renderer */
 
   /* The document's own metadata, printed under its title. title: is left out:
-     it is the title, and the title is already there. */
+     it is the title, and the title is already there. So is palette: — it is
+     how the page opens, and the reader may have flipped it since. */
   function metaBar(lines) {
     var parts = lines.filter(function (l) {
-      return l.type === 'meta' && l.text.indexOf('title:') !== 0;
+      return l.type === 'meta' && l.text.indexOf('title:') !== 0 &&
+        l.text.indexOf('palette:') !== 0;
     }).map(function (l) { return esc(l.text); });
     return parts.length ? '<div class="doc-meta">' + parts.join(' · ') + '</div>' : '';
   }
@@ -912,6 +929,24 @@
     var i = this.metaAt(key);
     return i < 0 ? '' : this.lines[i].text.slice(key.length + 1).trim();
   };
+  /** The Theme the Document pins with its theme: Meta — the name when the
+   *  Editor has that Theme, else null, so a misspelled pin is no pin. */
+  Doc.prototype.theme = function () {
+    var name = this.meta('theme');
+    return themeNames().indexOf(name) > -1 ? name : null;
+  };
+  /** Step the value of a theme: or palette: Meta Line under the cursor to the
+   *  next one its list holds, wrapping; a value not in the list steps to the
+   *  first. Any other Line is left alone and gets false. */
+  Doc.prototype.cycleMeta = function (d) {
+    var l = this.line(), m = l.type === 'meta' && /^([^:]+):(.*)$/.exec(l.text);
+    var all = m && metaValues(m[1]);
+    if (!all || !all.length) return false;
+    var i = all.indexOf(m[2].trim());
+    i = i < 0 ? 0 : (i + (d || 1) + all.length) % all.length;
+    l.text = m[1] + ': ' + all[i];
+    return true;
+  };
   /* A meta line the document does not have yet goes to the top, where
      frontmatter belongs; cur moves with it so the cursor stays on its line. */
   Doc.prototype.setMeta = function (key, value) {
@@ -1064,6 +1099,7 @@
      because bin/test compares it character for character with the site's. */
   var API = {
     TYPES: TYPES, byId: byId, byKey: byKey, PROMPTS: PROMPTS,
+    themeNames: themeNames, PALETTES: PALETTES,
     esc: esc, highlight: highlight, inline: inline, runs: runs,
     cells: cells, cellSpans: cellSpans, joinCells: joinCells,
     cellAt: cellAt, cellEnd: cellEnd,

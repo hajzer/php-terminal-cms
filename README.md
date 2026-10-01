@@ -130,8 +130,10 @@ same four from the command line, on a whole column across every row of the run.
 There is no table object and no grid, which is
 [ADR-0015](docs/adr/0015-tables-are-lines-not-a-grid.md).
 
-The topbar has the three things that act on the document as a whole — **Open
-.md**, **New .md**, **Clear** — and undo and redo beside them. Everything the
+The topbar has the four things that act on the document as a whole — **Open
+.md**, **New .md**, **Export .md**, **Clear** — then the Theme menu, the look
+the editor is drawn in, and undo and redo. `T` flips light and dark, and a
+document's own `theme:` meta line draws the read pane in that Theme. Everything the
 editor can do is also a command: `:` opens the command line, `Tab` completes it,
 and `?` lists every command with what it does.
 
