@@ -1,6 +1,6 @@
 # 14 — The sheet becomes tokens, and Baseline is the first Theme
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 
 ## What
@@ -74,7 +74,7 @@ A second Theme. Reading `theme:` or `palette:` from anywhere. The select, the
   the Base Path in a build, and carries no `data-palette`
 - [x] `tests/editor-probe.html`: `T` flips `data-palette` between `light`
   and `dark`, the value survives a reload, and a fresh profile has none
-- [ ] by hand: the Editor and a page, light and dark, are what they were
+- [x] by hand: the Editor and a page, light and dark, are what they were
   before this issue, to the eye
 - [x] `php bin/test` green, `php bin/build` run, no generated file edited
 
@@ -86,6 +86,6 @@ A second Theme. Reading `theme:` or `palette:` from anywhere. The select, the
 - The by-hand box, measured headlessly: screenshots of `/`,
   `/about/everything-is-a-line`, `/guides/writing-in-the-editor`,
   `/guides/install-in-five-minutes` and the Editor, in both Palettes and
-  both browser preferences, are byte-identical to HEAD's. The box waits for
-  the maintainer's eye.
+  both browser preferences, are byte-identical to HEAD's. The maintainer
+  has looked and confirmed it.
 - No token was added to the contract.
