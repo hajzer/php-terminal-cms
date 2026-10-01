@@ -499,12 +499,15 @@ hashes, not a header with a nonce. It is issue 12.
 
 `php bin/build` and `php bin/test` clean at every release: 212 assertions at
 0.1.3, 248 at 0.1.4 and, 0.1.5 having changed no behaviour, still 248 there;
-256 at 0.1.6, 306 at 0.1.7, 477 at 0.1.8, 548 at 0.1.9 and 721 at 0.2.0.
+256 at 0.1.6, 306 at 0.1.7, 477 at 0.1.8, 548 at 0.1.9 and 835 at 0.2.0 —
+721 when the fourth review was written, the rest arriving with the Themes and
+the Editor's policy after it.
 
 `tests/editor-probe.html` drives the editor's DOM half through a real browser
 and is the one check the suite cannot run. At 0.1.9 it was 172 assertions, run
-green in Firefox for the third review. At 0.2.0 it is 248, run green in headless
-Chromium and headless Firefox for the fourth review — the maintainer's first run
+green in Firefox for the third review. At 0.2.0 it is 292, run green in
+headless Chromium and headless Firefox at the release; it was 248, green in
+both, for the fourth review — the maintainer's first run
 in Firefox found the probe's synthetic paste empty there, which was the probe's
 own clipboard stand-in and not the Editor, and the probe now pastes the same
 way in both — beside a scripted re-run of the by-hand checks

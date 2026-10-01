@@ -122,9 +122,9 @@ allowlist the page uses — but it does not stop you committing it.
 | **Clear** | empty this document, keeping its name — `^Z` brings it back |
 | `^V` (no line open) | markdown from the clipboard, added below the cursor as typed lines |
 | `R` | name the file — or click the name in the tab bar |
-| `E` | export — shows the markdown, copy or download it |
-| `^B` then `1` / `2` / `3` | write pane / read pane / split screen |
-| `e` / `v` / `b` | the same, without the prefix |
+| **Export .md** or `E` | export — shows the markdown and the path it belongs at, copy or download it |
+| `^B` then `1` / `2` / `3` / `4` | write pane / read pane / split screen / raw |
+| `e` / `v` / `b` / `w` | the same, without the prefix |
 | `B` | swap the two panes — editor left or editor right |
 | `+` `-` | content bigger / smaller, in both panes |
 | `0` | content back to 100% |
@@ -150,9 +150,10 @@ A paste into a line that is open for editing is not markdown: it is text, and
 each further line of it becomes a line of the same type. A shell script pasted
 into a code line stays a code block, `# comment` and all.
 
-The three buttons in the topbar are the whole of what the editor does to a
-document as a whole. There is no save button, and no fourth thing hiding
-anywhere: the editor has nowhere to save to, and `E` is how a file leaves it.
+The four buttons in the topbar are the whole of what the editor does to a
+document as a whole. There is no save button, and no fifth thing hiding
+anywhere: the editor has nowhere to save to, and **Export .md** — which is `E`
+— is how a file leaves it.
 
 ## Undo and redo
 
@@ -205,6 +206,15 @@ narrower than 900px the two panes stack instead of sitting side by side.
 The write pane keeps the keyboard in split mode: every editing key does what it
 does in the write pane alone, and the reader half just follows along.
 
+The reading pane has two faces. **read** is the page as a reader sees it, and
+**raw** is the markdown `E` would export — the same bytes, live as you type,
+in monospace. `v`, `^B 2`, `:read` and the `read` tab show the one full width;
+`w`, `^B 4`, `:raw` and the `raw` tab the other. Split shows the write pane
+beside whichever face was shown last, so writing with the markdown beside it
+is `w` and then `b`, and the choice is remembered in the browser like the swap
+and the size. Raw is read-only — there is one way to edit a document and one
+undo — and its text can be selected and copied.
+
 ## Theme and Palette
 
 The menu in the top bar, after **Clear**, lists the twelve Themes; the one
@@ -230,8 +240,8 @@ It applies to both panes and to nothing else — the tab bar, the legend and the
 status line keep their size, so the chrome does not eat the window as the words
 grow. The tab bar has `A-` / `A+` buttons that do the same thing.
 
-The published page has the same control, next to the theme toggle, with the same
-keys. Both are remembered in the browser and never leave it.
+The published page has the same control, next to the light/dark button, with
+the same keys. Both are remembered in the browser and never leave it.
 
 ## Command line
 
@@ -308,12 +318,12 @@ removes one and `y` duplicates one, exactly as they do everywhere else.
 
 | command | does |
 | --- | --- |
-| `write` · `read` · `split` | choose the pane layout |
+| `write` · `read` · `raw` · `split` | choose the pane layout — `raw` is the markdown Export writes, live, and `split` is write beside read or raw, whichever was shown last |
 | `swap` | swap the panes, switching to split screen if it is not on |
 | `size up\|down\|reset` | content size, the same as `+` `-` `0` |
 | `theme [name]` | draw the editor in that Theme; no argument says which it is in |
 | `palette [light\|dark]` | light ⇄ dark, the same as `T`; with an argument, that one |
 | `help` | the keys and this table |
 
-`w` is recognised and says there is nothing to save: the editor has nowhere to
-save to. `E` produces the file.
+`:w` is recognised and says there is nothing to save: the editor has nowhere to
+save to. `E` produces the file. The key `w` is something else — the raw face.

@@ -89,6 +89,19 @@ all:
 A dialect the tables do not know still works — the block renders as plain
 escaped text, which is what an unknown info string emits.
 
+A run in the `mermaid` dialect is a **Diagram**. In the file it is a standard
+```` ```mermaid ```` fence, the one GitLab and GitHub draw, and both renderers
+emit it as the code block it is — there is no fifteenth type. The picture is
+drawn over that block in the reader's browser, on the published page and in
+the editor's read pane alike, by a pinned copy of Mermaid that only a page with
+a Diagram loads. The lines stay the source: the write pane shows them
+highlighted like any other code, the copy button and `C` copy the source, and
+flipping the Palette or changing the Theme draws the picture again in the new
+colours. With scripts blocked a Diagram is its code block. A source that does
+not parse keeps its code block too — the editor's read pane prints Mermaid's
+message under it, and the published page prints nothing. What loading the
+library means for a deployment is in [security.md](security.md).
+
 ### `cli` — shell command
 
 Key `s`. Seventeen dialects, each with the prompt it is drawn with:

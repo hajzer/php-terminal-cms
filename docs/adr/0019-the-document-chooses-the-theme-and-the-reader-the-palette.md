@@ -1,6 +1,6 @@
 # ADR-0019 — The Document chooses the Theme and the reader the Palette
 
-**Status**: accepted · 2026-10-01 · amends ADR-0011, ADR-0013
+**Status**: accepted · 2026-10-01 · amends ADR-0011, ADR-0013, ADR-0017
 
 ## Context
 

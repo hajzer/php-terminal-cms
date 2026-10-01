@@ -40,9 +40,16 @@ copy you perform with a tool that already has your credentials.
 
 No database. No login. No session, cookie, form or upload. No admin panel. No
 build step. No composer dependency, no npm package, no CDN, and not one byte of
-third-party JavaScript. The published page runs no script of its own except one
-short inline enhancement that adds a copy button, a light/dark toggle and a
-text-size control — remove it and every page still reads perfectly.
+third-party JavaScript on any page without a diagram. The published page runs
+no script of its own except one short inline enhancement that adds a copy
+button, a light/dark toggle and a text-size control — remove it and every page
+still reads perfectly.
+
+A page with a diagram is the one exception, and it says so: that page loads
+Mermaid to draw it — a pinned copy served from the site's own origin, under the
+same Content-Security-Policy as every other page — and with scripts blocked the
+diagram is the code block it was written as
+([ADR-0016](docs/adr/0016-diagrams-are-the-one-third-party-script.md)).
 
 ## Quick start
 
@@ -62,6 +69,11 @@ from the filesystem, no server needed — to write.
 A fresh installation is not empty: it ships with **about** and **guides**,
 filled with example documents about php-terminal-cms itself. Delete them once
 you have your own.
+
+A host that runs no PHP can serve the site as well. `php bin/page-build`
+renders every page to files, which is how an instance is published on GitLab
+Pages or GitHub Pages — [docs/deploy.md](docs/deploy.md#publishing-as-static-pages)
+has a pipeline for each.
 
 ## The fourteen line types
 
@@ -88,6 +100,11 @@ A run of `output` lines after a code or CLI run becomes that block's **output
 section**, folded by default in the editor, on the page, and in the exported
 markdown.
 
+A run of code lines in the `mermaid` dialect is a **diagram**. The file holds a
+standard ```` ```mermaid ```` fence, the one GitLab and GitHub draw, and the
+lines stay its source; the editor's read pane and the published page draw the
+picture over the code block, in the reader's browser.
+
 Full reference: [docs/line-types.md](docs/line-types.md).
 
 ## Writing
@@ -104,10 +121,11 @@ drag ⠿   reorder         y        duplicate          r f m   rule figure meta
 z        fold output     C        copy the block     Tab     cycle dialect
 a        link / image    Tab ⇧Tab next / prev table cell
 ^K       link at caret   ^← ^→    move the table column
+^V       paste markdown as typed lines — with no line open
 ^Z ^⇧Z   undo / redo     N        new document       R       name the file
 E        export          T        palette            :       command line
-e v b    write/read/split         B  swap the panes  + - 0   content size
-^B 1/2/3 write / read / split     ?  keys and commands
+e v w b  write/read/raw/split     B  swap the panes  + - 0   content size
+^B 1-4   write/read/split/raw     ?  keys and commands
 ```
 
 `a` opens the address overlay on the line under the cursor: the links already
@@ -118,6 +136,12 @@ publish it, by the same allowlist the page uses. `^K` while editing a line is
 the same overlay from inside the box: what you selected becomes the wording and
 the link replaces it where it stands, and with nothing selected the link lands
 at the caret. `a` on a line you are not editing appends.
+
+`^V` with no line open takes markdown from the clipboard and adds it below the
+cursor as typed lines — a `## ` a heading, a fence a code block — with its
+frontmatter merged into the document's meta by key, and one `^Z` takes the
+whole paste back. A paste into a line that is open stays text: a shell
+script's `# comment` is not a heading.
 
 A table is a run of table rows and a row is one line, so `J`/`K` reorders a row
 and `y` duplicates one. `Tab` while editing a row walks the caret from cell to
@@ -140,9 +164,12 @@ and `?` lists every command with what it does.
 ## Split screen
 
 `b` puts the lines and the rendered page side by side, both live as you type;
-`B` swaps which side each is on. `+` and `-` size the document in both panes
+`B` swaps which side each is on. The reading side has a second face, **raw**:
+the markdown `E` would export, live and read-only. `w` shows it full width, and
+split shows whichever of read and raw was shown last, so the file can change
+beside the lines as you write them. `+` and `-` size the document in both panes
 (and on the published page, next to the light/dark toggle), `0` returns it to
-100%. Both settings are remembered per browser.
+100%. The swap, the face and the size are remembered per browser.
 
 Full reference: [docs/keymap.md](docs/keymap.md).
 
@@ -177,7 +204,7 @@ drops the tagline when there is no room for it.
 
 The editor's legend along the bottom is the writing loop when there is no
 keyboard to run it from: the line types on the left with `link` among them,
-`edit` `new` `remove` `↑` `↓` `fold` on the right, each doing what the key
+`edit` `new` `paste` `remove` `↑` `↓` `fold` on the right, each doing what the key
 printed beside it does. Tap a line to put the cursor on it, tap it again to
 write in it.
 
@@ -206,7 +233,8 @@ site/
   content/     <category>/<slug>.md   <slug>-<lang>.md
   site.php.example
 bin/           build  test  fmt  package  page-build  manifest.php  themes.php
-tests/         js-dump.js  js-model.js  js-tables.js  js-inline.js  editor-probe.html
+tests/         js-dump.js  js-model.js  js-tables.js  js-inline.js
+               editor-probe.html  editor-probe.js  editor-probe-watch.js
 ```
 
 `site/site.php` — title, logo, favicon, tagline, languages, Theme, Palette,

@@ -1,6 +1,6 @@
 # ADR-0017 — A Page Build is a second way to publish
 
-**Status**: accepted · 2026-09-30 · amends ADR-0002, ADR-0013
+**Status**: accepted · 2026-09-30 · amends ADR-0002, ADR-0013 · amended by ADR-0019
 
 ## Context
 
@@ -30,8 +30,8 @@ publish, beside request-time rendering, not a replacement for it.
   two hosts.
 - **Policy.** Static hosts send no headers a site chooses, so a built page
   names its Content-Security-Policy itself, in a `<meta>` element, with one
-  random nonce per Page Build on the inline script, the accent style block and
-  a Diagram's placed stylesheet.
+  random nonce per Page Build on the inline script and a Diagram's placed
+  stylesheet.
 
 - **Output.** The build renders into a fresh directory beside the output and
   swaps it into place only once every page has rendered. It replaces an output

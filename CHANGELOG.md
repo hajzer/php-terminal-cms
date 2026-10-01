@@ -1,5 +1,143 @@
 # Changelog
 
+## 0.2.0
+
+A diagram is written in the document and drawn where it is read, markdown comes
+in by paste, the markdown can be watched while it is written, a page has
+twelve looks to be read in, and a host that runs no PHP can serve the site.
+What an instance has to know before upgrading is at the end.
+
+- `mermaid` is the fifty-ninth Code Dialect, and a Code Run in it is a
+  **Diagram**. The file holds a standard ```` ```mermaid ```` fence, the one
+  GitLab and GitHub draw, and both renderers emit it as the code block it is;
+  `Tab` reaches the dialect like any other and its keywords are coloured in
+  the write pane. The picture is drawn over the block in the reader's browser,
+  in the editor's read pane and on the published page, in the Theme's colours,
+  and drawn again when the Palette flips. The copy button copies the source. A
+  source that does not parse keeps its code block — the read pane prints
+  Mermaid's message under it, the page prints nothing — and with scripts
+  blocked a Diagram is the code block it always was.
+- Mermaid is the one third-party script, and the first: 11.17.2, vendored as
+  `shared/mermaid.min.js` with its licence beside it, served from the site's
+  own origin and from beside the editor, never from a CDN, and loaded only by
+  a page that has a Diagram. "Not one byte of third-party JavaScript" is now
+  true of every page without one, and the README and `docs/security.md` say
+  so. It runs with `securityLevel: 'strict'`, and the Content-Security-Policy
+  is not widened for it: the script arrives carrying the page's nonce, and the
+  page places the drawing itself — the stylesheet under the nonce, each
+  `style` attribute through the CSSOM. A page without a Diagram is sent
+  nothing new and `bin/test` holds its shell to a fixed hash. `bin/test`
+  checks the vendored file against the hash its first line names and the
+  version against the one `docs/security.md` names
+  (`docs/adr/0016-diagrams-are-the-one-third-party-script.md`).
+- `^V` with no line open reads the clipboard as markdown, the way **Open .md**
+  reads a file, and adds it rather than replacing: the lines it describes land
+  below the cursor with their types, the cursor ends on the last, and one `^Z`
+  takes all of it back. Pasted frontmatter merges into the document's meta by
+  key — the paste's value where the key exists, a new meta line after the last
+  where it does not. `:paste` and a `paste` entry in the legend read the
+  clipboard through the browser's Clipboard API, for a screen with no
+  keyboard, and say so and point at `^V` where the browser refuses. Only the
+  clipboard's plain text is read. A paste into a line that is open is what it
+  was: text, each further line a line of the same type.
+- The reading pane has a second face, **raw**: the bytes Export would write,
+  live, read-only, in monospace. `w`, `^B 4`, `:raw` and a `raw` tab show it
+  full width, as `v`, `^B 2` and `:read` show the page. Split shows the write
+  pane beside whichever face was shown last, so the markdown can change beside
+  the lines as they are written, and the choice is remembered per browser.
+- **Export .md** is a button in the top bar, beside **New .md**, opening the
+  overlay `E` opens. The top bar and the tabs wrap onto as many rows as a
+  narrow screen needs rather than run past its edge, so every control in them
+  can be reached on a phone.
+- `php bin/page-build --output=<dir> [--base-url=<url>]` is a **Page Build**:
+  every page of an instance rendered to files, by the same Router, Renderer
+  and page shell that answer a request, so that a host which runs no PHP can
+  serve the site. A second way to publish, not a replacement for the first.
+  The **Base Path** — the path of `--base-url` — goes in front of every local
+  address the site carries, a writer's own `[x](/guides/y)` and an image's src
+  included, so a project page under `/project/` works. Links are written with
+  a trailing slash, which the request-time site answers too, and `404.html` is
+  the site's own. The build refuses to run without `site/site.php`, renders
+  beside the output and swaps it in only when every page has rendered, and
+  replaces only an output that is absent, empty or an earlier Page Build
+  (`docs/adr/0017-a-page-build-is-a-second-way-to-publish.md`).
+- A built page names its own policy, in a `<meta>` that is the first element
+  of its `<head>`, with one nonce per build — the header's policy but for
+  `frame-ancestors`, which a `<meta>` cannot carry. The policy is written
+  once, in `site/src/Policy.php`, and `bin/test` builds the sample content
+  and requires every built page to be the page the PHP site serves for the
+  same address, but for the Base Path, the trailing slash and where the
+  policy is named.
+- `docs/deploy.md` has *Publishing as static pages*: a local preview, what an
+  instance's repository has to change, and a pipeline each for GitLab Pages
+  and GitHub Pages, written against their current syntax and not run by the
+  suite.
+- Twelve **Themes**, each in two **Palettes**. A Theme is a named look —
+  Baseline, Flexoki, GitHub, Material Flat, Minimal, Origami, Retroma,
+  Reverie, Shimmering Focus, Things, Underwater, Wasp — derived from the
+  MIT-licensed Obsidian theme of that name, whose notices are in
+  `shared/themes/LICENSE`; a Palette is its light or its dark. A Theme is
+  values for the tokens of the one structural sheet and nothing more: colours,
+  font stacks that name its source's face and end in the system's, a radius
+  and a heading weight, one JSON file each under
+  `shared/themes/`, written into a stylesheet for both halves by `bin/build`.
+  No typeface is shipped and the policy names no new origin.
+  `docs/themes.md` lists them
+  (`docs/adr/0018-a-theme-is-values-for-the-one-sheet.md`).
+- The Theme a page is drawn in is the document's `theme:` meta, else
+  `site.php`'s `theme`, else Baseline; the reader has no Theme control. The
+  Palette is the reader's own choice, else the document's `palette:`, else
+  `site.php`'s `palette`, else the browser's preference. A name that is none
+  of the twelve, or a word that is neither `light` nor `dark`, is not a choice
+  and the next in line decides — a misspelling never breaks a page. `theme:`
+  is printed under the title like any meta; `palette:` is not, because the
+  reader may have flipped the page since
+  (`docs/adr/0019-the-document-chooses-the-theme-and-the-reader-the-palette.md`).
+- The editor has a Theme menu in the top bar and `:theme <name>`; `T`, the
+  **light/dark** button and `:palette` flip the Palette. Both are the writer's
+  own, remembered per browser, and a fresh editor opens in Baseline and the
+  browser's Palette, as a page does. A document's `theme:` draws the read pane
+  in that Theme, so the preview is the page, and `Tab` on a `theme:` or
+  `palette:` meta line steps through the values that are valid. The page's
+  button is labelled **light/dark** too: it never chose a Theme.
+- The editor's page names a Content-Security-Policy of its own, in a `<meta>`:
+  script and stylesheets from its own files only, nothing inline, no
+  connection. It names no nonce, since a page opened from the filesystem has
+  no request to make one for. `bin/test` fails if the policy is removed or
+  loosened, and the browser probe runs under it and fails if it refused a
+  script or a stylesheet
+  (`docs/adr/0020-the-editor-names-a-policy-without-a-nonce.md`).
+- A fourth security review, of the surface this release adds: Mermaid and its
+  placement, the paste, the Base Path's reach into the Renderer, the Page
+  Build's writes and a built page's policy. One finding, medium, in the
+  editor, fixed: the status line named an Image Line by its caption without
+  escaping it, so a caption carrying markup — in a file opened or, from this
+  release, in markdown pasted — put an element on the page that ran. The
+  caption is escaped, the probe pastes one and checks, and the policy above is
+  the boundary that was missing behind it. Beside it, the build refuses a
+  document whose file is named `.md` alone. `docs/security-audit.md` carries
+  the scope, the finding, and what was looked at and left alone.
+- CONTEXT.md gains **Diagram**, **Page Build**, **Base Path**, **Theme** and
+  **Palette**.
+
+Upgrading an instance:
+
+- **`accent` is retired.** A Theme owns its colours in both Palettes, so
+  `accent` in a `site.php` is ignored like any key the file does not list, and
+  the page is drawn in Baseline until `theme` names another. Set `theme`, and
+  `palette` if the site should open light or dark for a reader who has not
+  chosen — `site.php.example` and `docs/config.md` have both.
+- **`normal` is `light`.** The light half was `data-theme="normal"` on a page
+  and is `data-palette="light"`; `data-theme` now holds the Theme's name.
+  Anything of an instance's own in `site.css` that selected on the old
+  attribute has to follow. A reader's stored light-or-dark choice, and a
+  writer's in the editor, were kept under the old name and are not carried
+  over: each opens in the default once and is remembered again from the next
+  press.
+- The site's document root gains `mermaid.min.js` and `themes/`, and the
+  editor `mermaid.min.js`, `themes.js` and `themes/`. Copying the whole of
+  `site/` and `editor/`, as `docs/deploy.md` does, brings them.
+
 ## 0.1.9
 
 A link lands where the caret is, a table has columns you can point at, both

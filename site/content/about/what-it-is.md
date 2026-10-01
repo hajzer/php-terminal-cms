@@ -40,6 +40,6 @@ There is no fourth requirement. No composer install, no node, no build.
 
 - **It does not write files.** The public half opens files for reading and nothing else; `bin/test` fails the build if `file_put_contents`, `unlink` or `fwrite` ever appears in `site/src/`.
 - **It does not read the request.** No `$_GET`, no `$_POST`, no cookie, no session. A URL selects a category and a slug by comparison against names on disk, never by being turned into a path.
-- **It does not run third-party code.** No dependency means no dependency to update at three in the morning.
+- **It does not run third-party code.** Not on the server: no dependency means no dependency to update at three in the morning. The one library it carries, Mermaid, runs in the browser of a reader whose page has a diagram, and nowhere else.
 
 > The security model is not a list of mitigations. It is a list of things that are absent, and absent things cannot be exploited.

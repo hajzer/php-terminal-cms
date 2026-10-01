@@ -1646,12 +1646,12 @@ ok(stylesheets($built) === ['/proj/theme.css', '/proj/themes/baseline.css', '/pr
    sample address, the policy's nonce fixed. The sample content or the shell
    changing on purpose is what re-records them. */
 $before = [
-    '/'                                 => '2dd98fc82d0e3b6d20a3adb408899fb1ad3a3c4b45a99df326d1891c96b3a56e',
+    '/'                                 => 'cdb0f7d9f136756430603bee26564048ea168c47939ed9ecb89616777bb53bee',
     '/about'                            => '2944af89567da8b799ed94f131ba860dda7d7ad8ff4897ef2adbbb5a27f08793',
     '/guides'                           => '173d37b8801c398e5074e8b662a6d8214ac9177b1d03a0a87a381c779b5cd387',
     '/about/everything-is-a-line'       => 'cc70781d6b3540efc9258cc246d6db27160bf3079426d773f2f7f977ffe2509c',
-    '/about/what-it-is'                 => '753bee01caaec10048aa8154c88b8ae0dcd6990a675fe71f467d00c71cf92d9f',
-    '/about/what-it-is-sk'              => 'd604501808b07907008af2912df4fa39773302c2da304af56e7f000171687725',
+    '/about/what-it-is'                 => 'be9f65b412e6f33ddefb8de8648a0e8de9eeaa8d3bb8eba61aabe432f2960e08',
+    '/about/what-it-is-sk'              => '01dd6abcee8cc478859450c64f9e77d7d9b4d04ea3217c377700fbbf8019367b',
     '/guides/install-in-five-minutes'   => '97738202f85561bdf13d711606d635a594329d9601fe115794cee11e8415b5fe',
     '/guides/publishing-is-a-file-copy' => 'eeeb59c846b0fd2fda15e6620044080f51ae3a8371382729f06a52a78e54ec17',
     '/guides/writing-in-the-editor'     => '68aa2f4aa480b2778d5a0c2a91812836e312539be321c1f010ce9b7c7ea3fdb1',

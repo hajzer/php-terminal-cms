@@ -6,9 +6,12 @@ are.
 ## What is reachable from the internet
 
 On the public origin: Apache (or nginx), the PHP runtime, one entry point of
-seventy lines and the renderer, router, listing and page shell in `site/src/`
-— under two thousand lines in all. That is the whole of it — there is no other
-code, and none of it is somebody else's.
+under eighty lines and the renderer, router, listing and page shell in
+`site/src/` — about 2,300 lines in all. That is the whole of what runs there —
+there is no other code, and none of it is somebody else's. One file the origin
+serves is somebody else's: `mermaid.min.js`, which the server only hands
+over, and which runs in the browser of a reader whose page has a Diagram and
+nowhere else (see *The one script on the page*).
 
 ## What does not exist
 
@@ -28,7 +31,11 @@ alter published content** — publishing requires credentials to the transport
 (SSH, git), which the software never handles.
 
 The editor never sends a document anywhere: it holds one in the browser tab and
-emits it by download. It does make one request on the author's behalf.
+emits it by download. What it fetches is two things, and the document is in
+neither. Once a document holds a Diagram, the page loads its own copy of
+Mermaid — `mermaid.min.js`, the file beside `ui.js`, from wherever the editor
+itself was opened — to draw it in the read pane; a document without a Diagram
+never asks for it. The other is a request on the author's behalf.
 Previewing an image line shows the actual picture, so the browser fetches
 whatever that line names as its src — an author who writes an `https://` src is
 telling their own browser to contact that host, and that host learns a request
@@ -46,9 +53,13 @@ scans the site's PHP for the calls that reach the system — reads
 `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `sendBeacon`, a dynamic
 `import`, the constructors that open one and `window.open`. The editor names
 none of them, and a change that added one would fail the suite naming the file
-and the call. The scan says the editor initiates no request; the picture that
-loads is the browser acting on the `<img>` the editor wrote, which no scan of
-the source can see and the paragraph above is what says. The same section checks
+and the call. The scan says the editor opens no connection of its own; the
+picture and the library that load are the browser acting on the `<img>` and
+the `<script>` the editor wrote, which no scan of the source can see and the
+paragraph above is what says. The vendored `mermaid.min.js` is not scanned: it
+is third-party code, unchanged, and a scan of it would report what the library
+contains rather than what the editor does. What it may do is bounded by
+`securityLevel: 'strict'` and by the policy below. The same section checks
 that the page names `no-referrer`.
 
 The editor's page also names a policy, in a `<meta>`, so that markup reaching
@@ -299,7 +310,9 @@ policy is named.
 
 ## What to keep patched
 
-PHP and the web server. There is no application dependency to update.
+PHP and the web server. There is no application dependency to update but one:
+the vendored Mermaid, whose advisories are the one feed to watch, and whose
+upgrade is the file replacement *The one script on the page* describes.
 
 Two PHP settings belong in the pool or the vhost: `display_errors` off, so a
 warning is never reconnaissance, and `expose_php` off, so the version is not in

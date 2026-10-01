@@ -40,6 +40,6 @@ Dve polovice, jeden repozitár. Editor je statická stránka; server je PHP skri
 
 - **Nezapisuje súbory.** Verejná polovica otvára súbory na čítanie a nič iné; `bin/test` zhodí build, ak sa v `site/src/` objaví `file_put_contents`, `unlink` alebo `fwrite`.
 - **Nečíta požiadavku.** Žiadne `$_GET`, žiadne `$_POST`, žiadna cookie, žiadna session. URL vyberá kategóriu a slug porovnaním s menami na disku, nikdy sa nemení na cestu.
-- **Nespúšťa cudzí kód.** Žiadna závislosť znamená žiadnu závislosť, ktorú treba aktualizovať o tretej ráno.
+- **Nespúšťa cudzí kód.** Na serveri nie: žiadna závislosť znamená žiadnu závislosť, ktorú treba aktualizovať o tretej ráno. Jediná knižnica, ktorú so sebou nesie, Mermaid, beží v prehliadači čitateľa, ktorého stránka má diagram, a nikde inde.
 
 > Bezpečnostný model nie je zoznam opatrení. Je to zoznam vecí, ktoré chýbajú, a čo chýba, sa nedá zneužiť.

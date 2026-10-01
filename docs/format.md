@@ -124,6 +124,15 @@ two dialects sharing a prompt would make the second unreadable, and the file
 would come back as something other than what was written. `bin/test` asserts it
 for every dialect, in both implementations.
 
+## Diagrams
+
+A Diagram is a code run in the `mermaid` dialect, and in the file it is
+nothing but a standard ```` ```mermaid ```` fence — the one GitLab and GitHub
+draw in place. The picture is not stored anywhere: the fence's lines are the
+source, they round trip like any code block's, and the picture is drawn from
+them in the reader's browser each time. See
+[line-types.md](line-types.md#code--code).
+
 ## Inline markup
 
 `` `code` ``, `**bold**`, `*italic*`, `[text](url)` — in paragraphs, list items,
