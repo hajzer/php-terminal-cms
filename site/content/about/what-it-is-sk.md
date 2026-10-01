@@ -6,9 +6,9 @@ date: 2026-09-07
 
 # Čo je php-terminal-cms
 
-Publikačná platforma pre ľudí, ktorí už majú textový editor, terminál a server, a nechcú medzi sebou a zverejnenou stránkou štvrtú vec.
+Publikačná platforma pre ľudí, ktorí už majú textový editor, terminál a server.
 
-## Ako vyzerá inštalácia
+## Inštalácia
 
 ```console
 $ tree -L 2 php-terminal-cms
@@ -16,30 +16,28 @@ $ tree -L 2 php-terminal-cms
 
 ```output
 php-terminal-cms
-|-- editor/          písacia plocha — otvorte index.html z disku
+|-- editor/          index.html
 |-- site/
-|   |-- content/     váš markdown, jeden súbor na dokument
-|   |-- public/      jediné, na čo mieri webový server
+|   |-- content/     jeden markdown = jeden dokument (stránka)
+|   |-- public/      hlavny adresár webu (webserver root)
 |   |-- src/         renderer, ~300 riadkov PHP
-|   `-- site.php     názov, podnadpis, kategórie, výpisy, pätička
+|   `-- site.php     konfigurácia systemu
 |-- shared/          jedna kópia témy a tabuľky jazykov
 `-- bin/             build, test, fmt, package
 ```
 
-Dve polovice, jeden repozitár. Editor je statická stránka; server je PHP skript, ktorý číta súbory. Nič sa negeneruje dopredu a nič sa necachuje — stránka sa vykreslí zo svojho markdown súboru pri každej požiadavke, čo trvá približne milisekundu, pretože nie je čo iné robiť.
+Dve komponenty, jeden repozitár. Editor je statická HTML stránka; server je PHP skript, ktorý číta a interpretuje markdown súbory. Nič sa negeneruje dopredu a nič sa necachuje — stránka sa vykreslí zo svojho markdown súboru pri každej požiadavke.
 
-## Požiadavky, celé
+## Požiadavky
 
 - PHP 8.1 alebo novšie, bez rozšírení nad rámec predvolených
-- adresár, ktorý vie webový server obslúžiť
-- prehliadač, pre editor
-
-Štvrtá požiadavka neexistuje. Žiadne composer install, žiadny node, žiadny build.
+- adresár z ktoreho vie webový server obsluhovat klientov
+- prehliadač
 
 ## Čo odmieta robiť
 
-- **Nezapisuje súbory.** Verejná polovica otvára súbory na čítanie a nič iné; `bin/test` zhodí build, ak sa v `site/src/` objaví `file_put_contents`, `unlink` alebo `fwrite`.
-- **Nečíta požiadavku.** Žiadne `$_GET`, žiadne `$_POST`, žiadna cookie, žiadna session. URL vyberá kategóriu a slug porovnaním s menami na disku, nikdy sa nemení na cestu.
-- **Nespúšťa cudzí kód.** Na serveri nie: žiadna závislosť znamená žiadnu závislosť, ktorú treba aktualizovať o tretej ráno. Jediná knižnica, ktorú so sebou nesie, Mermaid, beží v prehliadači čitateľa, ktorého stránka má diagram, a nikde inde.
+- **Nezapisuje súbory.** Verejná komponenta (site) iba otvára súbory na čítanie a nič iné.
+- **Nečíta požiadavku.** Žiadne `$_GET`, žiadne `$_POST`, žiadna cookie, žiadna session.
+- **Nespúšťa cudzí kód.** Serverová čast (site) nemá závislosti. System je závislí iba na jednej javascript knižnici (Mermaid), ktorá beží v prehliadači čitateľa (editor) a načítava sa iba v prípade ked stránka obsahuje Mermaid diagram.
 
 > Bezpečnostný model nie je zoznam opatrení. Je to zoznam vecí, ktoré chýbajú, a čo chýba, sa nedá zneužiť.
