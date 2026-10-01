@@ -1,6 +1,6 @@
 # ADR-0011 — A page shows what the Document says about itself
 
-**Status**: accepted · 2026-09-10
+**Status**: accepted · 2026-09-10 · amended by ADR-0019
 
 ## Context
 

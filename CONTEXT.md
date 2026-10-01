@@ -62,9 +62,11 @@ _Avoid_: field, axis
 
 **Meta**:
 A Line holding one `key: value` pair, exported as YAML frontmatter. `title`,
-`category` and `date` are the ones the system reads; anything else is carried
-through untouched. Every Meta but `title` is shown on the page, in one line
-under the title.
+`category`, `date`, `theme` and `palette` are the ones the system reads;
+anything else is carried through untouched. Every Meta but `title` and
+`palette` is shown on the page, in one line under the title: the title is
+already there as the heading, and the Palette is the reader's to flip, so what
+the Document says about it is only how the page opens.
 _Avoid_: frontmatter (when you mean the Line), header, attribute
 
 **Link**:
@@ -129,7 +131,9 @@ it fetches is an image a Line names, so that the preview shows the picture,
 and — once the Document holds a Diagram — its own copy of the library that
 draws one. It knows nothing of the Category list — a Document's Category is a
 Meta Line like any other, and the Editor only reads it to say which directory
-the file belongs in.
+the file belongs in. Nor does it know the Instance's Theme: it is drawn in the
+writer's own, and its preview is read in the Document's where the Document
+names one.
 _Avoid_: CMS, admin, backend, dashboard
 
 **Renderer**:
@@ -171,7 +175,7 @@ _Avoid_: deploy (that is the code), upload, sync, publish
 
 **Site Config**:
 The per-instance `site.php` — title, logo, favicon, tagline, Language list,
-Category list, accent colour, Listing switches, how many Documents the homepage
+Category list, Theme and Palette, Listing switches, how many Documents the homepage
 Listing prints, where a leaving Link opens, and Footer. The only thing that
 differs between two installations of the same code.
 _Avoid_: settings, options, env
@@ -197,3 +201,24 @@ One deployed copy of the code with its own Site Config and `content/`.
 Two deployments of php-terminal-cms share no runtime state and no code path —
 only a version number.
 _Avoid_: site (ambiguous — the code or the deployment?), tenant, host
+
+### Appearance
+
+**Theme**:
+A named look a Document is read in — one of twelve, each derived from an
+MIT-licensed Obsidian community theme, and a closed set. A Theme says the
+colours, the typefaces and the shapes a page is drawn with, and nothing more:
+what a page contains and where its parts sit are the same in every Theme. A
+Theme always has exactly two Palettes. Which one a page is read in is the
+Document's to say, else the Instance's, else Baseline — never the reader's. A
+name that is not one of the twelve is not a choice, and the next chooser
+decides.
+_Avoid_: skin, style, stylesheet (that is the file, not the thing), scheme
+
+**Palette**:
+One half of a Theme — its light or its dark. There are exactly two, and
+nothing is read in a Theme without one of them. The reader's to choose, before
+the Document and the Instance: a Document or an Instance only says which one
+a page opens in for a reader who has never chosen. A word that is neither
+`light` nor `dark` is not a choice, and the next chooser decides.
+_Avoid_: mode, dark mode, colour scheme, variant, theme (that is the whole)

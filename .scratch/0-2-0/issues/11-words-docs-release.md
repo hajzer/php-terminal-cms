@@ -2,7 +2,7 @@
 
 Status: ready-for-agent
 Spec: ../spec.md
-Blocked by: 01, 02, 03, 04, 05, 06, 07, 08, 09, 10
+Blocked by: 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 14, 15, 16, 17, 18
 
 ## CONTEXT.md
 
@@ -76,3 +76,15 @@ The 0.2.0 entry. `VERSION` → `0.2.0` and the `<i class="ver">` in
   static files for the Editor, corrected in 10. The fourth review is written;
   its `## Validation` counts 721 assertions and a 248-assertion probe, which
   the version bump does not change.
+- 2026-10-01, agent, from the Themes grilling: this issue now waits for
+  14–18 as well. What they add to the words here: `docs/themes.md` is new
+  and the README's layout lists `shared/themes/`; the `T` row and the
+  `theme` command row in `docs/keymap.md` and the README read `palette`;
+  `docs/config.md` has `theme` and `palette` and no `accent`;
+  `docs/format.md` lists `theme` and `palette` among the Meta the system
+  reads; CONTEXT.md's **Theme**, **Palette**, **Meta**, **Site Config** and
+  **Editor** were written or amended in the grilling and 18 reads them
+  against the code, so here they need only a last look. The CHANGELOG entry
+  names the retired `accent` as a breaking change, and that `normal` became
+  `light`. ADR-0018 and ADR-0019 are accepted; ADR-0011 and ADR-0013 carry an
+  "amended by" line.

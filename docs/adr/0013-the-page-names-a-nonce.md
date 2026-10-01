@@ -1,6 +1,6 @@
 # ADR-0013 — The two inline points on a page name a nonce
 
-**Status**: accepted · 2026-09-10
+**Status**: accepted · 2026-09-10 · amended by ADR-0017, ADR-0019
 
 ## Context
 

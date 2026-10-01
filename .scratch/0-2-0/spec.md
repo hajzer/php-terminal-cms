@@ -1,4 +1,4 @@
-# 0.2.0 — diagrams, markdown in by paste, the raw face, and a site that needs no PHP
+# 0.2.0 — diagrams, markdown in by paste, the raw face, twelve Themes, and a site that needs no PHP
 
 Status: ready-for-agent
 
@@ -36,6 +36,15 @@ GitHub Pages serve files and run nothing, and an author who already keeps their
 content in a repository there has no way to publish it through them. Every
 address the site writes also starts at the domain root, so even a folder of
 rendered pages would break when served from `/project/`.
+
+**The page has one look.** The reader sheet is terminal.css recoloured for
+reading, light and dark, monospace throughout, and the one thing an Instance
+can change about it is `accent`: six hex digits pasted over both modes, which
+clash with one of them. An operator who wants their site to read like Things
+or Flexoki edits `shared/theme.css` and runs `bin/build`, which is editing the
+software. An author can say nothing about how a Document should look, and a
+reader's one control, the light-or-dark toggle, is called the "theme" by the
+code, the Legend and the docs, so the word is taken before the feature exists.
 
 ## Solution
 
@@ -84,6 +93,33 @@ refuses to run without `site/site.php`, renders into a fresh directory and swaps
 it into place only when every page has rendered, and replaces only an output
 that is absent, empty or marked as an earlier Page Build. `docs/deploy.md`
 gains GitLab and GitHub pipelines that run it.
+
+**Twelve Themes, each in two Palettes** (ADR-0018, ADR-0019). A **Theme** is a
+named look — Minimal, Wasp, GitHub, Things, Shimmering Focus, Baseline,
+Flexoki, Reverie, Retroma, Underwater, Origami, Material Flat — each derived
+from the MIT-licensed Obsidian theme of that name, and a **Palette** is its
+light or its dark half. A Theme is values for the tokens of the one structural
+sheet, nothing more: colours, system font stacks, a radius and a heading
+weight, kept as one JSON file per Theme under `shared/themes/`, from which
+`bin/build` writes a stylesheet into both halves. No font is shipped and the
+policy gains no origin.
+
+The Theme a page is drawn in is the Document's `theme:` Meta, else Site
+Config's `theme`, else Baseline; the reader has no Theme control. The Palette is
+the reader's stored toggle, else the Document's `palette:`, else Site Config's
+`palette`, else the browser's preference. A name that is none of the twelve, or
+a word that is neither `light` nor `dark`, is not a choice and the next party
+decides. `theme:` prints under the title like any Meta; `palette:` does not,
+because the reader can flip it. `accent` is retired, and the one inline style
+block on the page with it; the nonce stays for the Diagram's placed stylesheet.
+The light Palette is called `light` everywhere, where the code said `normal`.
+
+In the Editor a Theme menu joins the top bar and `T` flips the Palette, with
+`:theme <name>` and `:palette light|dark` for the keyboard. They are the
+writer's preference, remembered per browser; the read pane is drawn in the
+Document's `theme:` where it names one, so the preview is the page. `Tab` on a
+`theme:` or `palette:` Meta Line cycles the valid values. A fresh Editor opens
+in Baseline and the browser's Palette, as the page does.
 
 ## User Stories
 
@@ -178,6 +214,44 @@ gains GitLab and GitHub pipelines that run it.
     that setting it up is one file.
 37. As a reader of a built page, I want the same policy boundary the PHP site
     has, so that a static host is not a weaker page.
+
+### Themes
+
+38. As an operator, I want to name a Theme and a Palette in `site.php`, so
+    that my Instance opens in the look I chose.
+39. As an operator, I want twelve Themes to choose from, each derived from an
+    Obsidian theme I may already know, so that I pick a look rather than
+    design one.
+40. As an operator, I want a Theme to look like its namesake with the fonts
+    my readers already have, so that nothing is downloaded for it.
+41. As an operator, I want each Theme to carry its source's licence, so that
+    the MIT terms are kept.
+42. As an author, I want `theme: things` in my Document's Meta to draw that
+    page in Things, so that one piece can look different from the site.
+43. As an author, I want `palette: dark` to open my Document dark for a
+    reader who has never chosen, so that a piece designed dark is first seen
+    dark.
+44. As an author, I want a misspelled Theme to fall back to the site's, so
+    that a typo never breaks a page.
+45. As a reader, I want the one button to flip light and dark on every page,
+    remembered in my browser whatever the Document says, so that my eyes
+    decide.
+46. As a reader, I want `theme: flexoki` under the title and never
+    `palette:`, so that the page tells me what it is, not what I am not doing.
+47. As a reader, I want a Diagram drawn in the Theme's colours and redrawn
+    when I flip the Palette, so that the picture belongs to the page.
+48. As a reader of a built site, I want the same Theme the PHP site would
+    give me, so that the two ways to publish agree.
+49. As a writer, I want a Theme menu in the Editor's top bar and `T` for the
+    Palette, so that I write in the look I like.
+50. As a writer, I want the read pane drawn in my Document's `theme:` when it
+    has one, so that the preview is the page.
+51. As a writer, I want `Tab` on a `theme:` or `palette:` Meta Line to cycle
+    the valid values, so that I never guess a name.
+52. As a writer, I want `:theme <name>` and `:palette light|dark`, listed in
+    the Legend, so that the switchers have a keyboard.
+53. As a writer, I want a fresh Editor to open in Baseline and my browser's
+    Palette, so that it looks the way the page would.
 
 ## Implementation Decisions
 
@@ -337,6 +411,96 @@ gains GitLab and GitHub pipelines that run it.
 - Both are marked as written against current GitLab and GitHub syntax and not
   run by the suite.
 
+### Themes
+
+- **The token contract.** `shared/theme.css` keeps the structural rules and
+  the metrics — font size, line height, space, measure, `--doc-scale`, the
+  controls block written in terms of the tokens — and loses every colour and
+  typeface. What a Theme must define, in both Palettes: the eleven colours
+  (`--bg`, `--block-bg`, `--code-bg`, `--fg`, `--fg-strong`, `--secondary`,
+  `--faint`, `--border`, `--primary`, `--accent`, `--invert-fg`) and the six
+  syntax colours (`--tk-kw`, `--tk-str`, `--tk-num`, `--tk-com`, `--tk-bi`,
+  `--tk-var`). What it defines once, for both: `--font-body`,
+  `--font-heading`, `--mono`, `--radius`, `--heading-weight`. Nothing else.
+  The list is written once, at the top of `shared/theme.css` in a comment
+  `bin/test` parses, and the structural rules reach type and shape only
+  through those names. 14 may add a token the port genuinely needs and must
+  say which in its comments; it may not add one Theme uses and the others
+  leave unset.
+- **Names.** `minimal`, `wasp`, `github`, `things`, `shimmering-focus`,
+  `baseline`, `flexoki`, `reverie`, `retroma`, `underwater`, `origami`,
+  `material-flat`. Spelled like a Category slug. Dune is not among them: its
+  source is GPL-2.0.
+- **One JSON file per Theme**, `shared/themes/<name>.json`: `name`, `label`
+  (what the menu prints), `source` (`repo`, `author`, `license`, the copyright
+  line verbatim), the once-only tokens, and `light` and `dark` maps. The
+  directory is the list of Themes, and nothing writes the names down a second
+  time by hand.
+- **`bin/build`** writes, for each file, `editor/themes/<name>.css` and
+  `site/public/themes/<name>.css` — the notice in the first comment, the
+  once-only tokens and the light map under `[data-theme="<name>"]`, the dark
+  map under `[data-theme="<name>"][data-palette="dark"]` and again under
+  `@media (prefers-color-scheme: dark)` for
+  `[data-theme="<name>"]:not([data-palette="light"])` — and `editor/themes.js`,
+  `window.THEMES = [{name, label}, …]`, in file order. `shared/themes/LICENSE`
+  holds the twelve notices verbatim, the way `shared/mermaid.LICENSE` holds
+  Mermaid's. `bin/manifest.php` already ships `shared`, `editor` and `site`.
+- **The attribute pair.** `data-theme` holds the name and `data-palette`
+  `light` or `dark`; a missing `data-palette` is the browser's preference.
+  Both sit on `<html>`. In the Editor the read pane's root carries both as
+  well when the Document pins a Theme: its own `data-theme` and a copy of the
+  page's `data-palette`, because the dark selector names both attributes on
+  one element.
+- **The page.** `Page::html()` writes `data-theme` always and `data-palette`
+  when Meta or Site Config decided it; links `theme.css`, then
+  `themes/<name>.css`, then `site.css`, every one through the Base Path; and
+  writes no `<style>`. `Site::theme()` and `Site::palette()` validate against
+  the files in `site/public/themes/` and the two words; the Document's Meta is
+  read the same way, and the chain is resolved in one place, with a unit test
+  each for its order. The 404 page and a Category with no `index.md` have no
+  Document and take Site Config's. `Site::accent()` and `Site::ACCENT` are
+  deleted; `accent` in `site.php` is an unknown key like any other.
+- **The Meta line.** `Renderer::meta()` and `editor.js`'s `metaBar()` leave
+  `palette` out beside `title`. The agreement test's sample gains both keys.
+- **The Editor.** `ui.js` stores `tcms-theme` (a name) and `tcms-palette`;
+  on load it applies a stored name only if `THEMES` has it, so the old
+  `dark`/`normal` values are ignored, and applies no `data-palette` until the
+  writer chooses. A `<select id="theme">` in `.acts`, filled from `THEMES`,
+  with `label`s. `T` and `:palette` flip `data-palette`; `:theme <name>`
+  sets it; both say what they did on the status line and are in the Legend's
+  tables. `editor.js` gains the Document's pinned Theme as a method — the
+  value of its `theme:` Meta if `THEMES` has it, else null — which `render()`
+  puts on the read pane's root; `editor.js` reads `THEMES` the way it reads
+  `LANGS`, and the node tests load `editor/themes.js` before it. `Tab` on a
+  Meta Line whose key is `theme` cycles `THEMES` and whose key is `palette`
+  cycles `light`, `dark`; on any other Meta Line it does what it does today.
+  The drawings cache in `ui.js` is keyed by Theme, Palette and source, and a
+  Theme change redraws as a Palette flip does. `editor/index.html` links
+  every `themes/<name>.css` after `theme.css`; `bin/build`'s probe repathing
+  covers them by shape.
+- **Issue 13.** The select is one more control in the top bar 13 is about.
+  17 adds it in the top bar as it stands and leaves 13's layout to 13.
+- **The rename.** `normal` → `light` in the attribute, `ui.js`, the `?`
+  overlay's row, `docs/keymap.md`, `docs/config.md`, README. The page's
+  enhancement script reads `data-palette` where it read `data-theme` and
+  stores `tcms-palette`; `bin/test`'s pinned shell hashes are re-pinned in
+  16 and the comment there says why.
+- **The policy** does not change a directive. A page without a Diagram now
+  carries one `nonce=` attribute, on the script; `bin/test`'s count moves
+  from two to one and `docs/security.md` loses the accent paragraph.
+- **Page Build** copies `site/public/themes/` as it copies every asset; the
+  parity test needs nothing new.
+- **The ports.** Each JSON is read off the source theme's own custom
+  properties for its light and its dark mode — `--background-primary`,
+  `--text-normal`, `--text-accent` and their kin — mapped to the contract;
+  the font stack starts with the face the source names and ends in
+  `system-ui, sans-serif`; the mono stack stays today's unless the source has
+  a stronger opinion. Where a source has sub-schemes (Minimal), its default
+  is the port. Where a source's dark and light accents are the same colour,
+  so are ours. The six syntax colours come from the source where it defines
+  them and from today's sheet, adjusted to the Theme's inks, where it does
+  not. Each file's `source.repo` is the one in the Obsidian registry.
+
 ## Testing Decisions
 
 ### 1. `editor/editor.js` under node, via `tests/js-model.js`
@@ -395,6 +559,50 @@ gains GitLab and GitHub pipelines that run it.
   Diagram, in a browser with the policy enforced: drawn, styled, redrawn on
   theme toggle, no CSP violation in the console. Recorded in the review issue.
 
+### 6. `php bin/test` — Themes
+
+- Every `shared/themes/*.json` defines exactly the contract tokens — every
+  colour in both Palettes, every once-only token, nothing more, nothing
+  missing; every colour is six hex digits; `name` equals the file name and is
+  slug-shaped; `source.repo`, `source.license` and the copyright line are
+  present and the licence is `MIT`.
+- The generated `themes/<name>.css` in both halves and `editor/themes.js`
+  match what `bin/build` would write (the existing drift check, extended);
+  `shared/themes/LICENSE` names every Theme.
+- `shared/theme.css` contains no hex colour and no `font-family` or `font:`
+  with a face in it outside the contract comment — colour and type reach the
+  structure only as `var(--…)`.
+- `editor/index.html` links every Theme's stylesheet and no other.
+- The page: a Document with `theme: things` gets `data-theme="things"` and a
+  link to `themes/things.css`; with none, Site Config's; with neither,
+  `baseline`; with an unknown name in Meta, Site Config's, and with an
+  unknown name in both, `baseline`. `palette: dark` gives
+  `data-palette="dark"`; `palette: tuesday` and no Site Config `palette` give
+  no attribute. `accent` in `site.php` changes no byte. No `<style` in the
+  shell. The 404 page carries Site Config's Theme. A Page Build with Base Path
+  `/proj` prefixes the Theme link, and `/proj/themes/things.css` exists.
+- The agreement test, over a sample whose Meta holds `theme:` and `palette:`:
+  both renderers print `theme` and neither prints `palette`.
+- `tests/js-model.js`: the pinned-Theme method returns the name for a valid
+  pin and null for an unknown one or none; `Tab` on `theme:` walks `THEMES`
+  and wraps, on `palette:` walks `light`, `dark` and wraps, and on `date:`
+  does what it did.
+
+### 7. `tests/editor-probe.html` in a browser — Themes
+
+- Choosing a Theme in the menu sets `data-theme` on `<html>`; `T` flips
+  `data-palette`; both survive a reload.
+- With `theme: wasp` in the Document and `things` chosen in the menu, the
+  read pane's root carries `wasp` and `<html>` keeps `things`; removing the
+  Meta Line puts the pane back in `things`; `theme: nope` leaves it there.
+- A Diagram is redrawn when the Theme changes, in a fill from the new Theme.
+
+### 8. The twelve, by hand
+
+- Every Theme in both Palettes, in the Editor and on a page with a Diagram, a
+  table, a note, a CLI block and a Link, looked at for readability; no
+  console report but the Diagram's known `style-src` ones. Recorded in 15.
+
 ## Out of Scope
 
 - Editing in the raw face, and any second editing model.
@@ -408,6 +616,14 @@ gains GitLab and GitHub pipelines that run it.
 - Changing the request-time URL scheme.
 - A paste dialog, or pasting HTML — the clipboard's `text/plain` is what is
   read.
+- A Theme switcher for the reader; a Theme per Category; a Theme with more
+  than two Palettes, Minimal's sub-schemes included.
+- Shipping or loading a typeface.
+- A Theme editor, a thirteenth Theme in this release, or a source theme's
+  structural ideas — callouts, layouts, icons — beyond its colours, type and
+  shape.
+- Any change to a Theme's markup: every Theme draws the one markup the two
+  renderers emit.
 
 ## Further Notes
 
@@ -421,3 +637,16 @@ gains GitLab and GitHub pipelines that run it.
   its placement, the paste path, the Base Path's reach into the Renderer, and
   the build's filesystem writes — the first time the code that renders the
   site writes a file rather than a response.
+- ADR-0018 and ADR-0019 are written and accepted; ADR-0011 and ADR-0013 are
+  marked amended. CONTEXT.md has **Theme** and **Palette**, and amended
+  **Meta**, **Site Config** and **Editor**.
+- Dune was on the first list and is not on this one: its repository is
+  GPL-2.0, and only MIT sources are used.
+- The source repositories, from the Obsidian registry: kepano/obsidian-minimal,
+  santiyounger/Wasp-Obsidian-Theme, krios2146/obsidian-theme-github,
+  colineckert/obsidian-things, chrisgrieser/shimmering-focus,
+  svnaxis/obsidian-baseline, kepano/flexoki-obsidian,
+  santiyounger/Reverie-Obsidian-Theme, emarpiee/Retroma, seniblue/Underwater,
+  7368697661/Origami, threethan/obsidian-material-flat-theme. All twelve
+  declare MIT and ship both modes.
+- Issue 11, the release, now waits for 14–18 as well.
