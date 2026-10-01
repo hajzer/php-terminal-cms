@@ -173,7 +173,10 @@ not edit the probe by hand.
       `'unsafe-inline'`, `'unsafe-eval'`, `'unsafe-hashes'` or nonce in any
       directive, and with `connect-src 'none'`
 - [ ] The page contains no inline `<script>` without `src` other than the
-      `text/markdown` starter, and the Editor emits no `on…=` attribute
+      `text/markdown` starter, and the Editor emits no `on…=` attribute.
+      A handler assigned as a property from the Editor's own script, such as
+      the Mermaid loader's `s.onerror = failed` in `ui.js`, is not an
+      attribute: the policy allows it, and it stays
 - [ ] A new probe assertion: the document the Editor opens with is the starter
 - [ ] A new probe assertion: an Image Line whose src cannot load shows the box
       with the file name, and the `<img>` is hidden
