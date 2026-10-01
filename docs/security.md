@@ -35,9 +35,9 @@ emits it by download. What it fetches is two things, and the document is in
 neither. Once a document holds a Diagram, the page loads its own copy of
 Mermaid — `mermaid.min.js`, the file beside `ui.js`, from wherever the editor
 itself was opened — to draw it in the read pane; a document without a Diagram
-never asks for it. The other is a request on the author's behalf.
-Previewing an image line shows the actual picture, so the browser fetches
-whatever that line names as its src — an author who writes an `https://` src is
+never asks for it. The other is a request on the author's behalf. Previewing
+an image line shows the actual picture, so the browser fetches whatever that
+line names as its src — an author who writes an `https://` src is
 telling their own browser to contact that host, and that host learns a request
 was made from that browser. It learns nothing else the page could have kept
 back: the editor's page names `no-referrer`, so where the editor was opened

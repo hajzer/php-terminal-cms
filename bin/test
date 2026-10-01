@@ -1646,7 +1646,7 @@ ok(stylesheets($built) === ['/proj/theme.css', '/proj/themes/baseline.css', '/pr
    sample address, the policy's nonce fixed. The sample content or the shell
    changing on purpose is what re-records them. */
 $before = [
-    '/'                                 => 'cdb0f7d9f136756430603bee26564048ea168c47939ed9ecb89616777bb53bee',
+    '/'                                 => '417c39a4d9e1baca6309dd0a57824fd1d83698fc65ede02e5d480a1fd22907b8',
     '/about'                            => '2944af89567da8b799ed94f131ba860dda7d7ad8ff4897ef2adbbb5a27f08793',
     '/guides'                           => '173d37b8801c398e5074e8b662a6d8214ac9177b1d03a0a87a381c779b5cd387',
     '/about/everything-is-a-line'       => 'cc70781d6b3540efc9258cc246d6db27160bf3079426d773f2f7f977ffe2509c',

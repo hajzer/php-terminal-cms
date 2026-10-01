@@ -18,4 +18,4 @@ They never talk to each other. The editor cannot write to the server, and the se
 
 ## What it is not
 
-No database. No login. No session, cookie, form or upload. No admin panel, no build step, no composer dependency, no npm package, no CDN, and not one byte of third-party JavaScript on any page without a diagram — a page that draws one loads Mermaid, a pinned copy served from the site's own origin.
+No database. No login. No session, cookie, form or upload. No admin panel, no build step where the host runs PHP, no composer dependency, no npm package, no CDN, and not one byte of third-party JavaScript on any page without a diagram — a page that draws one loads Mermaid, a pinned copy served from the site's own origin.

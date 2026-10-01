@@ -39,11 +39,11 @@ copy you perform with a tool that already has your credentials.
 ## What it is not
 
 No database. No login. No session, cookie, form or upload. No admin panel. No
-build step. No composer dependency, no npm package, no CDN, and not one byte of
-third-party JavaScript on any page without a diagram. The published page runs
-no script of its own except one short inline enhancement that adds a copy
-button, a light/dark toggle and a text-size control — remove it and every page
-still reads perfectly.
+build step where the host runs PHP. No composer dependency, no npm package, no
+CDN, and not one byte of third-party JavaScript on any page without a diagram.
+The published page runs no script of its own except one short inline
+enhancement that adds a copy button, a light/dark toggle and a text-size
+control — remove it and every page still reads perfectly.
 
 A page with a diagram is the one exception, and it says so: that page loads
 Mermaid to draw it — a pinned copy served from the site's own origin, under the
