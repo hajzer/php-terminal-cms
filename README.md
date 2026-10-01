@@ -22,14 +22,17 @@ paragraphs, a list item, a php line and a bash line — which leaves as one
 markdown file. In the middle that file is carried over by git, rsync, scp or
 WinSCP, a copy you perform yourself, because the two halves never talk to each
 other; or you skip the copy and edit the file on the server with any terminal
-editor. On the right the published page, drawn by PHP on every request. Along
-the bottom, where one request goes once it reaches PHP and which class does
-what: the web server, then site/public/index.php, then routing — Router, Site,
-Language and Listing comparing the URL with the category list and with the real
-filenames, never building a path out of the request — then Document, Markdown,
-Line, Renderer and Highlighter reading the file back into lines and out into
-HTML, then Page wrapping that in the navigation, the language links and the
-footer, and out as one response, with no file written, no socket opened and no
+editor; or you skip PHP on the host, and php bin/page-build renders every page
+to files once, with the same classes, for any static host to serve. On the
+right the published page, drawn by PHP on every request. Along the bottom,
+where one request goes once it reaches PHP and which class does what: the web
+server, then site/public/index.php, which sends the policy with the request's
+own nonce, then routing — Router, Site, Language and Listing comparing the URL
+with the category list and with the real filenames, never building a path out
+of the request — then Document, Markdown, Line, Renderer and Highlighter
+reading the file back into lines and out into HTML, then Page, Policy and
+BasePath wrapping that in the navigation and the footer, in the document's
+Theme, and out as one response, with no file written, no socket opened and no
 session started.](docs/media/architecture.svg)
 
 Two halves that never talk to each other. The editor cannot write to the
