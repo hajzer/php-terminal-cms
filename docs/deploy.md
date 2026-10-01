@@ -91,8 +91,8 @@ $ rsync -az images/ deploy@example.com:/var/www/example.com/public/media/
 
 ## The editor
 
-`editor/` is nine static files. Three ways to run it, in increasing order of
-exposure:
+`editor/` is ten static files and a `themes/` directory of one stylesheet
+per Theme. Three ways to run it, in increasing order of exposure:
 
 1. **From the filesystem.** Open `editor/index.html`. No server, nothing
    published, works offline. This is the recommended default.
@@ -106,8 +106,9 @@ exposure:
 $ rsync -az php-terminal-cms-*/editor/ deploy@example.com:/var/www/editor.example.com/
 ```
 
-If you change `shared/theme.css` or `shared/langs.json`, run `php bin/build`
-before deploying either half — both copies are generated.
+If you change `shared/theme.css`, a Theme in `shared/themes/` or
+`shared/langs.json`, run `php bin/build` before deploying either half — both
+copies are generated.
 
 ## Publishing a document
 

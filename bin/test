@@ -1847,6 +1847,10 @@ ok($forbidden === [], 'and no .php and no .htaccess', implode("\n", $forbidden))
 ok(file_get_contents($out . '/theme.css') === file_get_contents($root . '/site/public/theme.css')
    && file_get_contents($out . '/media/logo.png') === file_get_contents($root . '/site/public/media/logo.png'),
    'the public assets are copied as they are');
+$shipped = array_map(static fn (string $f): string => 'themes/' . basename($f), glob($root . '/site/public/themes/*.css') ?: []);
+ok(count($shipped) === count($themeFiles) && array_diff($shipped, $files) === [],
+   'and every Theme\'s stylesheet is in the build, so a Document may pin any of them',
+   implode("\n", array_diff($shipped, $files)));
 
 $pages = array_values(array_filter($files, static fn (string $f) => str_ends_with($f, '.html')));
 $wrong = [];

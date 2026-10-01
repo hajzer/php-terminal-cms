@@ -36,7 +36,7 @@ heading font stack, a radius, a heading weight — and no further.
 - **System typefaces only.** A Theme's font stack starts with what its source
   uses and falls through to what a reader already has. No font file is
   shipped and no font origin enters the policy. Code keeps the one monospace
-  stack in every Theme.
+  stack in every Theme, behind the source's own code face where it names one.
 - **The public page loads one Theme**, as a second stylesheet beside the
   structural one. The Editor links all twelve, since it runs from `file://`
   and can load nothing on demand.

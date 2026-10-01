@@ -271,9 +271,9 @@ HTML
      * code block, and the page says nothing about it. The Palette toggle draws
      * every Diagram again in the new colours.
      *
-     * The Editor's read pane draws the same way, with the same configuration,
-     * in editor/ui.js; what differs is that it keeps drawings between
-     * keystrokes and prints the error for a writer.
+     * The Editor's read pane draws the same way in editor/ui.js, its colours
+     * read off the pane rather than the page; what differs is that it keeps
+     * drawings between keystrokes and prints the error for a writer.
      */
     private const DRAWING = <<<'HTML'
 (function () {
