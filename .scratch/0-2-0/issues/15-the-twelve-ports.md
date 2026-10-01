@@ -1,6 +1,6 @@
 # 15 — The twelve ports
 
-Status: ready-for-human
+Status: done
 Spec: ../spec.md
 Blocked by: 14
 
@@ -66,7 +66,7 @@ colours, type and shape.
   `shared/themes/LICENSE` naming all twelve
 - [x] `bin/test`: generated files and `themes.js` match, `editor/index.html`
   links all twelve and no other
-- [ ] by hand (spec §8): every Theme in both Palettes, in the Editor and on a
+- [x] by hand (spec §8): every Theme in both Palettes, in the Editor and on a
   page holding a Diagram, a table, a note, a CLI block and a Link, looked at
   and readable; the Diagram's fill follows the Theme; no console report but
   the Diagram's known `style-src` ones. A short note per Theme under Comments
@@ -266,3 +266,6 @@ element under `<body>`, where the policy refuses its styles, so it measured
 at `<body>`'s 15px and then drew at its own 16px. Both halves now hand
 Mermaid `<body>`'s font size as `fontSize`, and every label box is the width
 of its text, in Chromium and Firefox, on the page and in the read pane.
+
+With the labels drawn whole, the maintainer confirmed the fix; the by-hand box
+is ticked.
