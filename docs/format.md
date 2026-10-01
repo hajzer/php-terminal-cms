@@ -51,6 +51,12 @@ when it names something real:
 Neither is ever an error. A misspelt name draws the page the way it would be
 drawn without the line. See `docs/config.md` for the `site.php` half.
 
+A meta line is one `key: value` pair. The key is what stands before the first
+colon and the value what stands after, each without the spaces around it, so
+`theme : things` is the key `theme`. A key is written once; where a file has
+one twice, the last line counts — on the page and in the editor alike, which
+`bin/test` compares.
+
 ## Round trip
 
 ```

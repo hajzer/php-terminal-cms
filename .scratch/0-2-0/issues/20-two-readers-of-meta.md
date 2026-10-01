@@ -1,6 +1,6 @@
 # 20 — Two `theme:` Lines are the last on the page and the first in the Editor
 
-Status: needs-triage
+Status: done
 Category: bug
 Spec: ../spec.md
 Blocked by: —
@@ -47,9 +47,31 @@ them.
 
 ## Acceptance
 
-- [ ] the page and the Editor agree on which `theme:` a Document with two is
+- [x] the page and the Editor agree on which `theme:` a Document with two is
   drawn in, and on whether `theme : x` names one
-- [ ] the same answer holds for `title:`, `palette:` and every other key
+- [x] the same answer holds for `title:`, `palette:` and every other key
   either side reads
-- [ ] `bin/test` compares the two readers on a Document with a repeated key
+- [x] `bin/test` compares the two readers on a Document with a repeated key
   and one with a spaced colon
+
+## Comments
+
+- 2026-10-01, human, triage: the Editor follows the page. No published page
+  changes.
+- 2026-10-01, agent: done. `Doc.metaAt()` finds the **last** Meta Line whose
+  key — what stands before its first colon, trimmed — is the one asked for,
+  and `meta()`, `setMeta()`, `theme()`, the paste's merge by key and `Tab` on
+  a `theme:` or `palette:` Line all read through it. `setMeta` and a paste
+  therefore write the Line that is read, and `Tab` on `theme : wasp` steps it
+  and writes `theme: <next>`. Nothing in `site/src/` moved. The two meta bars
+  still choose what to print by the Line's first characters, in both halves
+  alike, and were left: they agree, and changing what the page prints was not
+  the decision.
+  `tests/js-model.js` has thirteen assertions for it, each red before the
+  change that could be. `bin/test` runs nine frontmatters through both
+  readers — a key twice, a first and a last `theme:` that is no Theme, a
+  space before the colon, none after it, a value with colons, a key emptied
+  by a later Line, a Line with no colon, a longer key that starts the same —
+  and requires the same `title`, `category`, `date`, `theme` and `palette`
+  from each, and the Editor's pin to be the Theme the page is drawn in.
+  `docs/format.md` states the rule. `php bin/test`: 860 passed, 0 failed.

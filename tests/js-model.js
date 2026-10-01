@@ -819,4 +819,36 @@ d = metaDoc(['date: 2026-10-01']);
 ok('Tab on date: does what it did', d.cycleMeta(1) === false && d.cycleSub(1) === false && d.meta('date') === '2026-10-01',
    d.lines[0].text);
 
+/* ------------------------------------------------------------------ Meta
+   A key is what stands before a Meta Line's first colon, trimmed, and a key
+   written twice is read from the last Line that has it — the way the page
+   reads them, which bin/test compares on real frontmatter. */
+eq('a key written twice is read from the last Line that has it',
+   metaDoc(['theme: wasp', 'title: one', 'theme: things', 'title: two']).meta('title'), 'two');
+eq('so the last theme: is the pin', metaDoc(['theme: wasp', 'theme: things']).theme(), 'things');
+eq('and a first one the Editor has no Theme for does not hide it',
+   metaDoc(['theme: nope', 'theme: wasp']).theme(), 'wasp');
+eq('while a last one that is no Theme is no pin', metaDoc(['theme: wasp', 'theme: nope']).theme(), null);
+eq('a space before the colon is not part of the key', metaDoc(['theme : wasp']).theme(), 'wasp');
+eq('nor is one after it part of the value', metaDoc(['title:   spaced out  ']).meta('title'), 'spaced out');
+eq('a value keeps its own colons', metaDoc(['date: 2026-10-01 12:30']).meta('date'), '2026-10-01 12:30');
+eq('a key is the whole of what stands before the colon', metaDoc(['subtitle: x']).meta('title'), '');
+eq('and a Line with no colon holds no pair', metaDoc(['theme']).meta('theme'), '');
+
+d = metaDoc(['title: one', 'date: 2026-10-01', 'title: two']);
+d.setMeta('title', 'three');
+eq('setMeta writes the Line meta() reads, and leaves the other',
+   d.lines.slice(0, 3).map(function (l) { return l.text; }), ['title: one', 'date: 2026-10-01', 'title: three']);
+eq('so what was set is what is read', d.meta('title'), 'three');
+
+d = metaDoc(['theme: wasp', 'theme: things']);
+d.cur = 3;
+d.paste('---\ntheme: github\n---\n');
+eq('a pasted key lands on the Line that is read',
+   [d.lines[0].text, d.lines[1].text, d.theme()], ['theme: wasp', 'theme: github', 'github']);
+
+d = metaDoc(['theme : ' + NAMES[0]]);
+ok('Tab steps a theme : written with a space, and writes it plainly',
+   d.cycleMeta(1) === true && d.lines[0].text === 'theme: ' + NAMES[1], d.lines[0].text);
+
 process.stdout.write(JSON.stringify(results));

@@ -1091,6 +1091,38 @@ if ($node !== '') {
        && !str_contains($js['meta'], 'palette:'),
        'php and js print the same meta bar, theme: in it and title: and palette: not',
        'php: ' . ($phpMeta[0] ?? '') . "\njs : " . (is_array($js) ? $js['meta'] : ''));
+
+    /* And they read the same value from it. The page reads Meta into a map:
+       the key is what stands before a Line's first colon, trimmed, and a key
+       written twice keeps the last value. The Editor reads the same Lines the
+       same way, so the Theme its preview is drawn in, the title it names the
+       file after and the Category it files it under are the page's. */
+    $readings = [
+        'a key written twice'               => "theme: wasp\ntitle: one\ntheme: things\ntitle: two\n",
+        'a first theme: that is no Theme'   => "theme: nope\ntheme: wasp\n",
+        'a last theme: that is no Theme'    => "theme: wasp\ntheme: nope\n",
+        'a space before the colon'          => "title : Spaced\ntheme : wasp\npalette :dark\n",
+        'no space after it'                 => "title:Tight\ntheme:things\n",
+        'a value with colons of its own'    => "title: a: b: c\ndate: 2026-10-01 12:30\n",
+        'a key emptied by a later Line'     => "theme: wasp\ntheme:\ncategory: guides\ncategory:\n",
+        'a Line with no colon'              => "theme\ntitle: x\n",
+        'a longer key that starts the same' => "themes: wasp\ntitled: x\n",
+    ];
+    foreach ($readings as $what => $front) {
+        $sample = (string) tempnam(sys_get_temp_dir(), 'tcms-meta');
+        file_put_contents($sample, "---\n$front---\n\n# x\n");
+        $js = json_decode((string) shell_exec($node . ' ' . escapeshellarg($root . '/tests/js-dump.js') . ' ' . escapeshellarg($sample)), true);
+        [$sampleMeta] = Markdown::parse((string) file_get_contents($sample));
+        unlink($sample);
+        $php = [];
+        foreach (['title', 'category', 'date', 'theme', 'palette'] as $k) {
+            $php[$k] = $sampleMeta[$k] ?? '';
+        }
+        $drawn = TerminalCms\Site::themeFor([], $sampleMeta);
+        ok(is_array($js) && $js['read'] === $php && ($js['pin'] ?? 'baseline') === $drawn,
+           sprintf('php and js read the same Meta from %s', $what),
+           'php: ' . json_encode($php) . " $drawn\njs : " . json_encode($js['read'] ?? null) . ' ' . json_encode($js['pin'] ?? null));
+    }
 }
 
 [, $noH1] = Markdown::parse("---\ndate: 2026-01-02\n---\n\nJust a paragraph.\n");

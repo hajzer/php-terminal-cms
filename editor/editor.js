@@ -916,18 +916,28 @@
     return -1;
   };
 
-  /* The Meta Line that holds `key`, or -1 — the first one, when a Document
-     has written the same key twice, because that is the one meta() reads. */
+  /* A Meta Line is one `key: value` pair, read the way the page reads it: the
+     key is what stands before the first colon and the value what stands
+     after, each trimmed. A Line with no colon holds no pair. */
+  function metaKey(text) {
+    var at = text.indexOf(':');
+    return at < 0 ? null : text.slice(0, at).trim();
+  }
+  function metaValue(text) {
+    return text.slice(text.indexOf(':') + 1).trim();
+  }
+  /* The Meta Line that holds `key`, or -1 — the last one, when a Document
+     has written the same key twice, because that is the one the page reads. */
   Doc.prototype.metaAt = function (key) {
-    for (var i = 0; i < this.lines.length; i++) {
+    for (var i = this.lines.length - 1; i >= 0; i--) {
       var l = this.lines[i];
-      if (l.type === 'meta' && l.text.indexOf(key + ':') === 0) return i;
+      if (l.type === 'meta' && metaKey(l.text) === key) return i;
     }
     return -1;
   };
   Doc.prototype.meta = function (key) {
     var i = this.metaAt(key);
-    return i < 0 ? '' : this.lines[i].text.slice(key.length + 1).trim();
+    return i < 0 ? '' : metaValue(this.lines[i].text);
   };
   /** The Theme the Document pins with its theme: Meta — the name when the
    *  Editor has that Theme, else null, so a misspelled pin is no pin. */
@@ -939,12 +949,12 @@
    *  next one its list holds, wrapping; a value not in the list steps to the
    *  first. Any other Line is left alone and gets false. */
   Doc.prototype.cycleMeta = function (d) {
-    var l = this.line(), m = l.type === 'meta' && /^([^:]+):(.*)$/.exec(l.text);
-    var all = m && metaValues(m[1]);
+    var l = this.line(), key = l.type === 'meta' ? metaKey(l.text) : null;
+    var all = key && metaValues(key);
     if (!all || !all.length) return false;
-    var i = all.indexOf(m[2].trim());
+    var i = all.indexOf(metaValue(l.text));
     i = i < 0 ? 0 : (i + (d || 1) + all.length) % all.length;
-    l.text = m[1] + ': ' + all[i];
+    l.text = key + ': ' + all[i];
     return true;
   };
   /* A meta line the document does not have yet goes to the top, where
