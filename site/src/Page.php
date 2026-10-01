@@ -324,6 +324,10 @@ HTML
     var chosen = root.getAttribute('data-palette');
     var dark = chosen ? chosen === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
     var font = getComputedStyle(document.querySelector('main') || document.body).fontFamily;
+    /* Mermaid measures each label in a scratch element under <body>, where
+       the policy refuses its styles, so the label is measured at <body>'s
+       size; it is drawn at that size too, or its box is too small for it */
+    var size = getComputedStyle(document.body).fontSize;
     return {
       startOnLoad: false,
       securityLevel: 'strict',
@@ -333,6 +337,7 @@ HTML
       themeVariables: {
         darkMode: dark,
         fontFamily: font,
+        fontSize: size,
         background: v('--bg'),
         primaryColor: v('--bg'),
         edgeLabelBackground: v('--bg'),

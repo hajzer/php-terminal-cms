@@ -459,6 +459,10 @@
     var css = getComputedStyle(document.documentElement);
     function v(name) { return css.getPropertyValue(name).trim(); }
     var font = getComputedStyle(read).fontFamily;
+    /* Mermaid measures each label in a scratch element under <body>, where
+       the policy refuses its styles, so the label is measured at <body>'s
+       size; it is drawn at that size too, or its box is too small for it */
+    var size = getComputedStyle(document.body).fontSize;
     return {
       startOnLoad: false,
       securityLevel: 'strict',
@@ -470,6 +474,7 @@
       themeVariables: {
         darkMode: palette() === 'dark',
         fontFamily: font,
+        fontSize: size,
         background: v('--bg'),
         primaryColor: v('--bg'),
         edgeLabelBackground: v('--bg'),

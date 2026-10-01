@@ -256,3 +256,13 @@ The by-hand box stays open for the maintainer's own look in a browser.
 The probe pinned Baseline's paper as the sheet's old values; it now pins the
 ported Baseline's `--bg` (`#ffffff`, `#1e1e1e`). Probe: 256 of 256 in headless
 Chromium and Firefox, with the browser preferring light and preferring dark.
+
+### By hand: the maintainer's look
+
+The maintainer looked at the Editor and the page in every Theme and found
+them fine, but for a Diagram's labels, which were cut off at the right. The
+cause was older than the Themes: Mermaid measures each label in a scratch
+element under `<body>`, where the policy refuses its styles, so it measured
+at `<body>`'s 15px and then drew at its own 16px. Both halves now hand
+Mermaid `<body>`'s font size as `fontSize`, and every label box is the width
+of its text, in Chromium and Firefox, on the page and in the read pane.
