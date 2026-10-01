@@ -1,6 +1,6 @@
 # 13 — The Editor's top bar does not fit a phone
 
-Status: needs-triage
+Status: done
 Spec: ../spec.md
 Blocked by: —
 Found by: the by-hand round of issue 10, measured in headless Chromium and Firefox
@@ -39,9 +39,24 @@ status bar on a phone, or accept it and say so. Each changes what a phone
 shows first, and the probe's measure tests and the by-hand touch check from
 0.1.8 would want re-running under whichever is chosen.
 
+## Chosen
+
+The row wraps. The top bar and its document actions wrap onto as many rows as
+the window needs, and the tabs already wrapped below 900px; `.app`'s one
+column is the window's width, so a row that cannot fit no longer widens the
+page. Nothing is hidden or moved, and above the width where it all fits the
+bars are as before (30px and 26px, 44px each under a touch pointer).
+
+Measured in headless Chromium and Firefox at 320, 360, 768 and 1280px, with
+and without a touch pointer, no control in either bar is past the edge (768px
+with touch clipped redo before). The probe gained the same check, and it
+holds at any width. It fails on the old sheet at 360px. The by-hand touch
+check from 0.1.8 on a real phone is still to do, and so is issue 17's
+by-hand box for the Theme menu.
+
 ## Acceptance
 
-- [ ] at a 360px viewport the whole top bar is reachable, in Chromium and in
+- [x] at a 360px viewport the whole top bar is reachable, in Chromium and in
   Firefox — nothing is clipped by `overflow: hidden`
-- [ ] the probe is green, and the write pane's measure tests with it
-- [ ] the README's touch-screen paragraph is true of the top bar too
+- [x] the probe is green, and the write pane's measure tests with it
+- [x] the README's touch-screen paragraph is true of the top bar too
