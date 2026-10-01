@@ -833,21 +833,23 @@ foreach ($declared as $what => [$config, $want]) {
     ok($got === $want, sprintf('%-42s -> %s', $what, implode(' ', $want)), implode(' ', $got));
 }
 
-/* a value that is not even a string is not a language or a colour — it is
-   the default, and it is not a warning printed into the page either */
+/* a value that is not even a string is not a language, a Theme or a
+   Palette — it is the default, and it is not a warning printed into the page
+   either */
 $warnings = [];
 set_error_handler(static function (int $n, string $m) use (&$warnings): bool {
     $warnings[] = $m;
     return true;
 });
-$notStrings = ['lang' => ['en'], 'accent' => ['#fff'], 'languages' => 'sk'];
-$langGot   = TerminalCms\Site::lang($notStrings);
-$accentGot = TerminalCms\Site::accent($notStrings);
-$codesGot  = TerminalCms\Site::languages($notStrings);
+$notStrings = ['lang' => ['en'], 'theme' => ['things'], 'palette' => ['dark'], 'languages' => 'sk'];
+$langGot    = TerminalCms\Site::lang($notStrings);
+$themeGot   = TerminalCms\Site::theme($notStrings);
+$paletteGot = TerminalCms\Site::palette($notStrings);
+$codesGot   = TerminalCms\Site::languages($notStrings);
 restore_error_handler();
-ok($warnings === [], 'a lang or an accent that is not a string raises nothing', implode("\n", $warnings));
-ok($langGot === TerminalCms\Site::LANG && $accentGot === TerminalCms\Site::ACCENT,
-   'and each is its default', "$langGot $accentGot");
+ok($warnings === [], 'a lang, a theme or a palette that is not a string raises nothing', implode("\n", $warnings));
+ok($langGot === TerminalCms\Site::LANG && $themeGot === 'baseline' && $paletteGot === '',
+   'and each is its default', "$langGot $themeGot '$paletteGot'");
 ok($codesGot === ['en', 'sk'], 'while a languages list written as one word is that one language',
    implode(' ', $codesGot));
 
@@ -987,6 +989,57 @@ foreach ([$box, $suffixed, $both] as $dir) {
     rmdir($dir);
 }
 
+/* ------------------------------------------------- the Theme and the Palette */
+echo "\nthe Theme and the Palette\n";
+
+/* Site Config names a Theme by the file it is: a slug-shaped name with a
+   stylesheet in site/public/themes/. Anything else is not a choice. */
+$themes = [
+    'things'            => 'things',
+    'shimmering-focus'  => 'shimmering-focus',
+    'nope'              => 'baseline',
+    'Things'            => 'baseline',
+    '../theme'          => 'baseline',
+    'things.css'        => 'baseline',
+    ''                  => 'baseline',
+];
+foreach ($themes as $given => $want) {
+    ok(TerminalCms\Site::theme(['theme' => $given]) === $want,
+       sprintf('theme %-20s -> %s', var_export($given, true), $want), TerminalCms\Site::theme(['theme' => $given]));
+}
+ok(TerminalCms\Site::theme([]) === 'baseline', 'a site.php that names no theme gets Baseline');
+foreach (['light' => 'light', 'dark' => 'dark', 'Dark' => '', 'tuesday' => '', '' => ''] as $given => $want) {
+    ok(TerminalCms\Site::palette(['palette' => $given]) === $want,
+       sprintf('palette %-18s -> %s', var_export($given, true), var_export($want, true)));
+}
+ok(TerminalCms\Site::palette([]) === '', 'a site.php that names no palette leaves it to the browser');
+
+/* each chain in its order — Meta, Site Config, the default — and every way
+   down it */
+$chainTheme = [
+    'Meta wins over Site Config'          => [['theme' => 'wasp'], ['theme' => 'things'], 'things'],
+    'Site Config, when Meta names none'   => [['theme' => 'wasp'], [], 'wasp'],
+    'Site Config, when Meta\'s is unknown' => [['theme' => 'wasp'], ['theme' => 'nope'], 'wasp'],
+    'Baseline, when neither names one'    => [[], [], 'baseline'],
+    'Baseline, when both are unknown'     => [['theme' => 'nope'], ['theme' => 'nada'], 'baseline'],
+    'Meta, when Site Config\'s is unknown' => [['theme' => 'nope'], ['theme' => 'things'], 'things'],
+];
+foreach ($chainTheme as $what => [$config, $meta, $want]) {
+    ok(TerminalCms\Site::themeFor($config, $meta) === $want, "theme: $what", TerminalCms\Site::themeFor($config, $meta));
+}
+$chainPalette = [
+    'Meta wins over Site Config'          => [['palette' => 'light'], ['palette' => 'dark'], 'dark'],
+    'Site Config, when Meta names none'   => [['palette' => 'light'], [], 'light'],
+    'Site Config, when Meta\'s is no word' => [['palette' => 'light'], ['palette' => 'tuesday'], 'light'],
+    'the browser, when neither names one' => [[], [], ''],
+    'the browser, when both are no word'  => [['palette' => 'dusk'], ['palette' => 'tuesday'], ''],
+    'Meta, when Site Config\'s is no word' => [['palette' => 'dusk'], ['palette' => 'light'], 'light'],
+];
+foreach ($chainPalette as $what => [$config, $meta, $want]) {
+    ok(TerminalCms\Site::paletteFor($config, $meta) === $want, "palette: $what",
+       var_export(TerminalCms\Site::paletteFor($config, $meta), true));
+}
+
 /* ------------------------------------------------------------- the meta bar */
 echo "\nmeta\n";
 [, $metaLines] = Markdown::parse("---\ntitle: A title\ncategory: about\ndate: 2026-01-02\n---\n\n# A title\n\nText.\n");
@@ -999,6 +1052,29 @@ ok(!str_contains($metaHtml, 'title: A title'),
    'except the title, which is the title', $metaHtml);
 ok(!str_contains(Renderer::render($metaLines, false), 'doc-meta'),
    'and can be left off entirely');
+
+/* palette: is how the page opens, which the reader may have changed since,
+   so it is the second key the bar leaves out; theme: is printed as any key is */
+[, $looks] = Markdown::parse("---\ntitle: A title\ntheme: things\npalette: dark\ndate: 2026-01-02\n---\n\n# A title\n");
+$looksHtml = Renderer::render($looks);
+ok(str_contains($looksHtml, '<div class="doc-meta">theme: things · date: 2026-01-02</div>'),
+   'the meta prints theme: and leaves out palette:', $looksHtml);
+
+/* The agreement test: the editor's meta bar is the page's, byte for byte.
+   The sample holds no palette: — metaBar() still prints it until the
+   Editor's half of the Themes leaves it out too, and then it joins here. */
+if ($node !== '') {
+    $sample = (string) tempnam(sys_get_temp_dir(), 'tcms-meta');
+    file_put_contents($sample, "---\ntitle: A title\ncategory: about\ntheme: things\ndate: 2026-01-02\n---\n\n# A title\n");
+    $js = json_decode((string) shell_exec($node . ' ' . escapeshellarg($root . '/tests/js-dump.js') . ' ' . escapeshellarg($sample)), true);
+    [, $sampleLines] = Markdown::parse((string) file_get_contents($sample));
+    unlink($sample);
+    preg_match('~<div class="doc-meta">.*?</div>~', Renderer::render($sampleLines), $phpMeta);
+    ok(is_array($js) && $js['meta'] === ($phpMeta[0] ?? null)
+       && str_contains($js['meta'], 'theme: things') && !str_contains($js['meta'], 'title:'),
+       'php and js print the same meta bar, theme: in it and title: not',
+       'php: ' . ($phpMeta[0] ?? '') . "\njs : " . (is_array($js) ? $js['meta'] : ''));
+}
 
 [, $noH1] = Markdown::parse("---\ndate: 2026-01-02\n---\n\nJust a paragraph.\n");
 ok(str_starts_with(Renderer::render($noH1), '<div class="doc-meta">'),
@@ -1059,16 +1135,14 @@ $plain = TerminalCms\Page::html($noTag, $home);
 ok(!str_contains($plain, 'class="tagline"') && !str_contains($plain, 'name="description"'),
    'an instance with no tagline gets neither', $plain);
 
-/* the two inline points on the page, and the one config value that reaches it
-   as CSS rather than as text */
+/* the one inline point on a page without a Diagram: the script */
 echo "\nthe page shell\n";
 $nonced = TerminalCms\Page::html($site, $home, 'r4nd0m+va1ue/=');
-ok(substr_count($nonced, 'nonce="r4nd0m+va1ue/="') === 2
-   && str_contains($nonced, '<script nonce="r4nd0m+va1ue/=">')
-   && str_contains($nonced, '<style nonce="r4nd0m+va1ue/=">'),
-   'the style block and the script both carry the nonce they are given', $nonced);
+ok(substr_count($nonced, 'nonce=') === 1 && str_contains($nonced, '<script nonce="r4nd0m+va1ue/=">'),
+   'the script carries the nonce it is given, and nothing else carries one', $nonced);
+ok(!str_contains($nonced, '<style'), 'the shell has no <style> element', $nonced);
 ok(!str_contains(TerminalCms\Page::html($site, $home), 'nonce='),
-   'and neither carries an empty one when no nonce is given');
+   'and the script carries no empty one when no nonce is given');
 ok(str_contains($nonced, '(function () {') && !str_contains($nonced, '$nonceAttr'),
    'the script is emitted as written, not read as PHP', $nonced);
 
@@ -1154,14 +1228,16 @@ ok(count($refused) === 6,
    change to it is a change to every page on every Instance, made on purpose.
    The shell it pins names its Theme on <html>, links that Theme's
    stylesheet after theme.css, and keeps the reader's Palette, flipped by
-   the light/dark button, as data-palette and tcms-palette. */
-$fixedSite  = ['title' => 'Shell', 'tagline' => 'a fixed site', 'accent' => '#21e08a',
+   the light/dark button, as data-palette and tcms-palette. It has no
+   <style> element: a Theme owns its colours, and Site Config names one
+   rather than a colour of its own. */
+$fixedSite  = ['title' => 'Shell', 'tagline' => 'a fixed site',
                'categories' => [['slug' => 'guides', 'label' => 'Guides']]];
 $fixedRoute = ['status' => 200, 'title' => 'A page', 'body' => '<h1>A page</h1>', 'active' => 'guides'];
 ok(hash('sha256', TerminalCms\Page::html($fixedSite, $fixedRoute, 'N0NCE'))
-       === 'f67c36b733e45967e55a0daacc427b47a8d356f0ab10db049cc10270b1372c5c'
+       === '2fa94ffbf381038502675aba7a3e1d1dd090f2711182dd1234d1d80fe3ac87da'
    && hash('sha256', TerminalCms\Page::html($fixedSite, $fixedRoute))
-       === 'bd6ceae8be3a09f9b5e4ede13be5c9ea0adbfe4a07ce9ac0673878ee54d410f1',
+       === 'a00aa84ce105885187efef8a2bf5f80548707208eb1436b74b169cdbfaf393e7',
    'the shell of a page without a Diagram is byte for byte what it was');
 
 /** The page's one <script> element, tag to end tag. */
@@ -1177,8 +1253,8 @@ $drawing = TerminalCms\Page::html($site, $diagramRoute, 'r4nd0m+va1ue/=');
 $drawer  = script($drawing);
 ok(str_contains($drawer, 'mermaid.render(') && str_contains($drawer, "securityLevel: 'strict'"),
    'a page with a Diagram carries the code that draws it', $drawer);
-ok(substr_count($drawing, '<script') === 1 && substr_count($drawing, 'nonce="r4nd0m+va1ue/="') === 2,
-   'in the one script, still with the page\'s two nonces and no third', $drawing);
+ok(substr_count($drawing, '<script') === 1 && substr_count($drawing, 'nonce=') === 1,
+   'in the one script, still with the page\'s one nonce and no second', $drawing);
 ok(!str_contains(substr($drawer, (int) strpos($drawer, '>')), 'r4nd0m'),
    'and the nonce is on the tag, never in the script\'s text: it is read from document.currentScript',
    $drawer);
@@ -1232,20 +1308,57 @@ $sayMermaid = [
 ok(!str_contains(TerminalCms\Page::html($site, $sayMermaid), 'mermaid.render('),
    'a page whose text only says "mermaid" gets no drawing', $sayMermaid['body']);
 
-$accents = [
-    '#21e08a'                          => '#21e08a',
-    '#ABCDEF'                          => '#ABCDEF',
-    'red'                              => '#21e08a',
-    '#fff'                             => '#21e08a',
-    '#21e08a;background:url(//evil)'   => '#21e08a',
-    '}html{display:none'               => '#21e08a',
-];
-foreach ($accents as $given => $want) {
-    $accented = $site;
-    $accented['accent'] = $given;
-    ok(str_contains(TerminalCms\Page::html($accented, $home), '<style>:root{--accent:' . $want . '}</style>'),
-       sprintf('accent %-32s -> %s', var_export($given, true), $want));
+/* accent is not a Site Config key: a site.php that names one is a site.php that does not */
+ok(!array_key_exists('accent', $site), 'the example instance names no accent');
+foreach (['#21e08a', 'red', '}html{display:none'] as $given) {
+    ok(TerminalCms\Page::html(['accent' => $given] + $site, $home, 'N0NCE') === TerminalCms\Page::html($site, $home, 'N0NCE'),
+       sprintf('accent %-22s changes no byte of the page', var_export($given, true)));
 }
+
+/* The page is drawn in the Theme its Document names, else Site Config's,
+   else Baseline, and opens in the Palette chosen the same way — else in the
+   reader's browser's, which is no attribute at all. A page with no Document
+   behind it, the 404 and a Category with no index.md, takes Site Config's. */
+$looksBox = sys_get_temp_dir() . '/tcms-looks-' . getmypid();
+mkdir($looksBox . '/notes', 0755, true);
+foreach (['things' => "theme: things\n", 'dark' => "palette: dark\n",
+          'odd' => "theme: nope\npalette: tuesday\n", 'plain' => ''] as $slug => $meta) {
+    file_put_contents("$looksBox/notes/$slug.md", "---\ntitle: $slug\n$meta---\n\n# $slug\n");
+}
+
+/** The <html> tag of the page at $uri and the Theme stylesheet it links. */
+function look(array $site, string $box, string $uri): string
+{
+    $site += ['categories' => [['slug' => 'notes', 'label' => 'notes']]];
+    $html = TerminalCms\Page::html($site, (new TerminalCms\Router($site, $box))->route($uri));
+    preg_match('~<html [^>]*>~', $html, $tag);
+    return ($tag[0] ?? '') . ' ' . implode(' ', array_filter(stylesheets($html), static fn ($s) => str_starts_with($s, '/themes/')));
+}
+
+$looks = [
+    'theme: things in Meta'                            => [[], '/notes/things', 'data-theme="things">', '/themes/things.css'],
+    'theme: things in Meta, wasp in Site Config'       => [['theme' => 'wasp'], '/notes/things', 'data-theme="things">', '/themes/things.css'],
+    'no Meta, wasp in Site Config'                     => [['theme' => 'wasp'], '/notes/plain', 'data-theme="wasp">', '/themes/wasp.css'],
+    'neither'                                          => [[], '/notes/plain', 'data-theme="baseline">', '/themes/baseline.css'],
+    'an unknown name in Meta, wasp in Site Config'     => [['theme' => 'wasp'], '/notes/odd', 'data-theme="wasp">', '/themes/wasp.css'],
+    'an unknown name in both'                          => [['theme' => 'nada'], '/notes/odd', 'data-theme="baseline">', '/themes/baseline.css'],
+    'palette: dark in Meta'                            => [[], '/notes/dark', 'data-theme="baseline" data-palette="dark">', '/themes/baseline.css'],
+    'palette: dark in Meta, light in Site Config'      => [['palette' => 'light'], '/notes/dark', 'data-palette="dark">', ''],
+    'palette: tuesday in Meta, none in Site Config'    => [[], '/notes/odd', 'data-theme="baseline">', ''],
+    'palette: tuesday in Meta, light in Site Config'   => [['palette' => 'light'], '/notes/odd', 'data-palette="light">', ''],
+    'the 404, wasp and dark in Site Config'            => [['theme' => 'wasp', 'palette' => 'dark'], '/nowhere', 'data-theme="wasp" data-palette="dark">', '/themes/wasp.css'],
+    'a Category with no index.md, wasp in Site Config' => [['theme' => 'wasp'], '/notes', 'data-theme="wasp">', '/themes/wasp.css'],
+];
+foreach ($looks as $what => [$config, $uri, $tag, $sheet]) {
+    $got = look($config, $looksBox, $uri);
+    ok(str_contains($got, $tag) && ($sheet === '' || str_ends_with($got, "> $sheet")),
+       sprintf('%-48s -> %s', $what, $tag . ($sheet !== '' ? " $sheet" : '')), $got);
+}
+foreach (glob($looksBox . '/notes/*') ?: [] as $f) {
+    unlink($f);
+}
+rmdir($looksBox . '/notes');
+rmdir($looksBox);
 
 $noFoot = $site;
 $noFoot['footer'] = '';
@@ -1509,16 +1622,16 @@ ok(stylesheets($built) === ['/proj/theme.css', '/proj/themes/baseline.css', '/pr
    sample address, the policy's nonce fixed. The sample content or the shell
    changing on purpose is what re-records them. */
 $before = [
-    '/'                                 => '7a4b1b6a82bb243409f902df08c4ad2acd61d1086a6081b35e61a1b70271c7ba',
-    '/about'                            => '9ce930ab3b26c0a39e1a122e208797e5591a0378689ca287f7aa9033d87351fe',
-    '/guides'                           => 'd64f6fa3210618f42b547b2b99c9e686d23a5160da0773fb557275b0229113c9',
-    '/about/everything-is-a-line'       => 'cc8100f99e0c07df5c882efa9dbb7330163e49b6c1c9f400878efb2054025387',
-    '/about/what-it-is'                 => 'b75d5059efc3de0c4db51328080e96074689c7ebd103fe587336a9bfdeb5bc6b',
-    '/about/what-it-is-sk'              => '93f0df36b5a19774e1eb2a2590706dad98fddf197aa1deb27e90910dabd870e6',
-    '/guides/install-in-five-minutes'   => 'e13935e41ec03eac9935fd4fd2aa3dea455be42a6e7d5a90f7f3dd8c3899a406',
-    '/guides/publishing-is-a-file-copy' => '378720a0edd0f5b4d356cd45ad2ca6dc48367e45492ab56c4ef177dcb8687421',
-    '/guides/writing-in-the-editor'     => '300bf807dfa952e344ce20ca1eb6a6c08aa57972fe3fbd2cebf1fa4364ccc1eb',
-    '/404.html'                         => 'ae94e3401ed9331fc2ed6a165db0ddb51c97bc52d6e8082dd50cc7ebf0c50d1f',
+    '/'                                 => '2dd98fc82d0e3b6d20a3adb408899fb1ad3a3c4b45a99df326d1891c96b3a56e',
+    '/about'                            => '2944af89567da8b799ed94f131ba860dda7d7ad8ff4897ef2adbbb5a27f08793',
+    '/guides'                           => '173d37b8801c398e5074e8b662a6d8214ac9177b1d03a0a87a381c779b5cd387',
+    '/about/everything-is-a-line'       => '4e08e2546475b0c34ccc22f94f1b3b59d919bea4518fc826161aa1659fdc4779',
+    '/about/what-it-is'                 => '753bee01caaec10048aa8154c88b8ae0dcd6990a675fe71f467d00c71cf92d9f',
+    '/about/what-it-is-sk'              => 'd604501808b07907008af2912df4fa39773302c2da304af56e7f000171687725',
+    '/guides/install-in-five-minutes'   => '97738202f85561bdf13d711606d635a594329d9601fe115794cee11e8415b5fe',
+    '/guides/publishing-is-a-file-copy' => 'eeeb59c846b0fd2fda15e6620044080f51ae3a8371382729f06a52a78e54ec17',
+    '/guides/writing-in-the-editor'     => '68aa2f4aa480b2778d5a0c2a91812836e312539be321c1f010ce9b7c7ea3fdb1',
+    '/404.html'                         => '8689fe2c4fde9ccc3367d62e347a7e419c69848005612b19c3e7cdc851fb0b71',
 ];
 foreach ($before as $uri => $hash) {
     ok(hash('sha256', TerminalCms\Page::html($site, $router->route($uri), 'N0NCE')) === $hash
@@ -1578,7 +1691,7 @@ if (!$up) {
     $doc = @file_get_contents($base . '/about/everything-is-a-line');
     ok(is_string($doc) && str_contains($doc, '<table>'), 'documents still route');
 
-    /* the header is the policy, with the nonce the page's two inline points carry */
+    /* the header is the policy, with the nonce the page's one inline point carries */
     $csp = '';
     foreach ($http_response_header ?? [] as $h) {
         if (stripos($h, 'Content-Security-Policy:') === 0) {
@@ -1587,7 +1700,7 @@ if (!$up) {
     }
     preg_match_all('~\bnonce="([^"]*)"~', (string) $doc, $carried);
     $served = array_unique($carried[1]);
-    ok(count($carried[1]) === 2 && count($served) === 1 && $csp === TerminalCms\Policy::forHeader($served[0]),
+    ok(count($carried[1]) === 1 && count($served) === 1 && $csp === TerminalCms\Policy::forHeader($served[0]),
        'the page is sent with the policy as its header, naming the nonce it carries', $csp);
     ok(!str_contains((string) $doc, 'http-equiv'), 'and names no policy of its own');
     ok(@file_get_contents($base . '/nope') === false, 'unknown paths still 404');
@@ -1760,7 +1873,7 @@ function builtNonce(string $html): array
     preg_match_all('~<(\w+)[^>]*\bnonce="([^"]*)"~', $html, $carried, PREG_SET_ORDER);
     $tags = array_map(static fn (array $c) => $c[1], $carried);
     sort($tags);
-    if ($tags !== ['script', 'style']) {
+    if ($tags !== ['script']) {
         return ['', 'nonces on ' . implode(', ', $tags)];
     }
     foreach ($carried as $c) {
@@ -1777,7 +1890,7 @@ foreach ($pages as $page) {
     [$nonce, $why] = builtNonce((string) file_get_contents("$out/$page"));
     $nonce === '' ? $wrong[] = "$page: $why" : $nonces[$nonce] = true;
 }
-ok($wrong === [], 'every built page\'s first <head> element is its policy, whose nonce is the one on its script and style',
+ok($wrong === [], 'every built page\'s first <head> element is its policy, whose nonce is the one on its script',
    implode("\n", $wrong));
 ok(count($nonces) === 1, 'and every page of one build names the same nonce', implode("\n", array_keys($nonces)));
 $firstNonce = (string) array_key_first($nonces);
@@ -1876,6 +1989,18 @@ ok($differ === [], 'and every page is the served page but for the slash and the 
 ok($secondNonce !== '' && $firstNonce !== '' && $secondNonce !== $firstNonce,
    'two builds carry two different nonces', "$firstNonce\n$secondNonce");
 
+/* a Document's Theme is linked under the Base Path, and the build ships it */
+file_put_contents($instance . '/site/content/guides/themed.md', "---\ntitle: Themed\ntheme: things\n---\n\n# Themed\n");
+[$status, $said] = pageBuild($instance, ['--output=' . $box . '/themed', '--base-url=https://example.gitlab.io/proj/']);
+$themed = (string) @file_get_contents($box . '/themed/guides/themed/index.html');
+ok($status === 0 && in_array('/proj/themes/things.css', stylesheets($themed), true)
+   && servedFile($box . '/themed', '/themes/things.css') !== '',
+   'a built Document in theme: things links /proj/themes/things.css, and the file is there', $said . $themed);
+$differ = parity($box . '/themed', ['guides/themed/index.html'], '/proj', $site,
+                 new TerminalCms\Router($site, $instance . '/site/content'));
+ok($differ === [], 'and is the page the site serves for it', implode("\n", $differ));
+unlink($instance . '/site/content/guides/themed.md');
+
 /* a build over an earlier one replaces it; an empty directory is also fine */
 file_put_contents($out . '/stale.html', 'from an earlier build');
 [$status, $said] = pageBuild($instance, ['--output=' . $out, '--base-url=https://example.gitlab.io/proj']);
@@ -1970,6 +2095,13 @@ $found = scan(
      'file_put_contents', 'fwrite', 'unlink', 'session_start']
 );
 ok($found === [], 'the site reads, and does nothing else', implode("\n", $found));
+
+/* accent is retired: nothing reads it, so nothing can write it into a page */
+$found = scan(
+    array_merge(glob($root . '/site/src/*.php') ?: [], [$root . '/site/public/index.php', $root . '/bin/page-build']),
+    ['Site::accent', 'accent(', 'ACCENT', "'accent'"]
+);
+ok($found === [], 'no Site::accent, no ACCENT, and no source that reads an accent key', implode("\n", $found));
 
 /* The editor's requests are an <img src> the browser issues from markup, which
    a source scan cannot see, and — once the Document holds a Diagram — the

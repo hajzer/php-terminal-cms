@@ -13,17 +13,15 @@ final class Page
      */
     private const MERMAID = '/mermaid.min.js';
 
-    /** The Theme every page is drawn in. */
-    private const THEME = 'baseline';
-
     /**
      * @param array<string,mixed> $site
-     * @param array{status:int,title:string,body:string,active:?string,lang?:string} $r
+     * @param array{status:int,title:string,body:string,active:?string,lang?:string,meta?:array<string,string>} $r
+     *        meta is the Meta of the Document the page shows, which may name
+     *        its Theme and Palette; a page with no Document has none
      * @param string $nonce the page's CSP nonce, one per request or one per
-     *        Page Build, which the two inline points on the page — the accent
-     *        style block and the enhancement script — have to carry to run at
-     *        all. A caller with no policy to satisfy passes none and gets the
-     *        page without the attributes.
+     *        Page Build, which the page's one inline point — the enhancement
+     *        script — has to carry to run at all. A caller with no policy to
+     *        satisfy passes none and gets the page without the attribute.
      * @param BasePath $at where the site begins, which every local address in
      *        the shell is written under. The Router that made $r is given the
      *        same one.
@@ -64,7 +62,8 @@ final class Page
             $nav .= '<a href="' . e($at->page($c['slug'])) . '"' . $on . '>' . e($c['label']) . '</a>';
         }
 
-        $accent = Site::accent($site);
+        $theme   = Site::themeFor($site, $r['meta'] ?? []);
+        $palette = Site::paletteFor($site, $r['meta'] ?? []);
         /* the tagline is read in the top bar and indexed as the description */
         $tagline = trim((string) ($site['tagline'] ?? ''));
         /* a footer that disagreed with the body about where a link opens would
@@ -89,7 +88,8 @@ final class Page
         }
 
         return '<!doctype html>
-<html lang="' . e($lang) . '" data-theme="' . self::THEME . '">
+<html lang="' . e($lang) . '" data-theme="' . e($theme) . '"' .
+($palette !== '' ? ' data-palette="' . e($palette) . '"' : '') . '>
 <head>' .
 ($ownPolicy ? "\n" . '<meta http-equiv="Content-Security-Policy" content="' . Policy::forMeta($nonce) . '">' : '') . '
 <meta charset="utf-8">
@@ -98,9 +98,8 @@ final class Page
 ($tagline !== '' ? "\n" . '<meta name="description" content="' . e($tagline) . '">' : '') .
 $iconLink . '
 <link rel="stylesheet" href="' . e($at->local('/theme.css')) . '">
-<link rel="stylesheet" href="' . e($at->local('/themes/' . self::THEME . '.css')) . '">
+<link rel="stylesheet" href="' . e($at->local('/themes/' . $theme . '.css')) . '">
 <link rel="stylesheet" href="' . e($at->local('/site.css')) . '">
-<style' . self::nonceAttr($nonce) . '>:root{--accent:' . e($accent) . '}</style>
 </head>
 <body class="reader">
 <div class="topbar">
@@ -157,8 +156,8 @@ $iconLink . '
     }
 
     /**
-     * The attribute that lets one of the page's two inline points run under
-     * the page's Content-Security-Policy.
+     * The attribute that lets the page's inline script run under the page's
+     * Content-Security-Policy.
      */
     private static function nonceAttr(string $nonce): string
     {
@@ -203,8 +202,9 @@ $iconLink . '
   function get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 
-  /* the Palette: the reader's own choice, and until there is one the
-     browser's preference, which the sheet answers with no attribute at all */
+  /* the Palette: the reader's own choice, and until there is one the one
+     the page opened in — its Document's or the instance's, or with no
+     attribute at all the browser's preference, which the sheet answers */
   var p = get('tcms-palette');
   if (p === 'light' || p === 'dark') document.documentElement.setAttribute('data-palette', p);
   var b = document.getElementById('palette');

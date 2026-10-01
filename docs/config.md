@@ -11,7 +11,8 @@ return [
     'tagline'     => 'a document is an ordered sequence of typed lines',
     'lang'        => 'en',
     'languages'   => ['sk'],
-    'accent'      => '#21e08a',
+    'theme'       => 'baseline',
+    'palette'     => '',
     'listing'     => true,
     'listing_max' => 15,
     'link_open'   => 'here',
@@ -34,7 +35,8 @@ return [
 | `tagline` | beside the brand in the top bar, and `<meta name="description">` |
 | `lang` | the language the site is written in — see below |
 | `languages` | the other languages a document may be written in — see below |
-| `accent` | one `#rrggbb` colour: links, prompts, the active nav item, note borders — see below |
+| `theme` | the Theme every page is drawn in, unless its Document names one — see below |
+| `palette` | `light` or `dark`: how a page opens for a reader who has never chosen — see below |
 | `listing` | whether the homepage lists documents — see below |
 | `listing_max` | how many documents the homepage lists — see below |
 | `link_open` | whether a link that leaves the site opens in a new tab — see below |
@@ -264,21 +266,29 @@ A fresh installation ships with `about` and `guides`, each holding example
 documents about the software itself. Delete them once you have your own — they
 are content, not code.
 
-## The accent
-
-`accent` is one colour, written as six hexadecimal digits: `#21e08a`,
-`#3f7cac`, `#ABCDEF`. It is the only setting that reaches the page as CSS
-rather than as writing, so it is the only one with a shape it has to keep —
-`red`, `#fff` and `rgb(217,160,95)` are all rejected in favour of the default.
-Everything else in the file is text, and text is escaped.
-
 ## Themes
 
-A page is drawn in one Theme, Baseline, in one of two Palettes, light and
-dark. There is no third "follow the system" setting to configure: a visitor who
-has expressed no preference gets whichever their OS asks for via
-`prefers-color-scheme`, and the toggle in the top bar overrides that and is
-remembered in their browser.
+There are twelve Themes, each drawn in two Palettes, light and dark;
+[themes.md](themes.md) lists them and where each comes from. A page is drawn
+in one Theme and opens in one Palette, and each is decided by the first party
+that names a real one:
+
+- **Theme**: the Document's `theme:` Meta, else `theme` here, else `baseline`.
+  The reader has no Theme control.
+- **Palette**: the reader's own choice, made with the light/dark button and
+  remembered in their browser; else the Document's `palette:` Meta; else
+  `palette` here; else whatever the reader's browser asks for through
+  `prefers-color-scheme`.
+
+`theme` is a Theme's name as its file in `site/public/themes/` is named —
+`things`, `shimmering-focus` — and `palette` is `light` or `dark`. A name that
+is no Theme, or a word that is neither, is not a choice: the next party
+decides, silently, and a page never fails over a spelling. `''` or no
+`palette` at all leaves the Palette to the reader's browser.
+
+A 404 and a Category with no `index.md` have no Document, and take what this
+file says. An `accent` left in a `site.php` from before the Themes is
+ignored like any key this file does not list: a Theme owns its colours.
 
 A Theme's colours, faces, corner and heading weight are in
 `shared/themes/<name>.json`; `php bin/build` writes it into a stylesheet for
@@ -308,6 +318,6 @@ The starter document it opens with is the `<script type="text/markdown">` block
 at the bottom of `editor/index.html`. Replace it with whatever your writers
 should see on a blank page.
 
-Everything the editor remembers — theme, content size, which pane layout
+Everything the editor remembers — Palette, content size, which pane layout
 you left it in — lives in the browser's `localStorage`, per browser, and never
 travels anywhere.

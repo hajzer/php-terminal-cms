@@ -143,7 +143,7 @@ back to a box with the file name in it.
 
 ### `meta` — metadata
 
-Key `m`. One `key: value` per line, exported as YAML frontmatter. Three keys are
+Key `m`. One `key: value` per line, exported as YAML frontmatter. Five keys are
 read by the system:
 
 | key | used for |
@@ -151,11 +151,15 @@ read by the system:
 | `title` | page `<title>`, listing entries, the exported filename |
 | `category` | which directory the document belongs to, and the nav highlight |
 | `date` | listing order, newest first |
+| `theme` | the Theme the page is drawn in — see [format.md](format.md) |
+| `palette` | the Palette the page opens in, `light` or `dark` — see [format.md](format.md) |
 
 Any other key is carried through untouched and ignored.
 
-Every meta line except `title` is printed on the page, once, in one line
-directly under the document's title — `title` is left out because the title is
-already there. A document with meta but no `H1` prints them where the title
-would have been; a document with no meta gets no such line. The editor's preview
-shows the same line in the same place.
+Every meta line except `title` and `palette` is printed on the page, once, in
+one line directly under the document's title — `title` is left out because the
+title is already there, and `palette` because the reader may have flipped the
+page since, so it would say something the page may not be doing. A document
+with meta but no `H1` prints them where the title would have been; a document
+with no meta gets no such line. The editor's preview shows the same line in the
+same place.

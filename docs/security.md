@@ -18,7 +18,7 @@ third-party library in the PHP: no Parsedown, no framework, no composer
 dependency. One third-party file on the origin with a CVE feed to track —
 Mermaid, vendored and pinned, which only a page with a Diagram loads (see
 *The one script on the page*). No CDN request, no external font. The one inline script on a
-published page adds a copy button, a theme toggle and a text-size control; it
+published page adds a copy button, a Palette toggle and a text-size control; it
 reads and writes two `localStorage` keys and touches nothing else, and it runs
 under a per-request nonce rather than `unsafe-inline`.
 
@@ -124,9 +124,12 @@ page.
 ## The one script on the page
 
 Each page carries about fifty lines of inline JavaScript that add a copy button
-to code blocks, a theme toggle and a text-size control. They fetch nothing,
-store two strings in `localStorage`, and are inline so there is no third-party
-origin to trust. Every
+to code blocks, a Palette toggle and a text-size control. The toggle sets
+`data-palette` on `<html>` to `light` or `dark` and keeps the reader's choice;
+until there is one, the page opens in whatever `data-palette` it was served
+with, or with none in the browser's preference. They fetch nothing, store two
+strings in `localStorage`, and are inline so there is no third-party origin to
+trust. Every
 page is complete and readable with it blocked — no content depends on it. Delete
 the `enhancement()` method in `site/src/Page.php` if you want a page with zero
 script.
@@ -142,7 +145,7 @@ new. Mermaid's picture arrives with a `<style>` element and `style` attributes,
 which the policy refuses, so the script places it by hand: the stylesheet into
 one `<style>` carrying the nonce, each `style` attribute through the element's
 CSSOM, which the policy permits. A source that does not parse keeps its code
-block and the page prints nothing. The theme toggle draws every Diagram again,
+block and the page prints nothing. The Palette toggle draws every Diagram again,
 and a Diagram's copy button copies its source. With scripts blocked, the Diagram
 is the code block it always was.
 
@@ -178,16 +181,19 @@ Content-Security-Policy: default-src 'none'; img-src 'self';
                          form-action 'none'; frame-ancestors 'none'
 ```
 
-A page has two inline points — the enhancement script and the one style block
-that carries the configured accent — and they name a nonce instead of the
-policy naming `unsafe-inline`. Sixteen random bytes per request, so the value a
-page carries is no use to the next one. Nothing else on the page may run: no
-inline handler, no `style` attribute, and no `<script src>` but the one the
-enhancement script adds on a page with a Diagram, which carries the nonce.
+A page has one inline point, the enhancement script, and it names a nonce
+instead of the policy naming `unsafe-inline`. Sixteen random bytes per request,
+so the value a page carries is no use to the next one. Nothing else on the page
+may run: no inline handler, no `style` attribute, and no `<script src>` but the
+one the enhancement script adds on a page with a Diagram, which carries the
+nonce. The page as served has no `<style>` element at all; the nonce on
+`style-src` is for the one stylesheet a Diagram places, which the script makes
+with the nonce on it.
 
-The accent is the only config value that reaches the page as CSS rather than as
-text, and escaping is not a way of validating CSS, so it has to be six hex
-digits or the default is used.
+No config value reaches the page as CSS. The Theme and the Palette arrive as a
+name and a word, each one of a fixed set or not used: a Theme is a name with a
+stylesheet in `site/public/themes/`, linked like the others, and a Palette is
+`light` or `dark`.
 
 The policy is written once, in `site/src/Policy.php`. The header above and the
 `<meta>` a built page carries are both read from it, and `bin/test` fails if
@@ -231,11 +237,10 @@ that puts markup into it is the build, from the content, and the Renderer
 cannot express raw HTML. Someone who can change what the build reads can
 already change the page. The nonce does not stand between them.
 
-The inline script, the accent style block, the Mermaid script and a Diagram's
-placed stylesheet carry the build's nonce exactly as they carry a request's.
-`bin/test` builds the sample content and checks three things. Every page's
-first `<head>` element is the policy. The policy's nonce is the one on the
-page's script and style. Every built page is the page the PHP site serves for
+The inline script, the Mermaid script and a Diagram's placed stylesheet carry
+the build's nonce exactly as they carry a request's. `bin/test` builds the
+sample content and checks three things. Every page's first `<head>` element is
+the policy. The policy's nonce is the one on the page's script. Every built page is the page the PHP site serves for
 the same address, but for the Base Path, the trailing slash and where the
 policy is named.
 

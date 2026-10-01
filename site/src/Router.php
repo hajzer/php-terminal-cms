@@ -26,7 +26,7 @@ final class Router
     ) {
     }
 
-    /** @return array{status:int, title:string, body:string, active:?string, lang:string} */
+    /** @return array{status:int, title:string, body:string, active:?string, lang:string, meta?:array<string,string>} */
     public function route(string $uri): array
     {
         /* parse_url returns false, not null, for a request line it cannot read
@@ -135,7 +135,7 @@ final class Router
         ];
     }
 
-    /** @return array{status:int, title:string, body:string, active:?string, lang:string} */
+    /** @return array{status:int, title:string, body:string, active:?string, lang:string, meta?:array<string,string>} */
     private function document(string $category, string $slug): array
     {
         $found = $this->resolve($category, $slug);
@@ -148,10 +148,10 @@ final class Router
               . $this->docFooter($doc, $found['lang'], $found['languages']);
 
         return ['status' => 200, 'title' => $doc->title(), 'body' => $body,
-                'active' => $category, 'lang' => $found['lang']];
+                'active' => $category, 'lang' => $found['lang'], 'meta' => $doc->meta];
     }
 
-    /** @return array{status:int, title:string, body:string, active:?string, lang:string} */
+    /** @return array{status:int, title:string, body:string, active:?string, lang:string, meta?:array<string,string>} */
     private function category(string $category): array
     {
         /* route() only gets here for a declared category, so the fallback is
@@ -160,9 +160,11 @@ final class Router
         $label  = $config['label'];
 
         $body = '';
+        $meta = [];
         $intro = $this->resolve($category, 'index');
         if ($intro !== null) {
             $doc  = Document::load($intro['file'], $category, 'index');
+            $meta = $doc->meta;
             $body .= '<article class="doc intro">' . $doc->html($this->linkOpen(), $this->at) . '</article>';
         } else {
             $body .= '<h1>' . e($label) . '</h1>';
@@ -175,16 +177,18 @@ final class Router
         }
 
         return ['status' => 200, 'title' => $label, 'active' => $category, 'body' => $body,
-                'lang' => $intro['lang'] ?? Site::lang($this->site)];
+                'lang' => $intro['lang'] ?? Site::lang($this->site), 'meta' => $meta];
     }
 
-    /** @return array{status:int, title:string, body:string, active:?string, lang:string} */
+    /** @return array{status:int, title:string, body:string, active:?string, lang:string, meta?:array<string,string>} */
     private function home(): array
     {
         $body = '';
+        $meta = [];
         $intro = $this->resolve('', 'index');
         if ($intro !== null) {
             $doc  = Document::load($intro['file'], '', 'index');
+            $meta = $doc->meta;
             $body .= '<article class="doc intro">' . $doc->html($this->linkOpen(), $this->at) . '</article>';
         } else {
             $body .= '<h1>' . e($this->title()) . '</h1>';
@@ -201,7 +205,7 @@ final class Router
         }
 
         return ['status' => 200, 'title' => $this->title(), 'body' => $body, 'active' => null,
-                'lang' => $intro['lang'] ?? Site::lang($this->site)];
+                'lang' => $intro['lang'] ?? Site::lang($this->site), 'meta' => $meta];
     }
 
     private function title(): string
@@ -215,7 +219,7 @@ final class Router
         return Site::linkOpen($this->site);
     }
 
-    /** @return array{status:int, title:string, body:string, active:?string, lang:string} */
+    /** @return array{status:int, title:string, body:string, active:?string, lang:string, meta?:array<string,string>} */
     private function notFound(): array
     {
         return [

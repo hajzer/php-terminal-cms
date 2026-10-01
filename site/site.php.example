@@ -20,10 +20,19 @@ return [
     'lang'      => 'en',
     'languages' => ['sk'],
 
-    /* accent colour, used for links, prompts and the active nav item. Six hex
-       digits and nothing else — it is the one setting that reaches the page as
-       CSS rather than as writing, and anything else falls back to this one. */
-    'accent'  => '#21e08a',
+    /**
+     * The Theme every page is drawn in, unless its Document names another
+     * with a `theme:` Meta Line: one of the twelve in public/themes/, by the
+     * name its file has — docs/themes.md lists them. A name that is not one
+     * is no choice, and the page is drawn in 'baseline'.
+     *
+     * 'palette' is how a page opens for a reader who has never pressed
+     * light/dark: 'light' or 'dark', unless its Document says `palette:`. ''
+     * — or anything else — leaves it to the reader's browser. The reader's
+     * own choice beats both.
+     */
+    'theme'   => 'baseline',
+    'palette' => '',
 
     /**
      * The homepage listing: the recent documents from every category, printed

@@ -59,10 +59,11 @@ $at = new BasePath('', false);
 $router = new Router($site, $root . '/content', $at);
 $result = $router->route($_SERVER['REQUEST_URI'] ?? '/');
 
-/* The page has two inline points — the accent style block and the enhancement
-   script — and they name this nonce instead of the policy naming
-   'unsafe-inline'. One value per request, so a nonce a page carries is no use
-   to the next request. */
+/* The page has one inline point, the enhancement script, and it names this
+   nonce instead of the policy naming 'unsafe-inline' — as do, on a page with
+   a Diagram, the Mermaid script and the stylesheet the drawing places. One
+   value per request, so a nonce a page carries is no use to the next
+   request. */
 $nonce = Policy::nonce();
 
 http_response_code($result['status']);

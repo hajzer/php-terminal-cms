@@ -8,7 +8,7 @@ namespace TerminalCms;
  *
  * site.php is hand-written trusted configuration, but it is still the only
  * file an instance edits, and a page has to render when a key is missing, a
- * category entry is the wrong shape, or a colour is not a colour. Every reader
+ * category entry is the wrong shape, or a Theme names no Theme. Every reader
  * of the config goes through here, so there is one answer to what a category
  * is and one place a malformed one is dropped — the router, the navigation and
  * the listings cannot disagree about it.
@@ -18,8 +18,15 @@ final class Site
     /** What an entry point says, and does not go on from, when there is no site.php. */
     public const NO_CONFIG = 'site.php is missing — copy site.php.example to site.php and edit it.';
 
-    /** The accent an instance that names none, or names one that is not a colour, gets. */
-    public const ACCENT = '#21e08a';
+    /** The Theme a page is drawn in when neither its Document nor the
+     *  instance names one that exists. */
+    public const THEME = 'baseline';
+
+    /** Where a Theme is: a name is one only if its stylesheet is here. */
+    private const THEMES = __DIR__ . '/../public/themes';
+
+    /** The two Palettes a Theme is drawn in. */
+    private const PALETTES = ['light', 'dark'];
 
     /** How many documents the homepage Listing prints for an instance that
      *  names no count, or names something that is not one. */
@@ -206,17 +213,67 @@ final class Site
     }
 
     /**
-     * The accent, as six hex digits and nothing else. It is the one config
-     * value that reaches the page as CSS rather than as text, and escaping is
-     * not a way of validating CSS — a colour either is one or the default is.
+     * The Theme the instance names, or Baseline. A name is a Theme only when
+     * it is slug-shaped and its stylesheet is in public/themes/, so a page
+     * never links a sheet that is not there and never fails over a spelling.
      *
      * @param array<string,mixed> $site
      */
-    public static function accent(array $site): string
+    public static function theme(array $site): string
     {
-        $accent = $site['accent'] ?? self::ACCENT;
-        return is_string($accent) && preg_match('~^#[0-9a-fA-F]{6}$~', $accent) === 1
-            ? $accent : self::ACCENT;
+        return self::themeName($site['theme'] ?? null) ?? self::THEME;
+    }
+
+    /**
+     * The Palette the instance opens its pages in: 'light', 'dark', or '' for
+     * the reader's browser's preference — which is also what anything else
+     * the instance names is.
+     *
+     * @param array<string,mixed> $site
+     */
+    public static function palette(array $site): string
+    {
+        return self::paletteWord($site['palette'] ?? null) ?? '';
+    }
+
+    /**
+     * The Theme a page is drawn in: its Document's `theme:` Meta, else the
+     * instance's, else Baseline. Each is read the same way, and one that is
+     * not a Theme is passed over for the next.
+     *
+     * @param array<string,mixed> $site
+     * @param array<string,string> $meta the Document's Meta; none for a page
+     *        with no Document behind it
+     */
+    public static function themeFor(array $site, array $meta): string
+    {
+        return self::themeName($meta['theme'] ?? null) ?? self::theme($site);
+    }
+
+    /**
+     * The Palette a page opens in: its Document's `palette:` Meta, else the
+     * instance's, else '' — the reader's browser's. It is only how the page
+     * opens: the reader's own choice, once made, is the script's to apply.
+     *
+     * @param array<string,mixed> $site
+     * @param array<string,string> $meta the Document's Meta, as themeFor()
+     */
+    public static function paletteFor(array $site, array $meta): string
+    {
+        return self::paletteWord($meta['palette'] ?? null) ?? self::palette($site);
+    }
+
+    /** A value as a Theme's name, or null when it names none. */
+    private static function themeName(mixed $name): ?string
+    {
+        return is_string($name) && self::isSlug($name = trim($name)) && is_file(self::THEMES . '/' . $name . '.css')
+            ? $name : null;
+    }
+
+    /** A value as a Palette, or null when it is neither word. */
+    private static function paletteWord(mixed $word): ?string
+    {
+        return is_string($word) && in_array($word = trim($word), self::PALETTES, true) ? $word : null;
     }
 
     /** One URL segment, and one directory name under content/. */

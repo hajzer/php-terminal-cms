@@ -202,7 +202,7 @@ bin/           build  test  fmt  package  page-build  manifest.php  themes.php
 tests/         js-dump.js  js-model.js  js-tables.js  js-inline.js  editor-probe.html
 ```
 
-`site/site.php` — title, logo, favicon, tagline, languages, accent colour,
+`site/site.php` — title, logo, favicon, tagline, languages, Theme, Palette,
 footer, the category list, which index pages list the documents below them, how
 many the homepage lists, and whether a link that leaves the site opens in a new
 tab — is the only file that differs between two installations. Copy it from

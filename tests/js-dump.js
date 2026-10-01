@@ -18,5 +18,6 @@ process.stdout.write(JSON.stringify({
     var m = /^<([a-z0-9]+)/i.exec(line);
     return m ? m[1] : '?';
   }),
-  pres: html.match(/<pre\b[\s\S]*?<\/pre>/g) || []
+  pres: html.match(/<pre\b[\s\S]*?<\/pre>/g) || [],
+  meta: (L.renderDoc(lines).match(/<div class="doc-meta">.*?<\/div>/) || [''])[0]
 }, null, 0));

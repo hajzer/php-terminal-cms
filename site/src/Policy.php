@@ -7,9 +7,9 @@ namespace TerminalCms;
  * The Content-Security-Policy every page is read under, and the one place it
  * is written.
  *
- * Nothing may run on a page but what carries its nonce: the accent style
- * block, the enhancement script, and on a page with a Diagram the Mermaid
- * script and the stylesheet the drawing places. The request-time entry point
+ * Nothing may run on a page but what carries its nonce: the enhancement
+ * script, and on a page with a Diagram the Mermaid script and the stylesheet
+ * the drawing places. The request-time entry point
  * sends the policy as a header with a nonce per request. A built page names it
  * in a <meta> with a nonce per Page Build, since a static host sends no header
  * the site chooses — and a <meta> cannot carry frame-ancestors, so that one

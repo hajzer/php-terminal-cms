@@ -32,6 +32,25 @@ Nothing inside the file records the language. There is no `lang:` meta to keep
 in step with the name, and the editor treats the suffix as it treats any other
 word in a name: type it, or rename the file.
 
+## The Meta that draws the page
+
+Two Meta keys choose how the site draws a document, and each is a choice only
+when it names something real:
+
+- `theme: <name>` — the Theme, one of the twelve in [themes.md](themes.md),
+  spelled as its file in `site/public/themes/` is: `theme: things`. It wins
+  over `site.php`'s `theme`; a name that is none of the twelve is passed
+  over for `site.php`'s, and that for `baseline`. It is printed under the
+  title with the rest of the meta.
+- `palette: light` or `palette: dark` — how the page opens for a reader who
+  has never pressed light/dark. It wins over `site.php`'s `palette`; any other
+  word is passed over for that, and that for the reader's browser. A reader's
+  own choice beats it on every page. It is not printed: the reader may have
+  flipped the page, and the line would say something the page is not doing.
+
+Neither is ever an error. A misspelt name draws the page the way it would be
+drawn without the line. See `docs/config.md` for the `site.php` half.
+
 ## Round trip
 
 ```
