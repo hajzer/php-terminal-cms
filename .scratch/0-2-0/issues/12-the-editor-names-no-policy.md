@@ -1,6 +1,6 @@
 # 12 — The Editor's page names no policy
 
-Status: ready-for-agent
+Status: done
 Category: enhancement
 Spec: ../spec.md
 Blocked by: —
@@ -55,19 +55,19 @@ issue, not a fix to make while reviewing.
 
 ## Acceptance
 
-- [ ] `editor/index.html` names a policy in a `<meta>` that refuses inline
+- [x] `editor/index.html` names a policy in a `<meta>` that refuses inline
   script and any connection, and the probe runs green under it
-- [ ] the starter's inline script and the preview's `onerror` are either
+- [x] the starter's inline script and the preview's `onerror` are either
   named by the policy or gone
-- [ ] `docs/security.md`'s Editor paragraph says what the policy is and what
+- [x] `docs/security.md`'s Editor paragraph says what the policy is and what
   it is not
-- [ ] `style-src` names no `'unsafe-inline'` and no nonce; a drawn Diagram
+- [x] `style-src` names no `'unsafe-inline'` and no nonce; a drawn Diagram
   still takes its colours from the Theme and Palette
-- [ ] the probe asserts the starter document is what the Editor opens with,
+- [x] the probe asserts the starter document is what the Editor opens with,
   and that an image whose src does not load falls back to the box
-- [ ] `bin/test` fails if the Editor's policy is removed or loosened
-- [ ] the decision is recorded as an ADR
-- [ ] the probe is green under the policy in Chromium and Firefox, and the run
+- [x] `bin/test` fails if the Editor's policy is removed or loosened
+- [x] the decision is recorded as an ADR
+- [x] the probe is green under the policy in Chromium and Firefox, and the run
   logs no `script-src` or `style-src-elem` violation
 
 ## Comments
@@ -169,34 +169,34 @@ not edit the probe by hand.
   `no-referrer`, also checks the Editor's CSP `<meta>`.
 
 **Acceptance criteria:**
-- [ ] `editor/index.html` names the policy in a `<meta>`, with no
+- [x] `editor/index.html` names the policy in a `<meta>`, with no
       `'unsafe-inline'`, `'unsafe-eval'`, `'unsafe-hashes'` or nonce in any
       directive, and with `connect-src 'none'`
-- [ ] The page contains no inline `<script>` without `src` other than the
+- [x] The page contains no inline `<script>` without `src` other than the
       `text/markdown` starter, and the Editor emits no `on…=` attribute.
       A handler assigned as a property from the Editor's own script, such as
       the Mermaid loader's `s.onerror = failed` in `ui.js`, is not an
       attribute: the policy allows it, and it stays
-- [ ] A new probe assertion: the document the Editor opens with is the starter
-- [ ] A new probe assertion: an Image Line whose src cannot load shows the box
+- [x] A new probe assertion: the document the Editor opens with is the starter
+- [x] A new probe assertion: an Image Line whose src cannot load shows the box
       with the file name, and the `<img>` is hidden
-- [ ] The probe's Diagram assertions (fill from the Theme, fill following `T`,
+- [x] The probe's Diagram assertions (fill from the Theme, fill following `T`,
       the Theme menu and a `theme:` Meta Line, style statements colouring
       nodes) pass with no `<style>` element in the placed SVG
-- [ ] Redrawing a Diagram many times, by typing in its source or switching
+- [x] Redrawing a Diagram many times, by typing in its source or switching
       Themes, leaves no more adopted sheets than there are kept drawings
-- [ ] `tests/editor-probe.html` runs green in Chromium and Firefox, and the
+- [x] `tests/editor-probe.html` runs green in Chromium and Firefox, and the
       run logs no `script-src*` or `style-src-elem` violation. Mermaid's
       `style-src-attr` reports from its measuring pass are acceptable.
-- [ ] `bin/test` fails if the meta is removed, if `'unsafe-inline'` or
+- [x] `bin/test` fails if the meta is removed, if `'unsafe-inline'` or
       `'unsafe-eval'` appears in it, or if `connect-src` is anything but
       `'none'`
-- [ ] `php bin/test` passes, and the generated files are rebuilt, not
+- [x] `php bin/test` passes, and the generated files are rebuilt, not
       hand-edited
-- [ ] `docs/security.md`'s Editor section says what the policy is and what it
+- [x] `docs/security.md`'s Editor section says what the policy is and what it
       is not. It is not a nonce, it is the same on every copy, and it does not
       stop the one deliberate outbound request, an Image Line's src.
-- [ ] A new ADR records the choice (`'self'` and a constructable stylesheet
+- [x] A new ADR records the choice (`'self'` and a constructable stylesheet
       over a fixed nonce or `'unsafe-inline'` for styles) and names ADR-0013
       and ADR-0016 as related. No `.js` file points at the ADR number.
 
@@ -208,3 +208,40 @@ not edit the probe by hand.
   outbound request is a documented promise.
 - A version bump or CHANGELOG entry. That belongs to whichever release issue
   ships this.
+
+### 2026-10-01, agent
+
+Done in 762856a and 9b3e1de. `editor/index.html` names the brief's policy as
+written. No directive needed adjusting. ui.js reads the starter, a capturing
+`error` listener on the read pane swaps a broken picture for its box, and a
+Diagram's stylesheet is a constructed sheet the document adopts. The sheet
+is kept and dropped with its drawing, but a drawing on screen is never
+dropped. ADR-0020 records the choice, and `docs/security.md` says what the
+policy is and is not, including that `'self'` on `file://` may match any
+local file.
+
+The run turned up things triage had not seen:
+
+- **Firefox loses Mermaid's inline styles.** Under the policy, Firefox drops
+  the value of a `style` attribute as it is set, so a `style C fill:#f9f`
+  statement never reached the placement. It also refuses
+  `el.style.cssText =`. While Mermaid draws, its `style` attributes are
+  written under another name, and the placement writes each declaration
+  back with `setProperty`.
+- **Mermaid's scratch `<style>` was refused on every drawing.** This also
+  happens on the public page. While the Editor draws, Mermaid gets an inert
+  element in its place, and the element's text is kept beside the drawing.
+- **The public page had the same Firefox loss** (out of scope here, fixed at
+  the maintainer's ask in 9b3e1de). It got the `setProperty` write-back and
+  the redirected attribute. It keeps its nonced `<style>`.
+
+`bin/test` fails if the meta is removed, if a directive is loosened in any of
+ten ways, if inline script or an `on…=` attribute appears, or if the
+public page's script goes back to `cssText`. The probe adds assertions for
+the starter, the image fallback, a bound on adopted sheets across 40 sources
+and three rounds of Themes, and no refused script or stylesheet. A watcher
+script first in the probe's `<head>` hears refusals from the start of the
+load. The probe ran 292/292 headless in Chromium and Firefox. The maintainer
+checked by hand in Firefox: the probe, the Editor from disk and served, the
+open, drop, export, copy and paste paths, an outbound image, and the public
+page's Diagram.
