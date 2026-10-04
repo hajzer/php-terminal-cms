@@ -1,6 +1,6 @@
 # 04 — Sub-categories: Site Config, routing, pages, Listing, Page Build
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 
 ## What
