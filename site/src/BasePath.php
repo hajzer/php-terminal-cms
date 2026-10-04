@@ -58,6 +58,15 @@ final class BasePath
     }
 
     /**
+     * The address of a page's Bundle: the page's path with `.zip` on it,
+     * whether or not a page's own address ends in `/`.
+     */
+    public function bundle(string $path): string
+    {
+        return $this->path . '/' . $path . '.zip';
+    }
+
+    /**
      * An address as the site writes it. One written from the site's root is
      * moved under the Base Path; a fragment, another origin and a mailto:
      * address are not local, and are left as they are.

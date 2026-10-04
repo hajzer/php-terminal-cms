@@ -12,6 +12,10 @@ namespace TerminalCms;
  * segment of a URL; the slug is compared for equality against the real
  * filenames in that one directory, so a path traversal has no expression here
  * rather than being filtered out.
+ *
+ * A page's address with `.zip` on its last segment is the page's Bundle: the
+ * rest is resolved exactly as the page is, and is a 404 where the page would
+ * be one or where it does not offer its Bundle.
  */
 final class Router
 {
@@ -27,15 +31,20 @@ final class Router
     ) {
     }
 
-    /** @return array{status:int, title:string, body:string, active:?string, lang:string, meta?:array<string,string>} */
+    /** @return array{status:int, title:string, body:string, active:?string, lang:string, meta?:array<string,string>, bundle?:Bundle} */
     public function route(string $uri): array
     {
         /* parse_url returns false, not null, for a request line it cannot read
            at all — "//" is one, and a client may send it */
         $uri = trim((string) (parse_url($uri, PHP_URL_PATH) ?: ''), '/');
 
+        $zip = str_ends_with($uri, '.zip');
+        if ($zip) {
+            $uri = substr($uri, 0, -strlen('.zip'));
+        }
+
         if ($uri === '' || $uri === 'index') {
-            return $this->home();
+            return $zip ? $this->notFound() : $this->home();      /* the homepage has no Bundle */
         }
 
         /* at most three segments — a Category, a Sub-category of it, and a
@@ -57,7 +66,7 @@ final class Router
             return $this->notFound();
         }
         if (count($parts) === 1) {
-            return $this->category($category);
+            return $this->category($category, $zip);
         }
 
         /* the second segment is a Sub-category's page when one is declared by
@@ -67,12 +76,12 @@ final class Router
 
         if (count($parts) === 2) {
             return $sub !== null
-                ? $this->category($sub)
-                : $this->document($category['path'], $parts[1]);
+                ? $this->category($sub, $zip)
+                : $this->document($category['path'], $parts[1], $zip);
         }
 
         return $sub !== null
-            ? $this->document($sub['path'], $parts[2])
+            ? $this->document($sub['path'], $parts[2], $zip)
             : $this->notFound();
     }
 
@@ -154,17 +163,29 @@ final class Router
         ];
     }
 
-    /** @return array{status:int, title:string, body:string, active:?string, lang:string, meta?:array<string,string>} */
-    private function document(string $category, string $slug): array
+    /**
+     * A Document's page, or with $zip its Bundle.
+     *
+     * @return array{status:int, title:string, body:string, active:?string, lang:string, meta?:array<string,string>, bundle?:Bundle}
+     */
+    private function document(string $category, string $slug, bool $zip = false): array
     {
         $found = $this->resolve($category, $slug);
         if ($found === null) {
             return $this->notFound();
         }
 
+        if ($zip) {
+            $meta = Document::peekMeta($found['file']);
+            return $this->offers($meta, $found['base'])
+                ? $this->bundle(Bundle::document($this->contentDir, Site::languages($this->site), $category, $found['base']),
+                                $category, $found['lang'])
+                : $this->notFound();
+        }
+
         $doc  = Document::load($found['file'], $category, $slug, $found['base']);
         $body = '<article class="doc">' . $doc->html($this->linkOpen(), $this->at) . '</article>'
-              . $this->docFooter($doc, $found['lang'], $found['languages']);
+              . $this->docFooter($doc, $found['lang'], $found['languages'], $this->offers($doc->meta, $found['base']));
 
         return ['status' => 200, 'title' => $doc->title(), 'body' => $body,
                 'active' => $category, 'lang' => $found['lang'], 'meta' => $doc->meta];
@@ -172,20 +193,31 @@ final class Router
 
     /**
      * A Category's page, or a Sub-category's: its index.md or its label, the
-     * Sub-categories it declares, and the Documents in its own directory.
+     * Sub-categories it declares, the way to its Bundle, and the Documents in
+     * its own directory. With $zip, the Bundle. Whether it is offered is its
+     * index.md's to say, as the rest of what the page does is.
      *
-     * @param array{label:string, listing:bool, path:string, categories:list<array{label:string, path:string}>} $declared
+     * @param array{label:string, listing:bool, path:string, categories:list<array{slug:string, label:string, path:string}>} $declared
      *        as Site::categories() declares it
-     * @return array{status:int, title:string, body:string, active:?string, lang:string, meta?:array<string,string>}
+     * @return array{status:int, title:string, body:string, active:?string, lang:string, meta?:array<string,string>, bundle?:Bundle}
      */
-    private function category(array $declared): array
+    private function category(array $declared, bool $zip = false): array
     {
         $path  = $declared['path'];
         $label = $declared['label'];
 
+        $intro = $this->resolve($path, 'index');
+        if ($zip) {
+            $meta = $intro === null ? [] : Document::peekMeta($intro['file']);
+            return $this->offers($meta, Bundle::top($path))
+                ? $this->bundle(Bundle::category($this->contentDir, Site::languages($this->site), $declared,
+                                                 $meta['title'] ?? $label),
+                                $path, $intro['lang'] ?? Site::lang($this->site))
+                : $this->notFound();
+        }
+
         $body = '';
         $meta = [];
-        $intro = $this->resolve($path, 'index');
         if ($intro !== null) {
             $doc  = Document::load($intro['file'], $path, 'index', $intro['base']);
             $meta = $doc->meta;
@@ -200,6 +232,10 @@ final class Router
                 $items .= '<li><a href="' . e($this->at->page($sub['path'])) . '">' . e($sub['label']) . '</a></li>';
             }
             $body .= '<ul class="sub-categories">' . $items . '</ul>';
+        }
+
+        if ($this->offers($meta, Bundle::top($path))) {
+            $body .= '<p class="bundle">' . $this->bundleLink($path) . '</p>';
         }
 
         if ($declared['listing']) {
@@ -239,6 +275,31 @@ final class Router
 
         return ['status' => 200, 'title' => $this->title(), 'body' => $body, 'active' => null,
                 'lang' => $intro['lang'] ?? Site::lang($this->site), 'meta' => $meta];
+    }
+
+    /**
+     * Whether a page offers its Bundle: what Site::bundles() says for its
+     * Meta, and only when the name the Bundle unpacks under is one a ZIP
+     * can hold.
+     *
+     * @param array<string,string> $meta
+     */
+    private function offers(array $meta, string $top): bool
+    {
+        return Site::bundles($this->site, $meta) && Zip::isName($top);
+    }
+
+    /** @return array{status:int, title:string, body:string, active:?string, lang:string, bundle:Bundle} */
+    private function bundle(Bundle $bundle, string $active, string $lang): array
+    {
+        return ['status' => 200, 'title' => $bundle->filename(), 'body' => '', 'active' => $active,
+                'lang' => $lang, 'bundle' => $bundle];
+    }
+
+    /** The way to a page's Bundle, from the page's path. */
+    private function bundleLink(string $path): string
+    {
+        return '<a href="' . e($this->at->bundle($path)) . '">↓ bundle</a>';
     }
 
     private function title(): string
@@ -308,14 +369,16 @@ final class Router
         return '<span class="languages">(' . implode(' <i>|</i> ', $parts) . ')</span>';
     }
 
-    /** The way back to the category, and the way across to another language.
-     *  The date is under the title, with the rest of the document's meta.
+    /** The way back to the category, the way to the Document's Bundle, and the
+     *  way across to another language. The date is under the title, with the
+     *  rest of the document's meta.
      *
      * @param array<string,string> $languages */
-    private function docFooter(Document $doc, string $lang, array $languages): string
+    private function docFooter(Document $doc, string $lang, array $languages, bool $bundle): string
     {
         return '<div class="doc-foot">'
              . '<a href="' . e($this->at->page($doc->category)) . '">← ' . e($doc->category) . '</a>'
+             . ($bundle ? $this->bundleLink($doc->category . '/' . $doc->slug) : '')
              . self::languages($languages, $lang)
              . '</div>';
     }

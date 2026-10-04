@@ -193,6 +193,25 @@ final class Site
     }
 
     /**
+     * Whether a page offers its Bundle: its Document's `bundle:` Meta, else
+     * the instance's 'bundle', else it does. Only `true` and `false` are a
+     * choice in the Meta, and only false turns it off in Site Config; anything
+     * else is passed over for the next.
+     *
+     * @param array<string,mixed> $site
+     * @param array<string,string> $meta the Document's Meta — a Category's
+     *        is its index.md's; none for a page with no Document behind it
+     */
+    public static function bundles(array $site, array $meta): bool
+    {
+        $word = $meta['bundle'] ?? null;
+        if ($word === 'true' || $word === 'false') {
+            return $word === 'true';
+        }
+        return ($site['bundle'] ?? true) !== false;
+    }
+
+    /**
      * How many documents the homepage Listing prints — a whole number of them,
      * or null for every one there is. Only a whole number of at least one is a
      * count; 0 is how an instance asks for all of them, and anything that is

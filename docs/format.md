@@ -107,7 +107,8 @@ any other key — `Published:`, `pubished:` — is just another meta line, which
 leaves the document Published.
 
 A document that is not Published is a 404 at its address, no listing names it,
-no language indicator links to it, and a Page Build does not write it. A
+no language indicator links to it, no Bundle carries it, and a Page Build
+does not write it. A
 category's `index.md` that is not Published leaves the category's page headed
 by its label. Each language is its own file with its own Meta, so a
 translation can be held back while the original is read: the original then
@@ -122,6 +123,22 @@ in `site.php` instead — see `docs/config.md`.
 reader only ever meets a Published document, so the line could only ever say
 `true`. The editor has no draft mark — its preview shows the document as it
 would read if it were Published.
+
+## Bundle
+
+`bundle: false` keeps a document's Bundle — the ZIP of its source, its pictures
+and the Editor at its address with `.zip` on it — off the page and off the site,
+and leaves the file out of its category's Bundle too. `bundle: true` offers it
+on an instance whose `site.php` says `'bundle' => false`. Any other word is no
+choice: the instance decides, and without a word from it the Bundle is offered.
+See [config.md](config.md#bundles).
+
+Each language is its own file with its own Meta, so each address decides for
+itself, and a language that says `bundle: false` is left out of the others'
+Bundles. A category's `index.md` decides for the category's page.
+
+`bundle` is printed under the title like any other meta line: it is what the
+page is doing.
 
 ## Round trip
 

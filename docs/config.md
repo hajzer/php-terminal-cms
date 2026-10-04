@@ -16,6 +16,7 @@ return [
     'listing'     => true,
     'listing_max' => 15,
     'link_open'   => 'here',
+    'bundle'      => true,
     'logo'        => '/media/logo.png',
     'favicon'     => '/favicon.ico',
     'footer'      => [
@@ -42,6 +43,7 @@ return [
 | `listing` | whether the homepage lists documents — see below |
 | `listing_max` | how many documents the homepage lists — see below |
 | `link_open` | whether a link that leaves the site opens in a new tab — see below |
+| `bundle` | whether pages offer their Bundle, the ZIP of their source — see below |
 | `logo` | a picture in the brand link, in front of the title — see below |
 | `favicon` | the icon in the reader's tab — see below |
 | `footer` | the whole footer — see below |
@@ -163,6 +165,43 @@ very site is a link that leaves, and opens like one. Any value other than
 
 The editor is never told this. Its preview shows the `'here'` rendering, which
 is the same markup with one attribute fewer.
+
+## Bundles
+
+A Document page carries `↓ bundle` in its foot, and a category page carries it
+under its Sub-categories. It is a plain link to the page's own address with
+`.zip` on it — `/guides/install.zip`, `/guides.zip`, `/guides/php.zip` — and
+the ZIP there is a **Bundle**: one directory, named after the document or the
+category path (`guides-php`), holding
+
+```output
+README.txt
+editor/                          the Editor, from site/editor/
+site/content/<path>.md           each document, in every language it is Published in
+site/public/media/<path>/        each document's pictures
+```
+
+A category's Bundle holds its `index.md`, its documents and its
+Sub-categories' documents, each with its pictures. Unzipped, `editor/index.html`
+opens any of the `.md` files with **Open .md** and shows its pictures, offline.
+The homepage has no Bundle.
+
+```php
+'bundle' => false,     /* true, or no key at all, is the default */
+```
+
+`false` turns Bundles off: no page carries the link, and every `.zip` address
+is a 404. A document's own `bundle:` Meta beats it either way, so one document
+can be offered on an instance that offers none, or held back on one that offers
+all — see [format.md](format.md#bundle). A category's page follows its
+`index.md`'s `bundle:`. Any value but `false` here, and any word but `true` or
+`false` in the Meta, is no choice and falls through to the next.
+
+A Bundle carries only what a reader can already read: nothing that is not
+Published, no undeclared directory, and no document whose own Meta says
+`bundle: false` — not even inside its category's Bundle. It is written as it is
+sent, stored rather than compressed, and needs no PHP extension. Expect about
+4 MB, most of it the Editor's copy of Mermaid.
 
 ## The logo
 
@@ -314,7 +353,8 @@ A category entry, or a Sub-category's, may say `'published' => false`:
 
 A category that is not Published is as if it were not declared: its page and
 every document in it are a 404, the navigation and the listings leave it out,
-its parent does not name it, and a Page Build does not write it. A top-level
+its parent does not name it, no Bundle carries it, and a Page Build does not
+write it. A top-level
 category takes its Sub-categories with it, whatever they say.
 
 Only no `published` at all, or exactly `true`, publishes. **Every other value

@@ -4,9 +4,9 @@ declare(strict_types=1);
 /**
  * The only PHP entry point on the public origin.
  *
- * It reads markdown from content/ and writes HTML. It never writes a file,
- * opens a socket, reads a cookie, starts a session, or executes anything from
- * the request. See docs/security.md.
+ * It reads markdown from content/ and writes HTML, or a Bundle's ZIP of what
+ * it reads. It never writes a file, opens a socket, reads a cookie, starts a
+ * session, or executes anything from the request. See docs/security.md.
  */
 
 use TerminalCms\BasePath;
@@ -67,10 +67,22 @@ $result = $router->route($_SERVER['REQUEST_URI'] ?? '/');
 $nonce = Policy::nonce();
 
 http_response_code($result['status']);
-header('Content-Type: text/html; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: strict-origin-when-cross-origin');
 header('Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()');
 header('Content-Security-Policy: ' . Policy::forHeader($nonce));
 
+/* A Bundle is written as it is read, straight to the response: nothing
+   holds the archive, and nothing buffers it on the way out. */
+if (isset($result['bundle'])) {
+    header('Content-Type: application/zip');
+    header('Content-Disposition: ' . $result['bundle']->disposition());
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
+    $result['bundle']->write(fopen('php://output', 'wb'));
+    exit;
+}
+
+header('Content-Type: text/html; charset=utf-8');
 echo Page::html($site, $result, $nonce, $at);

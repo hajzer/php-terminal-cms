@@ -111,15 +111,23 @@ final class Zip
         }
     }
 
-    /** Takes a name for the next entry: one a reader can unpack inside the
-     *  directory it unpacks into, and not one it already has. */
+    /** Whether a name is one an entry can have: a relative path of UTF-8
+     *  segments, none of them `.` or `..`, which a reader unpacks inside the
+     *  directory it unpacks into. */
+    public static function isName(string $name): bool
+    {
+        $segment = '[^/\\\\\x00-\x1F\x7F]+';
+        return preg_match('~^' . $segment . '(?:/' . $segment . ')*$~u', $name) === 1
+            && preg_match('~(?:^|/)\.\.?(?:/|$)~', $name) !== 1
+            && strlen($name) <= 0xFFFF;
+    }
+
+    /** Takes a name for the next entry: one isName() allows, and not one the
+     *  archive already has. */
     private function claim(string $name): void
     {
         $this->open();
-        $segment = '[^/\\\\\x00-\x1F\x7F]+';
-        if (preg_match('~^' . $segment . '(?:/' . $segment . ')*$~u', $name) !== 1
-            || preg_match('~(?:^|/)\.\.?(?:/|$)~', $name) === 1
-            || strlen($name) > 0xFFFF) {
+        if (!self::isName($name)) {
             throw new \InvalidArgumentException('not a relative path of UTF-8 segments: ' . $name);
         }
         if (isset($this->names[$name])) {

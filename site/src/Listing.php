@@ -52,7 +52,7 @@ final class Listing
      */
     public static function variants(string $dir, string $base, array $codes): array
     {
-        return self::group($dir, $codes)[$base] ?? [];
+        return self::documents($dir, $codes)[$base] ?? [];
     }
 
     /**
@@ -65,7 +65,7 @@ final class Listing
      *         the codes in the declared order and '' — a file with no suffix —
      *         first
      */
-    private static function group(string $dir, array $codes): array
+    public static function documents(string $dir, array $codes): array
     {
         $found = [];
         foreach (scandir($dir) ?: [] as $name) {
@@ -117,7 +117,7 @@ final class Listing
         $default = $codes[0] ?? Site::LANG;
 
         $entries = [];
-        foreach (self::group($dir, $codes) as $base => $variants) {
+        foreach (self::documents($dir, $codes) as $base => $variants) {
             $base = (string) $base;    /* a name that is all digits is a string here */
             /* index.md is the category's own introduction, in any language */
             if ($base === 'index') {

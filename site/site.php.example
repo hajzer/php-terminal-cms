@@ -55,6 +55,16 @@ return [
     'link_open' => 'here',
 
     /**
+     * Whether a page offers its Bundle: `↓ bundle` under a Document and on a
+     * Category's page, and the ZIP at the page's address with .zip on it —
+     * the Document in every Language with its pictures, or the whole
+     * Category, and the Editor to open them with offline. false turns every
+     * Bundle off; a Document's own `bundle:` Meta beats this either way, and
+     * a Category's is its index.md's. Leave it out and Bundles are on.
+     */
+    'bundle' => true,
+
+    /**
      * A picture in the brand link, in front of the title. It is a file under
      * public/media/, addressed the way a document addresses an image, and
      * anything that is not a local path is read as a file name under that

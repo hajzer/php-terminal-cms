@@ -71,6 +71,10 @@ main.reader-page { font-size: calc(var(--global-font-size) * var(--doc-scale)); 
    as the directory it is */
 .sub-categories a::after { content: "/"; }
 
+/* the way to a Category's Bundle, under its Sub-categories, as quiet as the
+   doc-foot's */
+.bundle { font-size: 12px; }
+
 /* the languages one document exists in, the one being read marked */
 .languages { white-space: nowrap; font-size: 11px; color: var(--faint); padding-right: 8px; }
 .languages a { letter-spacing: .08em; padding: 4px 3px; }
@@ -82,7 +86,7 @@ main.reader-page { font-size: calc(var(--global-font-size) * var(--doc-scale)); 
 /* ---------- footers ----------
    A link here is the reader sheet's link, resting quieter: these regions set
    the ink it rests in and nothing else, so its hover is every link's. */
-.doc-foot, .site-foot, .languages { --link: var(--secondary); }
+.doc-foot, .site-foot, .languages, .bundle { --link: var(--secondary); }
 .doc-foot {
   display: flex; align-items: baseline; gap: 16px;
   border-top: 1px dashed var(--border);

@@ -136,6 +136,30 @@ It is live on arrival — there is no build to run and no cache to clear.
 
 To revise: drop the `.md` back onto the editor, edit, export, copy over.
 
+### From a Bundle
+
+A Bundle — the `↓ bundle` link under a document or on a category page — is the
+same slice of the repository, so an edited one goes back with the same `rsync`.
+Unzip it, open `editor/index.html`, **Open .md** a file under `site/content/`,
+edit, **download .md**, and put the file back where it was opened from:
+
+```console
+$ unzip -q what-it-is.zip
+$ mv ~/Downloads/what-it-is.md what-it-is/site/content/about/what-it-is.md
+$ rsync -a what-it-is/site/ deploy@example.com:/var/www/example.com/
+```
+
+`<bundle>/site/` holds `content/` and `public/media/` and nothing else, so it
+lands on an Instance's own directories; a picture you added under
+`site/public/media/` goes with it. Never `--delete` here: the Bundle is a slice,
+and that would remove everything it does not hold. Each file in a Bundle carries its
+time on the server, so with an `unzip` that restores it, `rsync` skips the
+files you did not touch.
+
+The site answers a Bundle at a page's address with `.zip` on it, through
+`index.php`, as it answers the page: neither the `.htaccess` nor the nginx
+`try_files` above needs anything added.
+
 ## Publishing as static pages
 
 A Page Build renders every page of the Instance to files ahead of time, with

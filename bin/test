@@ -358,8 +358,8 @@ foreach (cssRules($siteCss) as [$selectors, $body]) {
     }
 }
 sort($quiet);
-ok($quiet === ['.doc-foot', '.languages', '.languages a.on', '.site-foot'],
-   'and the footers and the Language indicator are the regions that ask for it',
+ok($quiet === ['.bundle', '.doc-foot', '.languages', '.languages a.on', '.site-foot'],
+   'and the footers, the Language indicator and a Category\'s Bundle link are the regions that ask for it',
    implode(' | ', $quiet));
 
 /* -------------------------------------------------------- the body's colours */
@@ -2361,16 +2361,16 @@ ok(stylesheets($built) === ['/proj/theme.css', '/proj/themes/baseline.css', '/pr
    changing on purpose is what re-records them. */
 $before = [
     '/'                                 => '6f41dc7badb5b2c0766b309cdb9cf450a51e84788f7caa874bb4a14418d2eec9',
-    '/about'                            => '2944af89567da8b799ed94f131ba860dda7d7ad8ff4897ef2adbbb5a27f08793',
-    '/guides'                           => 'f3de7cad60fcf77a4a93c1ee76f38545d4c2132df3c02b322325b399d2b44857',
-    '/about/everything-is-a-line'       => '00e8b2e0fa78530d9a26c14d9cffd063509dd129d2b390106ac05528050c050d',
-    '/about/what-it-is'                 => '9ce93052b5f851515746b2313b28ce6559c0e23cbfd22d1b2bb9bb86b9dd00a2',
-    '/about/what-it-is-sk'              => '9ba6d68ff2db62224cbbd6a353979b84f372deccd117cef8b28b4f4035ff7499',
-    '/guides/install-in-five-minutes'   => '97738202f85561bdf13d711606d635a594329d9601fe115794cee11e8415b5fe',
-    '/guides/publishing-is-a-file-copy' => 'eeeb59c846b0fd2fda15e6620044080f51ae3a8371382729f06a52a78e54ec17',
-    '/guides/writing-in-the-editor'     => '68aa2f4aa480b2778d5a0c2a91812836e312539be321c1f010ce9b7c7ea3fdb1',
-    '/guides/hosting'                   => 'a4f8cac52a1712d084f7e99c3ba00b2d264a551bfc5d5c298a39271f83eba946',
-    '/guides/hosting/without-php'       => '82e0ff3aea1eeaffe184ffa2ff5fa685db4392228a998138a961d2168a66c6be',
+    '/about'                            => '1a37d2383edd68fc82ac9b3a589a285303d2124ae00d45c70479837dc85232b1',
+    '/guides'                           => '321af1c987b4471da66b12af2052092e002219f0889c6f5ef5b93781d931b822',
+    '/about/everything-is-a-line'       => '5511629267170d4394f4bdf1b7b38d2e593caded95dc05bfca8c70057671ce5e',
+    '/about/what-it-is'                 => '8283811c7ec4c59f89e9dbaa843a096a8222feb5cf8d8995e171822ac8ade08a',
+    '/about/what-it-is-sk'              => 'a8f6382885c4c7b32d5b2079c15fe14b82b1f6eb5df2b5ae3db6dca346b806a4',
+    '/guides/install-in-five-minutes'   => '42f486987ac422f9aef98df7ff80500fde567cce49955e1ae65c9637e9f69f02',
+    '/guides/publishing-is-a-file-copy' => '17a07a24770a9ecbfd5efc03504224d203c3997c2fdd6b8947ecb6579187689a',
+    '/guides/writing-in-the-editor'     => '08de90079327c1d0ff2e1c4bcefb30566842fa6974138522938f072fe9528aea',
+    '/guides/hosting'                   => '8c12a6d4b8de5b11f098556b01f6fbc17af0273053dcc3b63f037819d7bfdbf8',
+    '/guides/hosting/without-php'       => 'bbe4954d1b2c72ff7c51769eb14d3be7d1a282d96258df979fa54ab3c99b1c20',
     '/404.html'                         => '8689fe2c4fde9ccc3367d62e347a7e419c69848005612b19c3e7cdc851fb0b71',
 ];
 foreach ($before as $uri => $hash) {
@@ -2444,6 +2444,17 @@ if (!$up) {
        'the page is sent with the policy as its header, naming the nonce it carries', $csp);
     ok(!str_contains((string) $doc, 'http-equiv'), 'and names no policy of its own');
     ok(@file_get_contents($base . '/nope') === false, 'unknown paths still 404');
+
+    /* a Bundle: the archive, as an attachment, under the same policy */
+    $zipBody = @file_get_contents($base . '/about/what-it-is.zip');
+    $head = strtolower(implode("\n", $http_response_header ?? []));
+    ok(is_string($zipBody) && str_starts_with($zipBody, "PK\x03\x04")
+       && str_contains($head, 'content-type: application/zip')
+       && str_contains($head, 'content-disposition: attachment; filename="what-it-is.zip"')
+       && str_contains($head, 'x-content-type-options: nosniff')
+       && str_contains($head, 'content-security-policy: '),
+       'a Bundle is sent as a ZIP attachment, under the policy header', $head);
+    ok(@file_get_contents($base . '/about/nope.zip') === false, 'and an address with no Bundle is a 404');
 }
 
 if (is_resource($proc)) {
@@ -2581,6 +2592,11 @@ $pages = array_values(array_filter($files, static fn (string $f) => str_ends_wit
 $wrong = [];
 foreach ($pages as $page) {
     foreach (localAddresses((string) file_get_contents("$out/$page")) as $a) {
+        /* a Bundle is not a file the Page Build writes, so a link to one is
+           not looked for in the output */
+        if (str_ends_with($a, '.zip')) {
+            continue;
+        }
         if (!str_starts_with($a, '/proj/')) {
             $wrong[] = "$page: $a does not start with /proj/";
         } elseif (servedFile($out, substr($a, strlen('/proj'))) === '') {
@@ -2719,6 +2735,9 @@ $rootOut = $box . '/root';
 $wrong = [];
 foreach ($pages as $page) {
     foreach (localAddresses((string) file_get_contents("$rootOut/$page")) as $a) {
+        if (str_ends_with($a, '.zip')) {
+            continue;
+        }
         if (!str_starts_with($a, '/') || str_starts_with($a, '/proj') || servedFile($rootOut, $a) === '') {
             $wrong[] = "$page: $a";
         }
@@ -3012,6 +3031,233 @@ ok($refused === [], 'a name that is not a relative path of UTF-8 segments, a nam
    implode("\n", $refused));
 
 removeTree($zbox);
+
+/* ----------------------------------------------------------------- bundles */
+echo "\nbundles\n";
+
+/* An Instance laid out as one is — content/, public/media/ and editor/ side
+   by side — with one thing of each kind a Bundle must take or leave. */
+$bb = sys_get_temp_dir() . '/tcms-bundle-' . getmypid();
+$bfiles = [
+    'content/index.md'              => "---\ntitle: Home\n---\n\n# Home\n",
+    'content/notes/index.md'        => "---\ntitle: Notes\n---\n\n# Notes\n",
+    'content/notes/shown.md'        => "---\ntitle: Shown\ndate: 2026-03-01\n---\n\n# Shown\n\n![a shot](shot.png)\n",
+    'content/notes/shown-sk.md'     => "---\ntitle: Ukazane\n---\n\n# Ukazane\n",
+    'content/notes/both.md'         => "---\ntitle: Both\n---\n\n# Both\n",
+    'content/notes/both-sk.md'      => "---\ntitle: HIDDEN variant\npublished: false\n---\n\n# x\n",
+    'content/notes/hidden.md'       => "---\ntitle: HIDDEN Document\npublished: false\n---\n\n# x\n",
+    'content/notes/off.md'          => "---\ntitle: Off\nbundle: false\n---\n\n# Off\n",
+    'content/notes/php/index.md'    => "---\ntitle: PHP\n---\n\n# PHP\n",
+    'content/notes/php/arrays.md'   => "---\ntitle: Arrays\n---\n\n# Arrays\n",
+    'content/notes/wip/secret.md'   => "---\ntitle: HIDDEN in a Sub-category\n---\n\n# x\n",
+    'content/notes/loose/stray.md'  => "---\ntitle: HIDDEN undeclared\n---\n\n# x\n",
+    'content/drafts/plan.md'        => "---\ntitle: HIDDEN in a Category\n---\n\n# x\n",
+    'public/media/notes/shown/shot.png'     => "\x89PNG shot",
+    'public/media/notes/shown/sub/deep.png' => "\x89PNG deep",
+    'public/media/notes/shown/.DS_Store'    => 'dot',
+    'public/media/notes/off/off.png'        => "\x89PNG off",
+    'public/media/notes/hidden/hidden.png'  => "\x89PNG hidden",
+    'public/media/notes/php/arrays/a.png'   => "\x89PNG a",
+    'public/media/notes/wip/secret/s.png'   => "\x89PNG s",
+    'editor/index.html'             => "<!doctype html><title>editor</title>\n",
+    'editor/themes/a.css'           => ":root{}\n",
+];
+foreach ($bfiles as $rel => $bytes) {
+    @mkdir(dirname("$bb/$rel"), 0755, true);
+    file_put_contents("$bb/$rel", $bytes);
+}
+$bsite = ['title' => 'bundled', 'languages' => ['sk'], 'categories' => [
+    ['slug' => 'notes', 'label' => 'Notes', 'categories' => [
+        ['slug' => 'php', 'label' => 'PHP'],
+        ['slug' => 'wip', 'label' => 'HIDDEN Sub-category', 'published' => false],
+    ]],
+    ['slug' => 'drafts', 'label' => 'HIDDEN Category', 'published' => false],
+]];
+$brouter = new TerminalCms\Router($bsite, "$bb/content");
+
+/** A Bundle's archive names, the top directory taken off. @return list<string> */
+function bundled(array $route): array
+{
+    if (!isset($route['bundle'])) {
+        return [];
+    }
+    $top = $route['bundle']->top . '/';
+    return array_map(
+        static fn (array $e) => str_starts_with($e[0], $top) ? substr($e[0], strlen($top)) : '!' . $e[0],
+        $route['bundle']->entries(),
+    );
+}
+
+$editorPart = ['README.txt', 'editor/index.html', 'editor/themes/a.css'];
+$shownWant = [...$editorPart,
+    'site/content/notes/shown.md', 'site/content/notes/shown-sk.md',
+    'site/public/media/notes/shown/shot.png', 'site/public/media/notes/shown/sub/deep.png'];
+$r = $brouter->route('/notes/shown.zip');
+ok($r['status'] === 200 && ($r['bundle']->top ?? '') === 'shown' && bundled($r) === $shownWant,
+   'a Document\'s Bundle is the Editor, the Document in every Published Language, and its Media, under its base',
+   implode("\n", bundled($r)));
+$sk = $brouter->route('/notes/shown-sk.zip');
+ok($sk['status'] === 200 && bundled($sk) === $shownWant && ($sk['bundle']->top ?? '') === 'shown',
+   'and its other Language\'s address answers the same Bundle', implode("\n", bundled($sk)));
+ok(bundled($brouter->route('/notes/both.zip')) === [...$editorPart, 'site/content/notes/both.md'],
+   'a Language that is not Published is left out of it', implode("\n", bundled($brouter->route('/notes/both.zip'))));
+
+$notesWant = [...$editorPart,
+    'site/content/notes/both.md', 'site/content/notes/index.md',
+    'site/content/notes/shown.md', 'site/content/notes/shown-sk.md',
+    'site/content/notes/php/arrays.md', 'site/content/notes/php/index.md',
+    'site/public/media/notes/shown/shot.png', 'site/public/media/notes/shown/sub/deep.png',
+    'site/public/media/notes/php/arrays/a.png'];
+$r = $brouter->route('/notes.zip');
+$got = bundled($r);
+ok($r['status'] === 200 && ($r['bundle']->top ?? '') === 'notes' && array_slice($got, 0, 3) === $editorPart
+   && count($got) === count($notesWant) && array_diff($notesWant, $got) === [],
+   'a Category\'s Bundle is its index.md, its Documents and its Sub-categories\', each with its Media — and nothing hidden, nothing that says bundle: false, nothing undeclared',
+   implode("\n", $got));
+$r = $brouter->route('/notes/php.zip');
+ok($r['status'] === 200 && ($r['bundle']->top ?? '') === 'notes-php'
+   && bundled($r) === [...$editorPart, 'site/content/notes/php/arrays.md', 'site/content/notes/php/index.md',
+                       'site/public/media/notes/php/arrays/a.png'],
+   'a Sub-category\'s Bundle is named after its path, with - for /', ($r['bundle']->top ?? '') . "\n" . implode("\n", bundled($r)));
+
+$bwant = [
+    '/notes.zip' => 200, '/notes/php.zip' => 200, '/notes/shown.zip' => 200, '/notes/shown-sk.zip' => 200,
+    '/notes/php/arrays.zip' => 200, '/notes/both.zip' => 200,
+    '/notes/hidden.zip' => 404, '/notes/both-sk.zip' => 404, '/notes/off.zip' => 404,
+    '/notes/wip.zip' => 404, '/notes/wip/secret.zip' => 404, '/notes/loose.zip' => 404, '/notes/loose/stray.zip' => 404,
+    '/drafts.zip' => 404, '/drafts/plan.zip' => 404, '/nope.zip' => 404, '/notes/nope.zip' => 404,
+    '/.zip' => 404, '/index.zip' => 404, '/notes/.zip' => 404, '/notes/shown.zip.zip' => 404,
+    '/notes/shown/x.zip' => 404, '/notes/php/arrays/x.zip' => 404, '/notes/../notes.zip' => 404,
+];
+$bgot = [];
+foreach (array_keys($bwant) as $uri) {
+    $bgot[$uri] = $brouter->route($uri)['status'];
+}
+ok($bgot === $bwant, 'a Bundle answers where its page does and is offered, and is a 404 everywhere else',
+   var_export(array_diff_assoc($bgot, $bwant), true));
+ok(!isset($brouter->route('/notes/hidden.zip')['bundle']) && !isset($brouter->route('/')['bundle'])
+   && !isset($brouter->route('/notes/shown')['bundle']),
+   'and a page or a 404 carries none');
+
+/* the control: a plain link to the address, in the doc-foot and under the
+   Sub-categories, and nowhere a Bundle is not offered */
+$page = $brouter->route('/notes/shown')['body'];
+ok(preg_match('~<div class="doc-foot"><a href="/notes">← notes</a><a href="/notes/shown.zip">↓ bundle</a>~u', $page) === 1,
+   'a Document page offers its Bundle in the doc-foot, beside the way back', $page);
+ok(str_contains($brouter->route('/notes/shown-sk')['body'], '<a href="/notes/shown-sk.zip">↓ bundle</a>'),
+   'at its own address in each Language');
+$page = $brouter->route('/notes')['body'];
+ok(preg_match('~<ul class="sub-categories">.*?</ul><p class="bundle"><a href="/notes.zip">↓ bundle</a></p><ul class="listing">~u', $page) === 1,
+   'a Category page offers its Bundle under its Sub-categories', $page);
+ok(str_contains($brouter->route('/notes/php')['body'], '<p class="bundle"><a href="/notes/php.zip">↓ bundle</a></p>'),
+   'and so does a Sub-category page');
+ok(!str_contains($brouter->route('/notes/off')['body'], '.zip') && !str_contains($brouter->route('/')['body'], '.zip'),
+   'a Document that says bundle: false, and the homepage, offer none');
+$slashed = new TerminalCms\Router($bsite, "$bb/content", new TerminalCms\BasePath('/blog', true));
+ok(str_contains($slashed->route('/notes/shown')['body'], '<a href="/blog/notes/shown.zip">↓ bundle</a>')
+   && str_contains($slashed->route('/notes')['body'], '<a href="/blog/notes.zip">↓ bundle</a>'),
+   'under a Base Path whose pages end in /, a Bundle\'s address is still its name with .zip on it');
+
+/* precedence: the Document's Meta, else Site Config, else offered; a word
+   that is neither true nor false is not a choice */
+$bad = [];
+foreach (['' => null, 'true' => true, 'false' => false, 'False' => null, 'no' => null] as $word => $metaSays) {
+    foreach (['(absent)' => [], 'true' => [true], 'false' => [false], "'false'" => ['false'], '0' => [0]] as $label => $set) {
+        $config = $bsite + ($set === [] ? [] : ['bundle' => $set[0]]);
+        $want = $metaSays ?? ($set !== [false]);
+        file_put_contents("$bb/content/notes/word.md", "---\ntitle: Word\n" . ($word === '' ? '' : "bundle: $word\n") . "---\n\n# Word\n");
+        $wr = new TerminalCms\Router($config, "$bb/content");
+        $status = $wr->route('/notes/word.zip')['status'];
+        $offered = str_contains($wr->route('/notes/word')['body'], '/notes/word.zip');
+        if ($status !== ($want ? 200 : 404) || $offered !== $want) {
+            $bad[] = sprintf('bundle: %-6s with \'bundle\' => %-8s: %d, control %s, want %s',
+                             $word === '' ? '(none)' : $word, $label, $status, $offered ? 'shown' : 'absent', $want ? 'offered' : 'not');
+        }
+    }
+}
+unlink("$bb/content/notes/word.md");
+ok($bad === [], 'a Document\'s bundle: decides, else Site Config\'s bundle, else it is offered — and a word that is not true or false falls through',
+   implode("\n", $bad));
+
+$off = new TerminalCms\Router($bsite + ['bundle' => false], "$bb/content");
+ok($off->route('/notes.zip')['status'] === 404 && !str_contains($off->route('/notes')['body'], '.zip')
+   && $off->route('/notes/shown.zip')['status'] === 404,
+   "'bundle' => false turns every Bundle off");
+file_put_contents("$bb/content/notes/index.md", "---\ntitle: Notes\nbundle: true\n---\n\n# Notes\n");
+ok($off->route('/notes.zip')['status'] === 200 && str_contains($off->route('/notes')['body'], '/notes.zip'),
+   'and a Category\'s index.md that says bundle: true offers the Category\'s');
+file_put_contents("$bb/content/notes/index.md", "---\ntitle: Notes\nbundle: false\n---\n\n# Notes\n");
+ok($brouter->route('/notes.zip')['status'] === 404 && !str_contains($brouter->route('/notes')['body'], '/notes.zip'),
+   'one that says bundle: false offers none');
+ok($brouter->route('/notes/php.zip')['status'] === 200 && $brouter->route('/notes/shown.zip')['status'] === 200,
+   'and says nothing about its Documents\' Bundles or its Sub-categories\'');
+file_put_contents("$bb/content/notes/index.md", $bfiles['content/notes/index.md']);
+
+/* the archive itself: what each entry holds is the file it names */
+$route = $brouter->route('/notes/shown.zip');
+$mem = fopen('php://memory', 'w+b');
+$route['bundle']->write($mem);
+rewind($mem);
+$archive = (string) stream_get_contents($mem);
+$read = [];
+foreach (zipEntries($archive) as $c) {
+    $read[$c['name']] = $c['data'];
+}
+$expect = [];
+foreach ($shownWant as $rel) {
+    $from = match (true) {
+        $rel === 'README.txt'             => null,
+        str_starts_with($rel, 'editor/')  => $rel,
+        default                           => substr($rel, strlen('site/')),
+    };
+    $expect['shown/' . $rel] = $from === null ? ($read['shown/README.txt'] ?? '') : $bfiles[$from];
+}
+ok($read === $expect, 'written, each entry holds the bytes of the file it is named after', implode("\n", array_keys($read)));
+$readme = $read['shown/README.txt'] ?? '';
+ok(substr_count($readme, "\n") === 2 && str_contains($readme, 'Shown') && str_contains($readme, 'editor/index.html')
+   && str_contains($readme, 'Open .md') && !str_contains($readme, '/notes/'),
+   'and README.txt says, in two lines, what the Bundle is and to open editor/index.html — and names no address', $readme);
+$again = fopen('php://memory', 'w+b');
+$brouter->route('/notes/shown.zip')['bundle']->write($again);
+rewind($again);
+ok(stream_get_contents($again) === $archive, 'the same files write the same bytes twice');
+$other = fopen('php://memory', 'w+b');
+$brouter->route('/notes/shown-sk.zip')['bundle']->write($other);
+rewind($other);
+ok(stream_get_contents($other) === $archive, 'and the same bytes at each of its Languages\' addresses');
+ok($route['bundle']->filename() === 'shown.zip', 'the file it downloads as is its top directory\'s name', $route['bundle']->filename());
+
+/* a name that cannot be an archive's is left out rather than breaking the
+   download half-way, and a link is not followed out of the Media */
+file_put_contents("$bb/public/media/notes/shown/back\\slash.png", 'x');
+@symlink("$bb/content/drafts/plan.md", "$bb/public/media/notes/shown/link.md");
+ok(bundled($brouter->route('/notes/shown.zip')) === $shownWant,
+   'a Media file whose name holds a backslash, and a link, are not in the Bundle',
+   implode("\n", bundled($brouter->route('/notes/shown.zip'))));
+
+removeTree($bb);
+
+/* the repository's own: every file of site/editor/, and both Languages */
+$ownSite = require $root . '/site/site.php.example';
+$own = (new TerminalCms\Router($ownSite, $root . '/site/content'))->route('/about/what-it-is.zip');
+$ownNames = bundled($own);
+$editorFiles = [];
+$walk = static function (string $dir, string $rel) use (&$walk, &$editorFiles): void {
+    foreach (scandir($dir) ?: [] as $n) {
+        if ($n[0] === '.') {
+            continue;
+        }
+        is_dir("$dir/$n") ? $walk("$dir/$n", "$rel$n/") : $editorFiles[] = "editor/$rel$n";
+    }
+};
+$walk($root . '/site/editor', '');
+ok($own['status'] === 200 && array_diff($editorFiles, $ownNames) === []
+   && in_array('site/content/about/what-it-is.md', $ownNames, true)
+   && in_array('site/content/about/what-it-is-sk.md', $ownNames, true),
+   'the repository\'s /about/what-it-is.zip carries every file of site/editor/ and both Languages',
+   implode("\n", array_diff($editorFiles, $ownNames)));
+ok((new TerminalCms\Router($ownSite, $root . '/site/content'))->route('/guides.zip')['status'] === 200,
+   'and /guides.zip answers');
 
 /* ------------------------------------------------------- dangerous calls */
 echo "\nsource\n";
