@@ -1,6 +1,6 @@
 # 12 — The sixth review: what 0.3.0 adds
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 Blocked by: 04, 05, 06, 07, 08, 09, 10, 14
 
@@ -33,7 +33,43 @@ it, appended to `docs/security-audit.md` as `## 0.3.0 — sixth review`.
 
 ## Acceptance
 
-- [ ] `## 0.3.0 — sixth review` in `docs/security-audit.md`
-- [ ] Every finding fixed or ticketed
+- [x] `## 0.3.0 — sixth review` in `docs/security-audit.md`
+- [x] Every finding fixed or ticketed
 
 ## Comments
+
+Done. Three findings, all low, all fixed here, none ticketed:
+
+- A Document named as a directory beside it that is not Published or not
+  declared took that directory's Documents' Media into its Bundle and its
+  Category's. `Bundle::take()` now takes the files of such a Media directory
+  and none of its directories.
+- A link under `media/` led the runner's copies out of the Instance.
+  `strays()` in `site/migrate` holds a copy to the directory its two paths
+  share, with links followed, and refuses the run before anything is written.
+- A Diagram saved as SVG fetched, when opened as a file, what the page's
+  policy had refused. `drawing()` in `Page.php` now writes the copy without
+  anything that runs or names an address, bar a link. The two pinned pages
+  with a picture, `/` and `/about/everything-is-a-line`, are re-recorded.
+
+Hardening beside them: a Bundle follows no link inside `content/` or `media/`;
+a `site.php` that is a link stays one; an address with a NUL is a 404 under
+`php -S`; `bin/test` fails if the site lists a directory anywhere but
+`Listing::documents()` and `Bundle::tree()`. 1077 assertions before, 1091
+after; the probe 301 green in headless Chromium 153 and Firefox 155.
+
+The 0.3.0 Migration is untouched, so its pinned hash stands.
+
+Choices to look at:
+- A Document that is a link is still served as a page and still offers
+  `↓ bundle`; the Bundle is then the Editor and a README.
+- The runner refuses the whole run, a bare report included, when a copy would
+  leave `media/` through a link — `bin/page-build` then prints the reason as
+  "could not read the Instance" and builds on.
+- The saved SVG drops `set` and `animate…` elements and any attribute with a
+  `url()` that is not `#…`. The sample Diagram saves to the same pixels as
+  before in both browsers; a Diagram type that leans on SMIL would lose its
+  animation in the saved file only.
+- Nothing here was run by hand in a real browser: the browser checks were
+  scripted runs in the two headless ones.
+
