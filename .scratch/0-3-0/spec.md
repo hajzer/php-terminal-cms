@@ -296,12 +296,12 @@ derived tints only, at twice the prototype's starting strength.
   200%, the strengths in issue 01's table. Derived tints via `color-mix()` in
   `shared/theme.css`, strengths as tokens at the top. No optional per-Theme
   token: no Theme's JSON changes, and the Theme contract is as it was.
-- Code blocks: the bar, a CLI body and the Output section take
-  `--t-codebar` of the accent into `--bg`; a Code body `--t-code`. Calibrated
-  on Material Flat, whose own `--block-bg`/`--code-bg` the derivation
-  reproduces.
-- The table head's ink is held to 4.5:1 where 200% would put it below.
-  ADR-0026 records it and amends ADR-0018.
+- Code blocks: the bar takes 18% of the accent into `--bg`; the code, a CLI
+  body and the Output section 7%. Calibrated on Material Flat, whose own
+  `--block-bg`/`--code-bg` the derivation reproduces.
+- Every ink on a tinted ground leans toward the far end of the scale from
+  `--bg` as far as keeps it at 4.5:1 where it was, keeping its hue. ADR-0026
+  records it and amends ADR-0018.
 
 ## Testing Decisions
 
