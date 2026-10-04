@@ -1,4 +1,4 @@
-# 0.3.0 — Sub-categories, Published, a Document's own Media, Bundles, Full View, and a body that takes the Theme's colour
+# 0.3.0 — Sub-categories, Published, a Document's own Media, Migrations, Bundles, Full View, and a body that takes the Theme's colour
 
 Status: ready-for-agent
 
@@ -17,6 +17,13 @@ up has the same problem at a larger size.
 flat in `site/public/media/`; two Documents cannot each have a `shot.png`, and
 taking one Document anywhere means knowing which files are its. The Editor,
 opened from `file://`, has never shown an image written `/media/…`.
+
+**An upgrade is only the code.** Copying the new `site/` over the old one is
+all an upgrade has ever been, and fixing that is the first release that
+breaks an Instance's own files: every bare-named picture has to move. The
+only help is a recipe — `mkdir`, `git mv`, a `grep` — run by hand Document by
+Document, on a site whose pictures are broken from the moment the code
+arrives until the last one is moved.
 
 **A reader can keep nothing but the page.** The markdown is above the document
 root, the pictures are scattered in `media/`, and the Editor that could open
@@ -62,6 +69,17 @@ Document's path under `content/`, repeated — shared by its Languages. A bare
 file name in an Image Line names a file there, on the page and in the Editor's
 preview alike; an absolute path names that path. No fallback to the flat
 directory: an Instance with bare names moves its files once.
+
+**Migrations** (ADR-0027). `php site/migrate [<site-dir>]` says what an
+Instance's own files need to be read by this release; `--apply` does it. It
+runs every Migration the code carries, in version order, each looking at the
+Instance rather than at a version it was told, so a second run does nothing.
+It adds and never removes: the 0.3.0 Migration copies each bare-named picture
+into its Document's Media and leaves the flat original, naming the ones
+nothing uses any more; `site.php` gains every key the release reads that it
+lacks, documented and commented out, and a key it no longer reads is only
+named. The runner sits in `site/` and takes the Instance's `site/` as its
+argument, so it runs before the new code replaces the old.
 
 **Bundles** (ADR-0025). A Document page offers `<address>.zip`, the Document in
 every Published Language with its Media; a Category page offers the Category,
@@ -130,8 +148,8 @@ derived tints only, at twice the prototype's starting strength.
 12. As a writer working offline, I want the Editor's preview to show that
     picture from a checkout or an unzipped Bundle, so that the preview is the
     page.
-13. As an operator, I want the release notes to say exactly what to move, so
-    that the switch is one evening's work.
+13. As an operator, I want one command to move every picture into its
+    Document's Media, so that the switch is not an evening's work.
 
 ### Bundles
 
@@ -169,6 +187,20 @@ derived tints only, at twice the prototype's starting strength.
 26. As a reader, I want a Theme's character in the body — its Notes, tables,
     quotes, headings and code blocks — without it shouting, so that switching Themes is
     worth it and the page still reads well.
+
+### Migrations
+
+27. As an operator, I want to see what an upgrade will do to my files before
+    anything changes, so that I can check it against what I know is there.
+28. As an operator, I want to run it again and get nothing, so that I can
+    tell an Instance is done, and a half-finished run is finished by running
+    it once more.
+29. As an operator, I want it to run before the new code is on the server, so
+    that no reader sees a broken picture in between.
+30. As an operator, I want my `site.php` kept as I wrote it — my comments, my
+    order, my values — and told what it lacks and what is no longer read.
+31. As an operator on a Page Build, I want the build to tell me when I forgot,
+    so that CI does not publish the broken pictures quietly.
 
 ## Implementation Decisions
 
@@ -303,6 +335,38 @@ derived tints only, at twice the prototype's starting strength.
   `--bg` as far as keeps it at 4.5:1 where it was, keeping its hue. ADR-0026
   records it and amends ADR-0018.
 
+### Migrations
+
+- **`site/migrate`**, PHP CLI only. `[--apply] [<site-dir>]`; the target
+  defaults to the `site/` the runner is in and must hold `site.php` and
+  `content/`. Runs `site/migrations/*.php` sorted by `version_compare`, then
+  the standing `site.php` step. A bare run prints; `--apply` performs in
+  order, stops at the first failed write, exits non-zero. Notes alone exit 0.
+- **A Migration describes, the runner acts.** Each returns actions from the
+  target path and writes nothing. The actions are closed and additive:
+  `copy` to a path that does not exist, `insert` into `site.php` before its
+  closing `];`, `note`. The runner refuses anything else.
+- **Self-contained and frozen.** A Migration never loads `site/src`; it
+  carries the rules of its release and reads `site.php` as data. A released
+  Migration is never edited; `bin/test` pins its hash.
+- **`0.3.0.php`.** Every `.md` under `content/` at any depth, declared or
+  not, Published or not. Media path: the path under `content/` without `.md`
+  and without a trailing `-<code>` that `languages` names. Each src that is
+  not an absolute local path is reduced by 0.2.0's rule to a name; a name
+  that is empty, `.`, `..` or starts with `.` is a note. Target exists:
+  nothing, or a note if it differs from the flat file. Flat file exists:
+  `copy`. Neither: a note naming the Document and line. Flat sources that no
+  `/media/<name>` in `content/` or `site.php` names: a note, unused.
+- **The `site.php` step**, from the runner's own `site.php.example`, keys
+  found with `token_get_all()` at the array's top level: each key the example
+  declares and the file lacks, live or commented, is inserted with its doc
+  comment, every line commented with `// `; each live key the example does not
+  declare is a note — not read by this version, see CHANGELOG.md.
+- **`bin/page-build`** runs the chain as a report first; pending `copy` or
+  `insert` prints one warning line, and the build goes on.
+- **`docs/deploy.md`** Upgrading: unpack, run `site/migrate` against the
+  Instance's `site/`, read, `--apply`, then rsync the code.
+
 ## Testing Decisions
 
 ### 1. `php bin/test` — routing
@@ -351,6 +415,23 @@ derived tints only, at twice the prototype's starting strength.
 - The footer, doc-foot and Language links in every Theme and both Palettes.
 - The body colours in every Theme and both Palettes, against the prototype.
 
+### 7. `php bin/test` — Migrations
+
+- A fixture, `tests/fixtures/instance-0.2.0/`, copied to a temporary
+  directory per run: flat `media/`; bare, `./` and `https://` srcs; a
+  Language pair; a Sub-category Document; two Documents naming one file; a
+  missing picture; an existing target that differs; an absolute `/media/` src;
+  a `..` src; a `site.php` with `accent`, a misspelt key and a `getenv()`.
+- A bare run lists exactly the expected actions and leaves the tree's hash
+  unchanged; after `--apply`, a second run lists no `copy` and no `insert`.
+- After `--apply`, the current Renderer resolves every Image Line to a file
+  that exists, but the one left broken.
+- `require site.php` gives the same array before and after; `php -l` passes.
+- Every `$site['…']` key read in `site/src` is declared in
+  `site.php.example`, live or commented.
+- Each released Migration matches its pinned hash.
+- `bin/page-build` over the unmigrated fixture warns and builds.
+
 ## Out of Scope
 
 - A Sub-category inside a Sub-category.
@@ -363,6 +444,8 @@ derived tints only, at twice the prototype's starting strength.
 - Pinch or wheel zoom and panning in Full View; Full View in the Editor's
   preview; saving a Diagram as PNG.
 - A Theme switcher for the reader.
+- A version stamp in an Instance; a Migration that removes, overwrites or
+  rewrites a file; a Migration run by a web request.
 
 ## Further Notes
 
@@ -370,11 +453,14 @@ derived tints only, at twice the prototype's starting strength.
   ADR-0022" line. ADR-0026 is written with issue 03. CONTEXT.md has
   **Sub-category**, **Published**, **Media**, **Bundle** and **Full View**, and
   amended **Meta**, **Listing**, **Export** and **Editor**.
-- The release notes carry the Media migration: for each Document with a bare
-  src, `mkdir -p site/public/media/<path>/<base>` and move the file there.
+- The release notes lead with the upgrade through `site/migrate`; the Media
+  move is what the 0.3.0 Migration does. ADR-0027 is written and accepted;
+  CONTEXT.md has **Migration**.
 - The operator's `site/site.php` still carries `accent` and no `theme`; 0.2.0
-  already ignores `accent`. The release notes say to set `theme`.
+  already ignores `accent`. The `site.php` step names `accent` as not read
+  and inserts `theme` commented out; the release notes say to set it.
 - The sixth review (issue 12) covers the new surface: three-segment routing,
   the `.zip` route and its file reads, the Published predicate's reach, the
-  Media resolution in both halves, the Full View's Blob downloads, and
-  `site/editor/` sitting inside an Instance.
+  Media resolution in both halves, the Full View's Blob downloads,
+  `site/editor/` sitting inside an Instance, and `site/migrate` writing into
+  one.

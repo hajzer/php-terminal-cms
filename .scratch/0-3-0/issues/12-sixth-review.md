@@ -2,7 +2,7 @@
 
 Status: ready-for-agent
 Spec: ../spec.md
-Blocked by: 04, 05, 06, 07, 08, 09, 10
+Blocked by: 04, 05, 06, 07, 08, 09, 10, 14
 
 ## What
 
@@ -22,6 +22,12 @@ it, appended to `docs/security-audit.md` as `## 0.3.0 — sixth review`.
 - **Full View.** Blob downloads, the serialised SVG, and that a Diagram from
   somebody else cannot use the save to put script in a file the reader opens.
 - **`site/editor/` inside an Instance**, above the document root.
+- **The runner writes into an Instance.** That every `copy` target resolves
+  inside `media/` — the dot-name rule, a symlink in `media/` or `content/`, a
+  Document path no Site Config declared; that `site.php` is only ever
+  inserted into before its final `];`, whatever the operator's file looks
+  like; that `site/migrate` refuses any SAPI but the CLI, and that nothing in
+  `public/` can reach it.
 - A finding is fixed here or becomes its own issue; `## Residual risks` and
   `## Validation` updated in place.
 

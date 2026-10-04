@@ -2,7 +2,7 @@
 
 Status: ready-for-agent
 Spec: ../spec.md
-Blocked by: 02, 03, 04, 05, 06, 08, 09, 10
+Blocked by: 02, 03, 04, 05, 06, 08, 09, 10, 14
 
 ## What
 
@@ -13,9 +13,10 @@ CHANGELOG carries the migration.
 
 - `README.md`: Sub-categories, Published, Bundles, Full View in the feature
   list; the architecture diagram if it names the media layout.
-- `CHANGELOG.md` `## 0.3.0`: the Media migration first, as the one breaking
-  change, with the commands; `site.php`'s retired `accent` and the `theme`
-  setting.
+- `CHANGELOG.md` `## 0.3.0`: the upgrade first — `php site/migrate`, read
+  the report, `--apply`, then the code, as `docs/deploy.md` says — with the
+  Media move as what it does this time, the one breaking change; `site.php`'s
+  retired `accent`, which the report names, and the `theme` setting.
 - A pass over `docs/config.md`, `docs/format.md`, `docs/deploy.md`,
   `docs/security.md`, `docs/themes.md`, `docs/line-types.md` for anything the
   tickets missed.
@@ -24,7 +25,7 @@ CHANGELOG carries the migration.
 
 ## Acceptance
 
-- [ ] CHANGELOG `## 0.3.0` with the migration
+- [ ] CHANGELOG `## 0.3.0` with the upgrade through `site/migrate`
 - [ ] Every doc listed read through for 0.3.0
 
 ## Comments

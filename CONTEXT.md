@@ -270,6 +270,20 @@ Two deployments of php-terminal-cms share no runtime state and no code path —
 only a version number.
 _Avoid_: site (ambiguous — the code or the deployment?), tenant, host
 
+**Migration**:
+Bringing an Instance's own files — its `content/`, its Media and its Site
+Config — into the shape a release's code reads them in. The code of a release
+arrives whole and replaces what was there; a Migration is the rest of an
+upgrade. It looks at what the Instance holds rather than at a version it was
+told, so it can be run again and again, on an Instance from any earlier
+release, and does only what is left to do. It adds and never removes: a
+picture is copied to where it now belongs and the old one is left for the
+operator, and Site Config gains the settings it lacks — written out, but not
+switched on — while one it no longer reads is only named. Nothing changes
+until the operator asks for it; until then a Migration says what it would do.
+_Avoid_: upgrade (that is the code and the Migration together), update,
+conversion, transfer (that is moving a file to the server)
+
 ### Appearance
 
 **Theme**:
