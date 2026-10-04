@@ -24,3 +24,11 @@ site answers it at, byte for byte the same.
 - [ ] A built site served by `python3 -m http.server` downloads a Bundle
 
 ## Comments
+
+From 08: built pages already carry `↓ bundle` links. `bin/test`'s two
+page-build address checks (with and without `--base-url`) skip `.zip`
+addresses until the build writes them, and both skips come out here. The
+route is `$router->route($address . '.zip')`, whose result carries a
+`bundle` key when one is offered. Each Language's address of a Document
+answers the same bytes, so a Document in two Languages is two equal files.
+
