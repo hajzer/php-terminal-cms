@@ -1,6 +1,6 @@
 # 15 — Series: a Sub-category that is one row
 
-Status: ready-for-agent
+Status: done
 Spec: ../../../docs/adr/0028-a-series-is-one-row.md
 Blocked by: 04, 05
 
@@ -48,19 +48,45 @@ between Parts. Anything in the Editor.
 
 ## Acceptance
 
-- [ ] A Category without `series`, or with any value but `true`, renders
+- [x] A Category without `series`, or with any value but `true`, renders
   byte for byte as before
-- [ ] The homepage Listing has one row per Series and no row for a Part
-- [ ] That row carries the `index.md`'s title, date and Languages, links to
+- [x] The homepage Listing has one row per Series and no row for a Part
+- [x] That row carries the `index.md`'s title, date and Languages, links to
   the Series' page and names `<category>/<sub-category>`
-- [ ] A Series whose `index.md` is absent or not Published has no row
+- [x] A Series whose `index.md` is absent or not Published has no row
   anywhere, its page and Parts still answer, and `bin/test` warns
-- [ ] The parent's page lists Series as rows among its own Documents by
+- [x] The parent's page lists Series as rows among its own Documents by
   date, prints no label list, and with `'listing' => false` prints its
   `index.md` alone
-- [ ] A Series' page lists its Parts by Name ascending whatever their dates
-- [ ] A Page Build of the fixture carries the same Listings
-- [ ] `site.php.example`, the docs and `CHANGELOG.md` describe `series`
-- [ ] `php bin/test` green
+- [x] A Series' page lists its Parts by Name ascending whatever their dates
+- [x] A Page Build of the fixture carries the same Listings
+- [x] `site.php.example`, the docs and `CHANGELOG.md` describe `series`
+- [x] `php bin/test` green
 
 ## Comments
+
+Done. 1113 assertions, all green; the Editor is untouched, so the probe was
+not run.
+
+- `Site::categories()` gives every declaration a `series`: whether it *is* a
+  Series, so it is never true of a Category.
+- `Listing::forPage()` is the Listing a Category's or Sub-category's page
+  prints, read by the Router and by `bin/page-build`; `Listing::series()` is
+  a Series' one row, or null. `Listing::recent()` takes the row and skips the
+  Parts.
+- The fixture is `seriesFixture()` in `bin/test`, served and Page Built.
+- The example content gains no Series: `docs/config.md` describes one without
+  pointing at it.
+
+Choices to look at:
+- In the row's `(EN | SK)`, the site's own Language leads to the Series'
+  page, as the row does; each other leads to `<series>/index-sk`, the
+  `index.md` as a Document. That page names `<series>/index` in turn, so a
+  Page Build now writes a Series' `index.md` at each of its Languages'
+  addresses when it has more than one.
+- A Series whose `index.md` exists only in another Language than the site's
+  has a row with that title, leading to a Series' page headed by its label —
+  the page reads only the site's own `index.md`, as every Category's does.
+  Nothing then links `<series>/index-sk`. The ADR does not say; not warned.
+- Rows of one date fall in slug order, a Series by its own slug.
+- Name order is byte order: `10-…` before `2-…`. `docs/config.md` says so.
