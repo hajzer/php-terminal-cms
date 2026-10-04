@@ -381,7 +381,8 @@ and so on. A Series is a Sub-category in everything but how it is listed:
 - **A Series with no published `index.md` has no row anywhere.** Its page and
   its Parts still answer at their addresses; nothing lists them. `php
   bin/test` prints a `warn` line naming the Series, for the configuration in
-  `site.php.example` and in `site.php`.
+  `site.php.example` and in `site.php`. To take a Series off the site, say
+  `'published' => false` on its entry.
 
 The parent says it for all of its Sub-categories: a category does not mix
 Series with ordinary Sub-categories, and `series` on a Sub-category's own

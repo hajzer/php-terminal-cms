@@ -194,8 +194,9 @@ What is new:
   refused; the saved file now holds nothing that runs or fetches. A Bundle
   also follows no link inside `content/` or `media/`, a `site.php` that is a
   link stays one, and an address with a NUL in it is a 404 on the built-in
-  server. `docs/security-audit.md` carries the scope, what was tried and
-  what was left alone.
+  server. Series were read on their own afterwards, and nothing was found.
+  `docs/security-audit.md` carries the scope, what was tried and what was
+  left alone.
 
 ## 0.2.0
 

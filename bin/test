@@ -1296,8 +1296,8 @@ echo "\nseries\n";
  * Content with a Category of Series beside an ordinary one, and the Site
  * Config it is served with: a Series in two Languages whose Parts' dates run
  * against their Names, one whose index.md is not Published, one with none,
- * and one with its listing off. Every title no Listing may print starts
- * UNLISTED.
+ * one with its listing off, and one whose index.md is Published in one of
+ * its two Languages. Every title no Listing may print starts UNLISTED.
  *
  * @return array<string,mixed> the Site Config
  */
@@ -1318,6 +1318,7 @@ function seriesFixture(string $dir): array
         'solutions/nomad/01-jobs.md'       => "---\ntitle: UNLISTED Jobs\ndate: 2026-05-03\n---\n\n# Jobs\n",
         'solutions/quiet/index.md'         => "---\ntitle: Quiet\ndate: 2026-02-01\n---\n\n# Quiet\n",
         'solutions/alpha/index.md'         => "---\ntitle: Alpha\ndate: 2026-02-01\n---\n\n# Alpha\n",
+        'solutions/alpha/index-sk.md'      => "---\ntitle: UNLISTED Alfa\npublished: false\ndate: 2026-05-05\n---\n\n# Alfa\n",
         'solutions/quiet/01-hush.md'       => "---\ntitle: UNLISTED Hush\ndate: 2026-05-04\n---\n\n# Hush\n",
         'notes/top.md'                     => "---\ntitle: Top\ndate: 2026-03-03\n---\n\n# Top\n",
         'notes/php/index.md'               => "---\ntitle: PHP notes\ndate: 2026-03-04\n---\n\n# PHP notes\n",
@@ -1424,6 +1425,8 @@ ok(!preg_match('~UNLISTED|consul|nomad~', $home . $parent) && $statuses === [200
    implode(' ', $statuses) . "\n" . $home . $parent);
 ok(unlistedSeries($serSite, $ser) === ['content/solutions/consul', 'content/solutions/nomad'],
    'and both are the ones bin/test names', implode("\n", unlistedSeries($serSite, $ser)));
+ok(!str_contains($home . $parent, 'alpha/index') && $serRouter->route('/solutions/alpha/index-sk')['status'] === 404,
+   'a Language of a Series\' index.md that is not Published is named by no row, and answers nothing', $home . $parent);
 
 /* the parent's page */
 ok(rows($parent) === ['/solutions/own', '/solutions/vault', '/solutions/quiet', '/solutions/alpha', '/solutions/old'],
@@ -3180,6 +3183,9 @@ foreach ($built as $page) {
 }
 ok($wrong === [], 'and every address a row names, a Series\' other Language included, is a file in the build',
    implode("\n", array_slice($wrong, 0, 8)));
+$held = array_values(array_filter($built, static fn (string $f) => preg_match('~^solutions/(alpha|consul)/index\b.~', $f) === 1));
+ok($status === 0 && $held === ['solutions/alpha/index.html', 'solutions/consul/index.html'],
+   'and an index.md that is not Published, in every Language or in one, is no page of it', $said . implode("\n", $held));
 
 removeTree($box);
 

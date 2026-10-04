@@ -892,6 +892,65 @@ Also changed, as hardening rather than as findings:
   array and no shell. The 0.3.0 Migration does run `site.php`, to learn the
   languages: the operator's code, with the operator's permissions.
 
+### Series, read after
+
+Series landed after the review above was written, and were read on their own
+before the release: what `Site` makes of `series`, the row `Listing` builds,
+the Category's page in the Router, and the addresses `bin/page-build` adds.
+A Series adds no segment to an address, no directory that is read, no file
+that is written and no place where a page prints something: it is a
+Sub-category whose Documents are listed differently. Nothing was found.
+
+- **Published.** The row is two new reads of `content/` — the Listing's, for
+  the Series' `index.md`, and the Page Build's, for the addresses of its
+  Languages — and both get their file names from `Listing::documents()`, as
+  every reader does; neither lists a directory, which `bin/test` would
+  refuse. *Tried*, on a scratch Instance of eleven declared Series: an `index.md` not
+  Published in the site's own Language, in the other, or in both; a Part
+  that is not; a Series whose declaration is not, by `false` and by a
+  misspelling; a `series` Category that is not, with its Series; a directory
+  nobody declared. 41 addresses asked for, every row of every page read, and
+  each of the 19 Bundles a Page Build of it wrote unpacked: nothing that is
+  not Published is in a row, a Language indicator, a page or a Bundle, and
+  its address is a 404.
+- **What the suite would notice.** *Tried*, by breaking each rule in a copy
+  of the tree: a row built from `index.md` without asking fails 6
+  assertions, a homepage that takes the Parts as well 3, `series` read as
+  any truthy value 3, a Sub-category's own `series` counted 4. A Page Build
+  that names a Series' `index.md` without asking failed none. It does not
+  leak — every address a build names is asked of the Router, and one that
+  answers 404 stops the build with nothing written, which was *tried* — but
+  the suite did not hold it. Its Series now include one whose `index.md` is
+  Published in one of its two Languages, with two assertions: that build
+  now fails three, and a row that names the Language held back eight.
+- **The row.** Its title and date are the `index.md`'s Meta and its label
+  and path are Site Config's, each written through `e()` by the code that
+  prints every other row. *Tried*: a title and a date of markup and quotes,
+  a label of markup. The address it leads to is the Series' declared path,
+  and each other Language's is `index-xx` under it, a name `scandir()` gave.
+- **Site Config.** Only `true` on a top-level entry makes Series: `'true'`,
+  `1`, `'yes'`, `false` and `null` render byte for byte as no key does, and
+  the key on a Sub-category's own entry is not read. A declaration always
+  carries a `series` that is a bool, so no reader meets one without.
+- **A Series with no Published `index.md`** has no row, and is otherwise on
+  the site: its page answers under its label, its Parts answer, it has a
+  Bundle, its Parts are in its Category's Bundle, and a Page Build writes
+  all of it. That is what `docs/config.md` says and what ADR-0028 decided,
+  and `bin/test` warns of each one. Holding back the `index.md` is not
+  holding back the Series; `'published' => false` on its entry is.
+- **The Page Build's addresses.** A Series' `index.md` is built at
+  `<series>/index` and `<series>/index-xx` when it has more than one
+  Language, because the row names them. Both answer at request time, as any
+  Category's `index.md` does under that name. *Tried*: the 185 local
+  addresses in the pages of that build are all files in it. An `index.md`
+  in one Language that is not the site's own answers at request time at an
+  address no row names, and is not built; nothing links it in either.
+- **The cost of a row.** A row asks whether each file in the Series'
+  directory is Published, which reads the head of every Part — on the
+  homepage, where the Parts were read before Series too, and on the
+  Category's page, where they were not. It is the operator's content, read
+  once per request, and a Page Build reads it once.
+
 ## Residual risks
 
 - This is not impenetrable and does not claim to be. It is a small surface.
@@ -957,6 +1016,9 @@ Also changed, as hardening rather than as findings:
 - `site/migrate` writes with the permissions of whoever runs it, and the
   0.3.0 Migration runs the Instance's `site.php` to learn its languages. Run
   it over an Instance you would serve.
+- A Series whose `index.md` is not Published is in no Listing and still on
+  the site, Parts and Bundle and all. `'published' => false` on the Series'
+  entry in `site.php` is what takes it off.
 - The editor holds the document in the browser tab and nowhere else. Anything
   that navigates the tab away loses it. A link clicked in the preview and a
   URL dropped on the page did, until 0.2.0: the one opens in a tab of its own
@@ -971,8 +1033,9 @@ Also changed, as hardening rather than as findings:
 721 when the fourth review was written, 835 once the Themes and the Editor's
 policy had landed after it, 838 with the fifth, and the rest from the two
 issues closed after that: the Editor's reading of Meta, and the preview
-keeping the tab. At 0.3.0 it is 1091: 1077 when the sixth review began, and
-fourteen from it.
+keeping the tab. At 0.3.0 it is 1115: 1077 when the sixth review began,
+fourteen from it, twenty-two from Series, which landed after it, and two from
+the read of them.
 
 `tests/editor-probe.html` drives the editor's DOM half through a real browser
 and is the one check the suite cannot run. At 0.1.9 it was 172 assertions, run
