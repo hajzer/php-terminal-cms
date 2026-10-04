@@ -322,13 +322,65 @@ so there is no step to install it.
 
 ## Upgrading
 
+`site.php`, `content/` and `site/public/media/` are yours; everything else is
+replaceable. A release can also need your own files in a new shape — 0.3.0
+keeps each Document's pictures in a directory of its own — and carries
+`site/migrate` to put them there. Run it from the unpacked release against your
+Instance's `site/`, before the new code is copied over it. What it adds, the
+old code never reads, so the site goes on working through every step.
+
 ```console
-$ php bin/test
-$ rsync -az --exclude site.php php-terminal-cms-*/site/ deploy@example.com:/var/www/example.com/
+$ tar xzf php-terminal-cms-0.3.0.tar.gz
+$ php php-terminal-cms-0.3.0/site/migrate /var/www/example.com
+$ php php-terminal-cms-0.3.0/site/migrate --apply /var/www/example.com
+$ rsync -a --exclude site.php php-terminal-cms-0.3.0/site/ /var/www/example.com/
 ```
 
-`site.php` and `content/` are yours; everything else is replaceable. Excluding
-`site.php` on the way up is the only thing to remember.
+The first run is a report and changes nothing; read it. It lists each action:
+
+- `copy` — a file, to where this release looks for it. The original stays.
+- `insert` — a key this release reads and your `site.php` lacks, with its
+  documentation, every line commented out, before the closing `];`. No value
+  your site runs on changes. Your comments, order and expressions stay as
+  you wrote them.
+- `note` — something for you to decide: a picture that was already broken, a
+  key this release does not read, a flat original that nothing names any
+  more.
+
+`--apply` performs the list in order and stops at the first write that fails.
+Nothing it does removes or overwrites a file, so it is safe to run again, and
+a second run lists the notes alone and exits 0; a report with steps still to
+do exits 2. Delete what the notes name when you have read them, and switch on
+the inserted keys you want. Exclude `site.php` from the code's `rsync` as
+always: the example is not your configuration.
+
+**A host with no shell.** Bring the Instance down, migrate the copy, and send
+it back before the code:
+
+```console
+$ rsync -az deploy@example.com:/var/www/example.com/ instance/
+$ php php-terminal-cms-0.3.0/site/migrate instance
+$ php php-terminal-cms-0.3.0/site/migrate --apply instance
+$ rsync -az instance/ deploy@example.com:/var/www/example.com/
+$ rsync -az --exclude site.php php-terminal-cms-0.3.0/site/ deploy@example.com:/var/www/example.com/
+```
+
+The copy goes back without `--delete` and holds nothing the host does not
+have but what the Migration added, so publish nothing in between.
+
+**A checkout** — an Instance kept in a repository, a Page Build's above all —
+migrates in place, once the release is merged and before it is pushed:
+
+```console
+$ php site/migrate
+$ php site/migrate --apply
+$ git add site && git commit -m 'site: migrated to 0.3.0'
+```
+
+A Page Build runs the same report first, and prints
+`site/migrate has N step(s) to do — see docs/deploy.md` when an Instance has
+not been migrated. It builds anyway, so a pipeline that forgot publishes
+broken pictures rather than nothing: read the log.
 
 ### From 0.2.0: each Document's own Media
 
@@ -338,23 +390,12 @@ Until 0.3.0 a bare file name in an Image Line — `![x](shot.png)`, or
 directory, and the site does not look in the old place. An Image Line that
 writes an absolute path, `/media/shot.png`, is unchanged and needs nothing.
 
-For each Document whose Image Lines write a bare name, make its directory and
-move each picture it names there. For `content/guides/php/intro.md` showing
-`shot.png`:
-
-```console
-$ mkdir -p site/public/media/guides/php/intro
-$ git mv site/public/media/shot.png site/public/media/guides/php/intro/
-```
-
 The directory is the Document's path under `content/` without `.md`, and
 without a language: `intro-sk.md` shares `intro/`. A Category's `index.md` is
-`<category>/index`, the homepage's `index`. A picture two Documents both name
-is copied into each. To find the lines that need it:
-
-```console
-$ grep -rnE '^!\[[^]]*\]\([^/)][^)]*\)$' site/content
-```
+`<category>/index`, the homepage's `index`. The 0.3.0 Migration copies each
+picture a bare name showed into the directory of every Document that shows it
+— a picture two Documents both name is copied into each — and names the flat
+originals that nothing addresses as `/media/<name>` any more.
 
 ## Two instances
 

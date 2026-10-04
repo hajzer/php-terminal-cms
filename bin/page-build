@@ -32,6 +32,10 @@
  * is replaced only when it is absent, empty, or holds the .page-build marker
  * an earlier build left, and never when it is, holds, or is inside site/ — a
  * mistyped --output cannot delete an Instance.
+ *
+ * Before anything is rendered, site/migrate runs over the Instance as a
+ * report. An Instance it has steps left for is built as it is, and the build
+ * says so in one line.
  */
 declare(strict_types=1);
 
@@ -186,6 +190,29 @@ try {
 $configFile = $site . '/site.php';
 if (!is_file($configFile)) {
     refuse(Site::NO_CONFIG);
+}
+
+/* An Instance a release has not been migrated to yet is built as it is, and
+   told so: moving its files is site/migrate's, run by its operator. */
+$migrate = $site . '/migrate';
+if (is_file($migrate)) {
+    /* the report lists each action on a line of its own, two spaces in */
+    $proc = proc_open([PHP_BINARY, $migrate, $site], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+    if ($proc === false) {
+        fwrite(STDERR, "site/migrate could not be run\n");
+    } else {
+        $report = (string) stream_get_contents($pipes[1]);
+        $why    = trim((string) stream_get_contents($pipes[2]));
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        $status = proc_close($proc);
+        if ($status === 2) {
+            $steps = preg_match_all('~^  (?:copy|insert) ~m', $report);
+            fwrite(STDERR, "site/migrate has $steps step(s) to do — see docs/deploy.md\n");
+        } elseif ($status !== 0) {
+            fwrite(STDERR, "site/migrate could not read the Instance: $why\n");
+        }
+    }
 }
 
 /* ---------------------------------------------------------------- the output */

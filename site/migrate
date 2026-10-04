@@ -1,0 +1,415 @@
+#!/usr/bin/env php
+<?php
+/**
+ * Brings an Instance's own files into the shape this release reads them in.
+ *
+ *   php site/migrate [--apply] [<site-dir>]
+ *
+ * <site-dir> is the Instance's site/ — the one holding site.php and content/
+ * — and without it, the site/ this file is in. It can be an Instance the
+ * release has not been copied over yet: run from the unpacked release, the
+ * runner reads its own Migrations and its own site.php.example, and what it
+ * adds to the Instance the old code never reads.
+ *
+ * Every Migration in migrations/ runs, in version order, and then the
+ * standing site.php step. Each looks at what the Instance holds and returns
+ * what is left to do as a list of actions; none of them writes. A bare run
+ * prints the list; --apply performs it in order and stops at the first write
+ * that fails. The actions are these, and nothing else is accepted:
+ *
+ *   copy <from> <to>   a file, to a path that does not exist yet
+ *   insert <block>     into site.php, before its closing ];, every line a comment
+ *   note <line>        printed, and never acted on
+ *
+ * All of them add. Nothing is removed and nothing is overwritten, so a second
+ * run finds only the notes: what the operator has to decide.
+ *
+ * Exit status: 0 when nothing is left to do or --apply did it, 2 when a bare
+ * run lists something to do, 1 when the run was refused or a write failed.
+ */
+declare(strict_types=1);
+
+if (PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    header('Content-Type: text/plain; charset=utf-8');
+    echo "site/migrate runs from the command line, and never as a web request.\n";
+    exit(1);
+}
+
+const USAGE = 'usage: php site/migrate [--apply] [<site-dir>]';
+
+function refuse(string $why): never
+{
+    fwrite(STDERR, $why . "\n");
+    exit(1);
+}
+
+/** A path or a line as the report prints it: one line, whatever it holds. */
+function shown(string $text): string
+{
+    return addcslashes($text, "\0..\37\177");
+}
+
+/* ------------------------------------------------------------- site.php */
+
+/**
+ * The top level of the array a site.php returns, read as tokens and never
+ * run: each live key with the byte range of its lines and of the doc comment
+ * that documents it, each key a comment holds, where the closing ] is, and
+ * whether the last entry before it ends in a comma.
+ * null when the file returns no [ … ] — `return array(…)`, or no return.
+ *
+ * @return ?array{live: array<string, array{lines: array{0:int, 1:int}, doc: ?array{0:int, 1:int}}>,
+ *                commented: list<string>, close: int, comma: bool}
+ */
+function topLevel(string $php): ?array
+{
+    $tokens = token_get_all($php);
+    $at     = [];                 /* each token's byte offset */
+    $offset = 0;
+    foreach ($tokens as $i => $t) {
+        $at[$i]  = $offset;
+        $offset += strlen(is_array($t) ? $t[1] : $t);
+    }
+    $kind = static fn ($t): int|string => is_array($t) ? $t[0] : $t;
+    $next = static function (int $i) use ($tokens, $kind): int {
+        do {
+            $i++;
+        } while (isset($tokens[$i]) && in_array($kind($tokens[$i]), [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true));
+        return $i;
+    };
+    $opens  = ['[', '(', '{', T_CURLY_OPEN, T_DOLLAR_OPEN_CURLY_BRACES, T_ATTRIBUTE];
+    $closes = [']', ')', '}'];
+
+    /* the first return outside every bracket, and the [ it returns */
+    $depth = 0;
+    $start = null;
+    foreach ($tokens as $i => $t) {
+        if ($depth === 0 && $kind($t) === T_RETURN) {
+            $start = $next($i);
+            break;
+        }
+        $depth += in_array($kind($t), $opens, true) ? 1 : (in_array($kind($t), $closes, true) ? -1 : 0);
+    }
+    if ($start === null || ($tokens[$start] ?? null) !== '[') {
+        return null;
+    }
+
+    $lineStart = static function (int $byte) use ($php): int {
+        $nl = strrpos(substr($php, 0, $byte), "\n");
+        return $nl === false ? 0 : $nl + 1;
+    };
+    $lineEnd = static function (int $byte) use ($php): int {
+        $nl = strpos($php, "\n", $byte);
+        return $nl === false ? strlen($php) : $nl + 1;
+    };
+
+    $live      = [];
+    $commented = [];
+    $doc       = null;            /* the last doc comment at the top level */
+    $key       = null;            /* the key whose value is being read */
+    $last      = $start;          /* the last token that is not space or a comment */
+    $depth     = 0;
+    for ($i = $start, $n = count($tokens); $i < $n; $i++) {
+        $t = $tokens[$i];
+        $k = $kind($t);
+        if (in_array($k, $opens, true)) {
+            $depth++;
+        } elseif (in_array($k, $closes, true) && --$depth === 0) {
+            if (($tokens[$next($i)] ?? null) !== ';') {
+                return null;
+            }
+            if ($key !== null) {
+                $live[$key]['lines'][1] = $lineEnd($at[$last]);
+            }
+            return ['live' => $live, 'commented' => $commented, 'close' => $at[$i], 'comma' => $key === null];
+        } elseif ($depth === 1 && $k === T_DOC_COMMENT) {
+            $doc = [$lineStart($at[$i]), $lineEnd($at[$i] + strlen($t[1]) - 1)];
+        } elseif ($depth === 1 && $k === T_COMMENT) {
+            if (preg_match('~^(?://|#|/\*)\s*([\'"])(.+?)\1\s*=>~', $t[1], $m) === 1) {
+                $commented[] = $m[2];
+            }
+        } elseif ($depth === 1 && $k === T_CONSTANT_ENCAPSED_STRING && $key === null
+                  && $kind($tokens[$next($i)] ?? '') === T_DOUBLE_ARROW) {
+            $key = substr($t[1], 1, -1);
+            $live[$key] = ['lines' => [$lineStart($at[$i]), 0], 'doc' => $doc];
+        } elseif ($depth === 1 && $k === ',' && $key !== null) {
+            $live[$key]['lines'][1] = $lineEnd($at[$i]);
+            $key = null;
+        }
+        if (!in_array($k, [T_WHITESPACE, T_COMMENT, T_DOC_COMMENT], true)) {
+            $last = $i;
+        }
+    }
+    return null;
+}
+
+/**
+ * Lines of the example, every one commented out with `// ` at the indent
+ * they share, so the block reads as the example does and changes nothing.
+ */
+function commentedOut(string $text): string
+{
+    $lines  = explode("\n", rtrim($text, "\n"));
+    $indent = PHP_INT_MAX;
+    foreach ($lines as $l) {
+        if (trim($l) !== '') {
+            $indent = min($indent, strlen($l) - strlen(ltrim($l, ' ')));
+        }
+    }
+    $pad = str_repeat(' ', $indent === PHP_INT_MAX ? 0 : $indent);
+    return implode('', array_map(
+        static fn (string $l): string => $pad . rtrim('// ' . substr($l, strlen($pad))) . "\n",
+        $lines
+    ));
+}
+
+/**
+ * The standing step: site.php gains every top-level key the example declares
+ * and it does not carry, live or commented out, with the example's
+ * documentation, switched off; a live key the example does not declare is
+ * named. It reads site.php as text and never runs it.
+ *
+ * @return list<array{0:string, 1:string}>
+ */
+function siteConfig(string $site, string $exampleFile): array
+{
+    $example = (string) file_get_contents($exampleFile);
+    $own     = (string) file_get_contents($site . '/site.php');
+    $ex      = topLevel($example);
+    $mine    = topLevel($own);
+    if ($ex === null) {
+        return [['note', "$exampleFile returns no [ … ]; this step can read — the release is damaged"]];
+    }
+    if ($mine === null) {
+        return [['note', 'site.php returns no [ … ]; this step can read — compare it with site.php.example by hand']];
+    }
+
+    $carried = [...array_keys($mine['live']), ...$mine['commented']];
+    $groups  = [];                /* one insert per doc comment, the keys it documents in it */
+    foreach ($ex['live'] as $key => $entry) {
+        if (in_array((string) $key, $carried, true)) {
+            continue;
+        }
+        $group = $entry['doc'] === null ? 'key:' . $key : 'doc:' . $entry['doc'][0];
+        $groups[$group] ??= $entry['doc'] === null ? '' : substr($example, $entry['doc'][0], $entry['doc'][1] - $entry['doc'][0]);
+        $groups[$group] .= substr($example, $entry['lines'][0], $entry['lines'][1] - $entry['lines'][0]);
+    }
+
+    $actions = [];
+    foreach ($groups as $text) {
+        $actions[] = ['insert', "\n" . commentedOut($text)];
+    }
+    if ($actions !== [] && !$mine['comma']) {
+        $actions[] = ['note', 'site.php has no comma after its last entry — add one before switching on a key inserted below it'];
+    }
+    $declared = [...array_keys($ex['live']), ...$ex['commented']];
+    foreach (array_keys($mine['live']) as $key) {
+        if (!in_array((string) $key, $declared, true)) {
+            $actions[] = ['note', "'$key' is not read by this version — see CHANGELOG.md"];
+        }
+    }
+    return $actions;
+}
+
+/* -------------------------------------------------------------- actions */
+
+/** Why an action is not one the runner performs, or '' when it is. */
+function malformed(mixed $action): string
+{
+    $relative = static fn (mixed $p): bool => is_string($p) && $p !== '' && !str_starts_with($p, '/')
+        && preg_match('~[\x00-\x1F\x7F]~', $p) !== 1
+        && array_intersect(explode('/', $p), ['', '.', '..']) === [];
+    if (!is_array($action) || !array_is_list($action)) {
+        return 'is not a list';
+    }
+    return match ($action[0] ?? null) {
+        'copy'   => count($action) === 3 && $relative($action[1]) && $relative($action[2])
+            ? '' : 'is a copy that does not name two paths inside the site',
+        'insert' => count($action) === 2 && is_string($action[1]) && !str_contains($action[1], '?>')
+                    && preg_match('~^(?![ \t]*(//.*)?\r?$).~m', $action[1]) !== 1
+            ? '' : 'is an insert whose block is not all comments',
+        'note'   => count($action) === 2 && is_string($action[1]) ? '' : 'is a note that is not a line',
+        default  => 'is not copy, insert or note',
+    };
+}
+
+/** The action as the report lists it, an insert's block under it. */
+function describe(array $action): string
+{
+    switch ($action[0]) {
+        case 'copy':
+            return '  copy ' . shown($action[1]) . ' ' . shown($action[2]) . "\n";
+        case 'insert':
+            preg_match_all('~^\s*//\s*([\'"])(.+?)\1\s*=>~m', $action[1], $m);
+            $keys = implode(', ', array_map(static fn (string $k) => "'" . shown($k) . "'", $m[2]));
+            return '  insert ' . ($keys === '' ? '' : $keys . ' ') . "into site.php\n"
+                 . preg_replace('~^(?=.)~m', '  ', ltrim($action[1], "\n"));
+        default:
+            return '  note ' . shown($action[1]) . "\n";
+    }
+}
+
+/** Writes a file whole or not at all: into one beside it, which then takes its name. */
+function whole(string $file, Closure $fill): void
+{
+    $temp = dirname($file) . '/.' . basename($file) . '.migrate-' . bin2hex(random_bytes(6));
+    try {
+        $fill($temp);
+        rename($temp, $file);
+    } finally {
+        if (file_exists($temp)) {
+            unlink($temp);
+        }
+    }
+}
+
+function perform(string $site, array $action): void
+{
+    if ($action[0] === 'copy') {
+        [, $from, $to] = $action;
+        $from = "$site/$from";
+        $to   = "$site/$to";
+        if (!is_file($from)) {
+            throw new RuntimeException("$action[1] is not a file");
+        }
+        if (!is_dir(dirname($to))) {
+            mkdir(dirname($to), 0755, true);
+        }
+        /* the copy keeps the original's time, so a Bundle of it is the same
+           bytes on every build */
+        whole($to, static function (string $temp) use ($from, $to, $action): void {
+            copy($from, $temp);
+            touch($temp, (int) filemtime($from));
+            if (file_exists($to) || is_link($to)) {
+                throw new RuntimeException("$action[2] is there already");
+            }
+        });
+        return;
+    }
+    if ($action[0] !== 'insert') {
+        return;
+    }
+
+    $file = "$site/site.php";
+    $php  = (string) file_get_contents($file);
+    $was  = topLevel($php);
+    if ($was === null) {
+        throw new RuntimeException('site.php returns no [ … ]; to insert into');
+    }
+    /* on the lines before the ], when it is alone on its line, or else right before it */
+    $close = $was['close'];
+    $line  = strrpos(substr($php, 0, $close), "\n");
+    $line  = $line === false ? 0 : $line + 1;
+    $new   = trim(substr($php, $line, $close - $line)) === ''
+        ? substr($php, 0, $line) . $action[1] . substr($php, $line)
+        : substr($php, 0, $close) . "\n" . $action[1] . substr($php, $close);
+    $now = topLevel($new);
+    if ($now === null || array_keys($now['live']) !== array_keys($was['live'])) {
+        throw new RuntimeException('site.php would not read as it did with the block in it');
+    }
+    whole($file, static function (string $temp) use ($file, $new): void {
+        file_put_contents($temp, $new);
+        chmod($temp, fileperms($file) & 0777);
+    });
+}
+
+/* ------------------------------------------------------------- the run */
+
+$apply  = false;
+$target = null;
+foreach (array_slice($argv, 1) as $arg) {
+    if ($arg === '--apply' && !$apply) {
+        $apply = true;
+    } elseif (!str_starts_with($arg, '-') && $target === null) {
+        $target = $arg;
+    } else {
+        refuse(USAGE . " — $arg is not one of them, or is given twice");
+    }
+}
+$target ??= __DIR__;
+$site = realpath($target);
+if ($site === false || !is_dir($site)) {
+    refuse("$target is not a directory");
+}
+if (!is_file("$site/site.php")) {
+    refuse("$site holds no site.php — name the Instance's site/ directory");
+}
+if (!is_dir("$site/content")) {
+    refuse("$site holds no content/ — name the Instance's site/ directory");
+}
+
+/* a warning is a failure: a read that only warns is a plan made from nothing */
+set_error_handler(static function (int $severity, string $message): bool {
+    throw new ErrorException($message, 0, $severity);
+});
+
+/* each Migration in version order, from its own scope, then the standing step */
+$files = glob(__DIR__ . '/migrations/*.php') ?: [];
+foreach ($files as $file) {
+    if (preg_match('~^\d+\.\d+\.\d+$~', basename($file, '.php')) !== 1) {
+        refuse('migrations/' . basename($file) . ' is not named for the version it migrates to');
+    }
+}
+usort($files, static fn (string $a, string $b): int => version_compare(basename($a, '.php'), basename($b, '.php')));
+$steps = [];
+foreach ($files as $file) {
+    $migration = (static fn (string $file): mixed => require $file)($file);
+    if (!$migration instanceof Closure) {
+        refuse('migrations/' . basename($file) . ' returns no Migration');
+    }
+    try {
+        $steps[basename($file, '.php')] = $migration($site);
+    } catch (Throwable $e) {
+        refuse('migrations/' . basename($file) . ' could not read the Instance: ' . $e->getMessage());
+    }
+}
+$steps['site.php'] = siteConfig($site, __DIR__ . '/site.php.example');
+
+foreach ($steps as $name => $actions) {
+    if (!is_array($actions) || !array_is_list($actions)) {
+        refuse("$name returns no list of actions");
+    }
+    foreach ($actions as $action) {
+        if (($why = malformed($action)) !== '') {
+            refuse("$name returns an action that $why: " . shown(var_export($action, true)));
+        }
+    }
+}
+
+/* ---------------------------------------------------------- the report */
+
+echo "site/migrate over $site" . ($apply ? '' : ' — a report: nothing is changed') . "\n";
+$todo = 0;
+foreach ($steps as $name => $actions) {
+    echo "\n$name\n";
+    if ($actions === []) {
+        echo "  nothing\n";
+    }
+    foreach ($actions as $action) {
+        echo describe($action);
+        if ($action[0] === 'note') {
+            continue;
+        }
+        $todo++;
+        if ($apply) {
+            try {
+                perform($site, $action);
+            } catch (Throwable $e) {
+                refuse("\nfailed: " . $e->getMessage() . "\n" . ($todo - 1) . ' done, and the rest left: run it again once this is put right');
+            }
+        }
+    }
+}
+
+echo "\n";
+if ($apply) {
+    echo "$todo step" . ($todo === 1 ? '' : 's') . " done\n";
+    exit(0);
+}
+if ($todo === 0) {
+    echo "nothing to do\n";
+    exit(0);
+}
+echo "$todo step" . ($todo === 1 ? '' : 's') . " to do — run it again with --apply to do them\n";
+exit(2);

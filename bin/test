@@ -2521,7 +2521,12 @@ function snapshot(string $dir): array
 /** @return array{0:int, 1:string} the exit status and what it printed */
 function pageBuild(string $instance, array $args): array
 {
-    $cmd = array_merge([PHP_BINARY, $instance . '/bin/page-build'], $args);
+    return run(array_merge([PHP_BINARY, $instance . '/bin/page-build'], $args));
+}
+
+/** @return array{0:int, 1:string} the exit status and what it printed */
+function run(array $cmd): array
+{
     $proc = proc_open($cmd, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
     $said = stream_get_contents($pipes[1]) . stream_get_contents($pipes[2]);
     fclose($pipes[1]);
@@ -2560,10 +2565,14 @@ foreach (['src', 'shared', 'public', 'content', 'editor'] as $dir) {
     copyTree($root . '/site/' . $dir, $instance . '/site/' . $dir);
 }
 copy($root . '/site/site.php.example', $instance . '/site/site.php');
+copy($root . '/site/site.php.example', $instance . '/site/site.php.example');
+copy($root . '/site/migrate', $instance . '/site/migrate');
+copyTree($root . '/site/migrations', $instance . '/site/migrations');
 
 $out = $box . '/out/pages';
 [$status, $said] = pageBuild($instance, ['--output=' . $out, '--base-url=https://example.gitlab.io/proj/']);
 ok($status === 0, 'the sample content builds with Base Path /proj', $said);
+ok(!str_contains($said, 'site/migrate'), 'and an Instance with nothing to migrate is not told to', $said);
 
 $expected = [
     'index.html', '404.html', '.page-build',
@@ -2891,6 +2900,262 @@ foreach ($built as $page) {
     }
 }
 ok($named === [], 'and no built page names what it left out', implode("\n", $named));
+
+removeTree($box);
+
+/* ------------------------------------------------------------ migrations */
+echo "\nmigrations\n";
+
+/* An Instance as 0.2.0 left it, copied fresh for each run, and migrated by
+   this release's runner as an operator runs it. */
+$fixture = $root . '/tests/fixtures/instance-0.2.0';
+$box = sys_get_temp_dir() . '/tcms-migrate-' . getmypid();
+removeTree($box);
+mkdir($box, 0755, true);
+$box = (string) realpath($box);
+
+/** @return array{0:int, 1:string} the exit status and what it printed */
+function migrate(array $args): array
+{
+    global $root;
+    return run(array_merge([PHP_BINARY, $root . '/site/migrate'], $args));
+}
+
+/** The fixture, fresh, at $instance. */
+function fresh(string $instance): void
+{
+    global $fixture;
+    removeTree($instance);
+    copyTree($fixture, $instance);
+}
+
+/** Whether php -l passes a file. */
+function lints(string $file): bool
+{
+    return run([PHP_BINARY, '-l', $file])[0] === 0;
+}
+
+/** The actions a report lists, one line each, without an insert's block. @return list<string> */
+function actions(string $said): array
+{
+    preg_match_all('~^  ((?:copy|insert|note) .*)$~m', $said, $m);
+    return $m[1];
+}
+
+$wantActions = [
+    'copy public/media/draft.svg public/media/about/draft/draft.svg',
+    'note content/about/history.md:8: public/media/about/history/old.svg is there already, and differs from public/media/old.svg — left as it is',
+    'copy public/media/remote.svg public/media/about/remote/remote.svg',
+    'copy public/media/shot.svg public/media/about/what-it-is/shot.svg',
+    'copy public/media/map.svg public/media/guides/index/map.svg',
+    'copy public/media/shot.svg public/media/guides/install/shot.svg',
+    'note content/guides/install.md:10: gone.svg is in neither public/media/guides/install/ nor public/media/ — a broken picture',
+    'copy public/media/stack.svg public/media/guides/php/intro/stack.svg',
+    'copy public/media/flow.svg public/media/guides/php/intro/flow.svg',
+    'copy public/media/wide.svg public/media/index/wide.svg',
+    'copy public/media/loose.svg public/media/notes/loose/loose.svg',
+];
+foreach (['draft', 'flow', 'loose', 'old', 'remote', 'same', 'shot', 'stack', 'wide'] as $unused) {
+    $wantActions[] = "note public/media/$unused.svg: nothing in content/ or site.php names /media/$unused.svg — unused, yours to delete";
+}
+array_push($wantActions,
+    "insert 'theme', 'palette' into site.php",
+    "insert 'listing_max' into site.php",
+    "insert 'bundle' into site.php",
+    "insert 'favicon' into site.php",
+    "note 'accent' is not read by this version — see CHANGELOG.md",
+    "note 'listnig_max' is not read by this version — see CHANGELOG.md",
+);
+
+$instance = $box . '/site';
+fresh($instance);
+$before = snapshot($instance);
+$config = require $instance . '/site.php';
+[$status, $said] = migrate([$instance]);
+$listed = actions($said);
+ok($listed === $wantActions, 'a bare run over a 0.2.0 Instance lists exactly the actions it needs',
+   diff(implode("\n", $wantActions), implode("\n", $listed)));
+ok(snapshot($instance) === $before, 'and changes nothing in it');
+ok($status === 2 && str_contains($said, '13 steps to do'), 'and says how many steps are left, exiting 2', "exit $status: $said");
+ok(str_contains($said, "      // 'theme'   => 'baseline',") && str_contains($said, "      //  * The Theme every page is drawn in"),
+   'an insert shows its block: the example\'s lines and its documentation, commented out', $said);
+
+[$status, $said] = migrate(['--apply', $instance]);
+ok($status === 0 && str_contains($said, '13 steps done'), '--apply does them', "exit $status: $said");
+$after = snapshot($instance);
+$lost = array_filter(array_keys($before),
+    static fn (string $f) => $f !== 'site.php' && ($after[$f] ?? null) !== $before[$f]);
+ok($lost === [], 'and removes nothing and changes nothing, site.php aside', implode("\n", $lost));
+$sameBytes = [];
+foreach (array_keys(array_diff_key($after, $before)) as $f) {
+    if ($after[$f] !== 'dir' && $after[$f] !== $before['public/media/' . basename($f)]) {
+        $sameBytes[] = $f;
+    }
+}
+ok(count(array_diff_key($after, $before)) > 0 && $sameBytes === [], 'each file it adds is a copy of the flat one',
+   implode("\n", $sameBytes));
+ok(filemtime("$instance/public/media/index/wide.svg") === filemtime("$instance/public/media/wide.svg"),
+   'and keeps its time, so a Bundle of it is the same bytes on every build');
+
+[$status, $said] = migrate([$instance]);
+$again = array_filter(actions($said), static fn (string $a) => !str_starts_with($a, 'note '));
+ok($status === 0 && $again === [], 'a second run has no copy and no insert left, and exits 0', "exit $status: $said");
+ok(count(actions($said)) === count(array_filter($wantActions, static fn (string $a) => str_starts_with($a, 'note '))),
+   'and still names what the operator has to decide: the same notes', $said);
+
+ok(lints("$instance/site.php"), 'the migrated site.php passes php -l');
+ok((require $instance . '/site.php') === $config, 'and returns the array it returned before', $said);
+$migrated = (string) file_get_contents("$instance/site.php");
+$original = (string) file_get_contents("$fixture/site.php");
+ok(str_starts_with($migrated, substr($original, 0, (int) strrpos($original, '];'))),
+   'and is the operator\'s file, every byte of it, with the block added before its closing ];');
+
+/* the current Renderer, over every Image Line in the migrated Instance */
+$broken = [];
+$it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator("$instance/content", FilesystemIterator::SKIP_DOTS));
+foreach ($it as $f) {
+    $rel = substr($f->getPathname(), strlen("$instance/content/"));
+    $category = dirname($rel) === '.' ? '' : dirname($rel);
+    [$base] = TerminalCms\Language::split(basename($rel, '.md'), TerminalCms\Site::languages($config));
+    $doc = TerminalCms\Document::load($f->getPathname(), $category, $base, $base);
+    foreach ($doc->lines as $i => $line) {
+        if ($line->type === 'img' && !is_file($instance . '/public' . Renderer::mediaUrl($line->text, $doc->media()))) {
+            $broken[] = "content/$rel: " . $line->text;
+        }
+    }
+}
+sort($broken);
+ok($broken === ['content/guides/install.md: gone.svg'],
+   'after --apply the current Renderer finds every picture, but the one the fixture leaves broken',
+   implode("\n", $broken));
+
+/* a write that fails stops the run there, and says so */
+fresh($instance);
+file_put_contents("$instance/public/media/index", 'a file where a directory has to go');
+[$status, $said] = migrate(['--apply', $instance]);
+ok($status === 1 && str_contains($said, 'public/media/index/wide.svg')
+   && is_file("$instance/public/media/guides/php/intro/flow.svg") && !file_exists("$instance/public/media/notes/loose")
+   && file_get_contents("$instance/site.php") === file_get_contents("$fixture/site.php"),
+   'a failed write stops --apply at that step, exiting 1, with what came before it done and nothing after', "exit $status: $said");
+
+/* a src that reduces to no file name is named, not copied */
+fresh($instance);
+file_put_contents("$instance/content/about/odd.md", "# odd\n\n![x](..)\n\n![y](.env)\n\n![z](?only=a-query)\n");
+file_put_contents("$instance/public/media/.env", 'SECRET=1');
+[, $said] = migrate([$instance]);
+$odd = array_values(array_filter(actions($said), static fn (string $a) => str_contains($a, 'odd.md')));
+ok($odd === ['note content/about/odd.md:3: ".." names no file a Document\'s Media can hold — left as it is',
+             'note content/about/odd.md:5: ".env" names no file a Document\'s Media can hold — left as it is',
+             'note content/about/odd.md:7: "?only=a-query" names no file a Document\'s Media can hold — left as it is'],
+   'a src that reduces to nothing, to .. or to a dot file is a note, and never a copy', implode("\n", $odd));
+
+/* site.php in shapes other than the example's */
+$shapes = [
+    'no trailing comma, and ]; on the last line' => ["<?php return ['title' => 'x', 'theme' => 'dark'];", ['theme']],
+    'keys the operator commented out'            => ["<?php\nreturn [\n    // 'theme' => 'dark',\n    /* 'palette' => 'light', */\n    # 'bundle' => false,\n];\n",
+                                                     ['theme', 'palette', 'bundle']],
+];
+foreach ($shapes as $what => [$php, $kept]) {
+    file_put_contents("$instance/site.php", $php);
+    $was = require "$instance/site.php";
+    [$status, $said] = migrate(['--apply', $instance]);
+    $inserted = array_filter(actions($said), static fn (string $a) => str_starts_with($a, 'insert '));
+    ok($status === 0 && lints("$instance/site.php") && (require "$instance/site.php") === $was
+       && array_filter($kept, static fn (string $k) => str_contains(implode("\n", $inserted), "'$k'")) === []
+       && str_contains(implode("\n", $inserted), "'footer'"),
+       "a site.php with $what gains what it lacks, and keeps its values", "exit $status: $said");
+}
+file_put_contents("$instance/site.php", "<?php\nreturn [\n    'title' => 'x'\n];\n");
+[, $said] = migrate([$instance]);
+ok(in_array('note site.php has no comma after its last entry — add one before switching on a key inserted below it',
+            actions($said), true),
+   'one whose last entry has no comma is told to add one before switching a key on', $said);
+file_put_contents("$instance/site.php", "<?php\nreturn array('title' => 'x');\n");
+[$status, $said] = migrate(['--apply', $instance]);
+ok($status === 0 && file_get_contents("$instance/site.php") === "<?php\nreturn array('title' => 'x');\n"
+   && str_contains($said, 'note site.php returns no [ … ]; this step can read'),
+   'a site.php that returns no [ … ] is named, and left alone', "exit $status: $said");
+
+/* every key the code reads is one the example declares, so the step offers it */
+$example = (string) file_get_contents($root . '/site/site.php.example');
+$declared = array_keys(require $root . '/site/site.php.example');
+preg_match_all("~^\s*//\s*'([a-z_]+)'\s*=>~m", $example, $commented);
+$read = [];
+foreach (glob($root . '/site/src/*.php') ?: [] as $f) {
+    preg_match_all("~\\\$(?:this->)?site\['([a-z_]+)'\]~", (string) file_get_contents($f), $m);
+    array_push($read, ...$m[1]);
+}
+$read = array_values(array_unique($read));
+$undeclared = array_diff($read, $declared, $commented[1]);
+ok(count($read) >= 10 && $undeclared === [], 'every $site[…] key site/src reads is declared in site.php.example',
+   implode("\n", $undeclared));
+
+/* a released Migration is never edited */
+$pinned = [
+    '0.3.0.php' => 'b33d084d1d08237b55d2def93200a3c4504bea8aab733f2773b4398efd5afab7',
+];
+$released = array_map('basename', glob($root . '/site/migrations/*.php') ?: []);
+ok($released === array_keys($pinned), 'every Migration in site/migrations/ is pinned here, and only those',
+   implode(', ', $released));
+foreach ($pinned as $file => $hash) {
+    ok(hash_file('sha256', "$root/site/migrations/$file") === $hash, "site/migrations/$file is the one released",
+       (string) hash_file('sha256', "$root/site/migrations/$file"));
+}
+
+/* refusals */
+foreach (['site.php' => 'site.php', 'content' => 'content/'] as $gone => $named) {
+    fresh($instance);
+    removeTree("$instance/$gone");
+    $before = snapshot($instance);
+    [$status, $said] = migrate(['--apply', $instance]);
+    ok($status === 1 && str_contains($said, $named) && snapshot($instance) === $before,
+       "a target without $named is refused", "exit $status: $said");
+}
+[$status, $said] = migrate(['--aply', $instance]);
+ok($status === 1 && str_contains($said, 'usage'), 'a misspelt flag is refused', "exit $status: $said");
+
+/* run as a web request, the runner does nothing: here the built-in server's
+   SAPI, with the runner as its router and an Instance beside it */
+fresh($instance);
+copy($root . '/site/migrate', "$instance/migrate");
+copyTree($root . '/site/migrations', "$instance/migrations");
+copy($root . '/site/site.php.example', "$instance/site.php.example");
+$before = snapshot($instance);
+$port = 8500 + (getmypid() % 400);
+$proc = proc_open([PHP_BINARY, '-S', "127.0.0.1:$port", '-t', "$instance/public", "$instance/migrate"],
+                  [1 => ['file', '/dev/null', 'w'], 2 => ['file', '/dev/null', 'w']], $pipes);
+$answer = false;
+for ($i = 0; $i < 40 && $answer === false; $i++) {
+    usleep(100000);
+    $answer = @file_get_contents("http://127.0.0.1:$port/?apply", false,
+                                 stream_context_create(['http' => ['ignore_errors' => true]]));
+}
+proc_terminate($proc);
+proc_close($proc);
+ok(is_string($answer) && str_contains($answer, 'from the command line') && snapshot($instance) === $before,
+   'site/migrate refuses to run as a web request, and changes nothing', (string) $answer);
+
+/* a Page Build of an Instance that has not been migrated builds what it has,
+   and says what is left */
+removeTree($box);
+mkdir($box . '/instance/bin', 0755, true);
+$instance = $box . '/instance';
+copy($root . '/bin/page-build', "$instance/bin/page-build");
+foreach (['src', 'shared', 'editor', 'migrations'] as $dir) {
+    copyTree("$root/site/$dir", "$instance/site/$dir");
+}
+copyTree("$root/site/public", "$instance/site/public");
+removeTree("$instance/site/public/media");
+copyTree("$fixture/public/media", "$instance/site/public/media");
+copyTree("$fixture/content", "$instance/site/content");
+copy("$fixture/site.php", "$instance/site/site.php");
+copy("$root/site/site.php.example", "$instance/site/site.php.example");
+copy("$root/site/migrate", "$instance/site/migrate");
+$before = snapshot("$instance/site");
+[$status, $said] = pageBuild($instance, ['--output=' . $box . '/out']);
+ok($status === 0 && str_contains($said, 'site/migrate has 13 step(s) to do — see docs/deploy.md')
+   && is_file("$box/out/guides/php/intro/index.html") && snapshot("$instance/site") === $before,
+   'a Page Build of an unmigrated Instance warns, builds, and migrates nothing', "exit $status: $said");
 
 removeTree($box);
 
