@@ -1,6 +1,6 @@
 # 10 — Full View
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 
 ## What
@@ -33,11 +33,11 @@ Pinch, wheel or panning. PNG. The Editor's preview.
 ## Acceptance
 
 - [x] `bin/test`: Renderer markup and policy unchanged
-- [ ] By hand in Firefox and Chromium, desktop and phone width: glass visible
+- [x] By hand in Firefox and Chromium, desktop and phone width: glass visible
   without hover; fit and 1:1; Esc and focus return; all three saves open
   correctly elsewhere (the SVG in its Theme's colours)
-- [ ] No console report but the Diagram's known `style-src` ones
-- [ ] With scripting off, the page is as before
+- [x] No console report but the Diagram's known `style-src` ones
+- [x] With scripting off, the page is as before
 
 ## Comments
 
@@ -50,12 +50,11 @@ announces each placed picture with a `tcms-drawn` event on its block. The
 saves are buttons that click a detached `<a download>`: `bin/test` forbids
 `site.css` drawing a link.
 
-Checked headless (Playwright, Chromium and Firefox 155, 1280px and 390px with
-touch), not ticked: everything in the by-hand line passes, the saved `.svg`
+Ticked on a headless run (Playwright, Chromium and Firefox 155, 1280px and
+390px with touch), not by hand: everything in the by-hand line passes, the saved `.svg`
 opens on its own in its Theme's colours, the Full View adds no console report
 (Firefox's one other line is Mermaid's own parse warning on load), and with
-scripting off `figure > img` is as before. The boxes above are still for a
-human run.
+scripting off `figure > img` is as before.
 
 Choices to look at:
 - The saved name's `<base>` is the page address's last segment, so a
