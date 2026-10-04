@@ -1,6 +1,6 @@
 # 05 — Published, failing closed
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 Blocked by: 04
 
@@ -29,10 +29,29 @@ Any Editor UI for it. An unlisted state.
 
 ## Acceptance
 
-- [ ] `bin/test`: spec Testing §2 — one hidden fixture of each kind, absent
+- [x] `bin/test`: spec Testing §2 — one hidden fixture of each kind, absent
   from every reader; `flase`, `no`, `0`, `False` hide; absent and `true` publish
-- [ ] `bin/test`: neither half prints `published`
-- [ ] A hidden Language variant leaves the other Language's page without an
+- [x] `bin/test`: neither half prints `published`
+- [x] A hidden Language variant leaves the other Language's page without an
   indicator
 
 ## Comments
+
+Two gates carry it: `Site::categories()` drops a declaration that is not
+Published, and `Listing::group()` drops a file that is not. Every reader —
+the Router, the Listings, the navigation, the Sub-category names, the
+Language indicator, the Page Build — already went through one of them, so
+none of them changed. The Bundle (08) gets it the same way.
+
+`Document::peekMeta()` now reads the frontmatter through `Markdown::parse()`
+and to its end. Before, it split on `\n` alone and stopped after 50 lines, so
+a `published: false` in a file written with bare `\r`, or past the fiftieth
+line, would have been missed and the draft published. `bin/test` has both.
+
+Only the value fails closed. A misspelt key (`Published:`) is another Meta
+line, and the Document is Published; `docs/format.md` says so. A Sub-category
+that is not Published no longer shadows its parent's Document of the same
+name, which is then read and listed again; `docs/config.md` says so.
+
+The third acceptance item is in the fixture (`notes/both-sk.md`), asserted
+on the page and in the Listing.
