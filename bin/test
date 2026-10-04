@@ -149,6 +149,19 @@ foreach (['/editor/themes', '/site/public/themes'] as $dir) {
 ok($strays === [], 'and no Theme file is there that shared/themes/ does not make',
    implode("\n", $strays) . "\nremove it, or add its JSON");
 
+/* site/editor/ is the Editor a Bundle carries: editor/ file for file, with
+   nothing left behind in it that editor/ no longer has */
+$editorTree = snapshot($root . '/editor');
+$copyTree   = snapshot($root . '/site/editor');
+$drift = array_merge(
+    array_map(static fn (string $f) => "missing: site/editor/$f", array_keys(array_diff_key($editorTree, $copyTree))),
+    array_map(static fn (string $f) => "stray:   site/editor/$f", array_keys(array_diff_key($copyTree, $editorTree))),
+    array_map(static fn (string $f) => "differs: site/editor/$f",
+              array_keys(array_diff_assoc(array_intersect_key($copyTree, $editorTree), $editorTree)))
+);
+ok($editorTree !== [] && $drift === [], '/site/editor/ is editor/, file for file',
+   implode("\n", array_slice($drift, 0, 8)) . "\nrun bin/build");
+
 /* ------------------------------------------------------------------ Themes */
 echo "\nthemes\n";
 $sheet = (string) file_get_contents($root . '/shared/theme.css');
@@ -2823,6 +2836,160 @@ ok($named === [], 'and no built page names what it left out', implode("\n", $nam
 
 removeTree($box);
 
+/* ---------------------------------------------------------- the zip writer */
+echo "\nthe zip writer\n";
+
+/** The central directory, read by hand: what a reader would be told about
+ *  each entry, and whether its local header agrees. @return list<array<string,int|string>> */
+function zipEntries(string $zip): array
+{
+    $end = unpack('Vsig/vdisk/vcddisk/vhere/vtotal/Vsize/Voffset/vcomment', substr($zip, -22));
+    if ($end === false || $end['sig'] !== 0x06054b50) {
+        return [];
+    }
+    $out = [];
+    $at = $end['offset'];
+    for ($i = 0; $i < $end['total']; $i++) {
+        $c = unpack('Vsig/vmade/vneed/vflags/vmethod/vtime/vdate/Vcrc/Vcsize/Vsize/vnlen/vxlen/vclen/vdisk/vin/Vex/Voffset',
+                    substr($zip, $at, 46));
+        $c['name'] = substr($zip, $at + 46, $c['nlen']);
+        $l = unpack('Vsig/vneed/vflags/vmethod/vtime/vdate/Vcrc/Vcsize/Vsize/vnlen/vxlen', substr($zip, $c['offset'], 30));
+        $c['local'] = $l['sig'] === 0x04034b50
+            && substr($zip, $c['offset'] + 30, $l['nlen']) === $c['name']
+            && [$l['flags'], $l['method'], $l['time'], $l['date'], $l['crc'], $l['csize'], $l['size']]
+               === [$c['flags'], $c['method'], $c['time'], $c['date'], $c['crc'], $c['csize'], $c['size']];
+        $c['data'] = substr($zip, $c['offset'] + 30 + $l['nlen'] + $l['xlen'], $c['csize']);
+        $out[] = $c;
+        $at += 46 + $c['nlen'] + $c['xlen'] + $c['clen'];
+    }
+    return $out;
+}
+
+$zbox = sys_get_temp_dir() . '/cms-zip-' . getmypid();
+@mkdir($zbox . '/src/café', 0755, true);
+/* archive name => the file, its bytes, its mtime, and the DOS time and date
+   that mtime is in UTC: 2s steps, and nothing before 1980 */
+$zsources = [
+    'top/hello.txt'         => ['hello.txt', "hello\n", 1767323046, [6275, 23586]],     // 2026-01-02 03:04:06
+    'top/empty'             => ['empty', '', 1767323047, [6275, 23586]],                // :07 is :06
+    'top/bin/all-bytes.bin' => ['all-bytes.bin', str_repeat(implode('', array_map('chr', range(0, 255))), 300),
+                                1704067200, [0, 22561]],                                 // 2024-01-01 00:00:00
+    'top/café/naïve — ü.md' => ['café/naïve — ü.md', "# ü\n", 100, [0, 33]],           // 1970 is 1980-01-01
+];
+foreach ($zsources as [$file, $bytes, $mtime]) {
+    file_put_contents("$zbox/src/$file", $bytes);
+    touch("$zbox/src/$file", $mtime);
+}
+$readme = ['top/README.txt', "Open editor/index.html.\n", 1767323050];  // 03:04:10
+
+$writeZip = static function (string $to) use ($zbox, $zsources, $readme): string {
+    $out = fopen($to, 'wb');
+    $zip = new TerminalCms\Zip($out);
+    foreach ($zsources as $name => [$file]) {
+        $zip->file($name, "$zbox/src/$file");
+    }
+    $zip->data(...$readme);
+    $zip->finish();
+    fclose($out);
+    return (string) file_get_contents($to);
+};
+$want = $zsources + [$readme[0] => [null, $readme[1], $readme[2], [6277, 23586]]];
+
+$zipped = $writeZip("$zbox/a.zip");
+$entries = zipEntries($zipped);
+ok(array_column($entries, 'name') === array_keys($want), 'the central directory names every entry, in order',
+   implode("\n", array_column($entries, 'name')));
+$bad = [];
+foreach ($entries as $c) {
+    [, $bytes, , $dos] = $want[$c['name']] ?? [null, null, 0, []];
+    if ($c['method'] !== 0 || $c['csize'] !== $c['size'] || $c['need'] !== 10) {
+        $bad[] = "{$c['name']}: method {$c['method']}, need {$c['need']}, {$c['csize']}/{$c['size']}";
+    }
+    if (($c['flags'] & 0x0800) === 0) {
+        $bad[] = "{$c['name']}: no UTF-8 flag";
+    }
+    if (!$c['local']) {
+        $bad[] = "{$c['name']}: its local header disagrees";
+    }
+    if ($c['data'] !== $bytes || $c['size'] !== strlen((string) $bytes)
+        || sprintf('%08x', $c['crc']) !== hash('crc32b', (string) $bytes)) {
+        $bad[] = "{$c['name']}: stored bytes, size or CRC wrong";
+    }
+    if ([$c['time'], $c['date']] !== $dos) {
+        $bad[] = "{$c['name']}: time/date {$c['time']}/{$c['date']}, want " . implode('/', $dos);
+    }
+}
+ok($entries !== [] && $bad === [], 'each entry is stored, flagged UTF-8, with its own bytes, CRC and the time its file was last changed',
+   implode("\n", $bad));
+
+/* the archive read back by a reader that is not this suite */
+if (class_exists('ZipArchive')) {
+    $za = new ZipArchive();
+    $read = [];
+    if ($za->open("$zbox/a.zip", ZipArchive::CHECKCONS) === true) {
+        for ($i = 0; $i < $za->numFiles; $i++) {
+            $s = $za->statIndex($i);
+            $read[$s['name']] = [$s['size'], sprintf('%08x', $s['crc']), $za->getFromIndex($i)];
+        }
+        $za->close();
+    }
+    $reader = 'ZipArchive';
+} elseif (trim((string) shell_exec('command -v unzip 2>/dev/null')) !== '') {
+    $read = [];
+    $q = escapeshellarg("$zbox/a.zip");
+    exec("unzip -tqq $q 2>&1", $said, $status);
+    if ($status === 0) {
+        /* Length Method Size Cmpr Date Time CRC-32 Name */
+        foreach (explode("\n", (string) shell_exec("LC_ALL=C.UTF-8 unzip -v $q")) as $row) {
+            if (preg_match('~^\s*(\d+)\s+Stored\s+\d+\s+\S+\s+\S+\s+\S+\s+([0-9a-f]{8})\s+(.+)$~', $row, $m)) {
+                $read[$m[3]] = [(int) $m[1], $m[2],
+                                (string) shell_exec("LC_ALL=C.UTF-8 unzip -p $q " . escapeshellarg($m[3]))];
+            }
+        }
+    }
+    $reader = 'unzip';
+} else {
+    $read = null;
+}
+if ($read === null) {
+    echo "  -- neither ZipArchive nor unzip here, skipping the read-back\n";
+} else {
+    $expect = array_map(static fn (array $w) => [strlen($w[1]), hash('crc32b', $w[1]), $w[1]], $want);
+    ok($read === $expect, "and $reader reads back every name, size, CRC and byte exactly",
+       implode("\n", array_keys($read)));
+}
+
+ok($writeZip("$zbox/b.zip") === $zipped, 'two runs over the same files write the same bytes');
+touch("$zbox/src/hello.txt", 1767323046 + 3600);
+ok($writeZip("$zbox/c.zip") !== $zipped, 'and a file touched since writes different ones');
+
+$refused = [];
+foreach (['', '/abs', '../up', 'a/../b', 'a/./b', 'a//b', 'dir/', 'a\\b', "a\0b", "bad-\xff"] as $name) {
+    $zip = new TerminalCms\Zip(fopen('php://memory', 'wb'));
+    try {
+        $zip->data($name, 'x', 0);
+        $refused[] = 'took ' . var_export($name, true);
+    } catch (InvalidArgumentException) {
+    }
+}
+$zip = new TerminalCms\Zip(fopen('php://memory', 'wb'));
+$zip->data('a', 'x', 0);
+try {
+    $zip->data('a', 'y', 0);
+    $refused[] = 'took a name twice';
+} catch (InvalidArgumentException) {
+}
+$zip->finish();
+try {
+    $zip->data('b', 'z', 0);
+    $refused[] = 'took an entry after finish()';
+} catch (LogicException) {
+}
+ok($refused === [], 'a name that is not a relative path of UTF-8 segments, a name twice and an entry after the end are refused',
+   implode("\n", $refused));
+
+removeTree($zbox);
+
 /* ------------------------------------------------------- dangerous calls */
 echo "\nsource\n";
 
@@ -2841,13 +3008,27 @@ function scan(array $files, array $terms): array
     return $found;
 }
 
-$found = scan(
-    array_merge(glob($root . '/site/src/*.php') ?: [], [$root . '/site/public/index.php']),
-    ['eval(', 'exec(', 'shell_exec', 'system(', 'passthru', 'popen',
-     'unserialize(', 'extract(', 'assert(', '$_GET', '$_POST', '$_COOKIE',
-     'file_put_contents', 'fwrite', 'unlink', 'session_start']
+$siteSource = array_merge(glob($root . '/site/src/*.php') ?: [], [$root . '/site/public/index.php']);
+$zipSource  = $root . '/site/src/Zip.php';
+$found = array_merge(
+    scan(array_diff($siteSource, [$zipSource]), ['fwrite']),
+    scan($siteSource,
+        ['eval(', 'exec(', 'shell_exec', 'system(', 'passthru', 'popen',
+         'unserialize(', 'extract(', 'assert(', '$_GET', '$_POST', '$_COOKIE',
+         'file_put_contents', 'unlink', 'session_start'])
 );
 ok($found === [], 'the site reads, and does nothing else', implode("\n", $found));
+
+/* The ZIP writer writes: to the stream it is handed, which at request time is
+   the response. Every file it opens itself it opens to read. */
+$zipCode = implode('', array_map(
+    static fn ($t) => is_array($t) ? (in_array($t[0], [T_COMMENT, T_DOC_COMMENT], true) ? '' : $t[1]) : $t,
+    token_get_all((string) @file_get_contents($zipSource))
+));
+preg_match_all('~fopen\([^;]*~', $zipCode, $opens);
+$writable = array_filter($opens[0], static fn (string $call) => !preg_match("~,\s*'rb'\)$~", $call));
+ok($opens[0] !== [] && $writable === [], 'and Zip.php writes only to the stream it is given: every fopen() it makes is read-only',
+   implode("\n", $writable));
 
 /* accent is retired: nothing reads it, so nothing can write it into a page */
 $found = scan(

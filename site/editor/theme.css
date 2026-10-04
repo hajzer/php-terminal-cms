@@ -1,0 +1,282 @@
+/* php-terminal-cms — reader theme. Single source: copied to editor/ and site/public/
+   by bin/build. Derived from terminal.css (panr.github.io/terminal-css): the
+   same structural rules, recoloured for long reading.
+
+   This sheet is the structure and the metrics. Every colour, face and corner
+   it draws with is a token a Theme gives a value — shared/themes/<name>.json,
+   written by bin/build into themes/<name>.css beside this file — or, for the
+   body's colours, a mix of those tokens the sheet declares once; the rules
+   below reach colour, type and shape through these names only.
+
+   The token contract, what a Theme defines and all it defines:
+
+   In each Palette, light and dark:
+     --bg            the page, and the ground every tint is mixed into
+     --block-bg      a control at rest, and the chrome's raised surfaces
+     --code-bg       inline code, and a control under the pointer
+     --fg            text
+     --fg-strong     inline code; headings, bold and a table head, mixed
+     --secondary     quieter text; an h3, mixed
+     --faint         a date; the ## of a heading, mixed
+     --border        every rule and frame
+     --primary       links, and the tint of a table
+     --accent        emphasis, the keyboard's ring, and the tint of the
+                     headings, a Note, a quote, a list and a code block
+     --invert-fg     text on --primary
+     --tk-kw --tk-str --tk-num --tk-com --tk-bi --tk-var
+                     the syntax: keyword, string, number, comment, built-in,
+                     variable
+
+   Once, for both Palettes:
+     --font-body       the reading face, and the Editor's
+     --font-heading    headings
+     --mono            code, the CLI prompt, every control
+     --radius          every rounded corner
+     --heading-weight  headings
+
+   A Theme's light values hold under [data-theme="<name>"], its dark ones
+   under data-palette="dark" or, with no data-palette, a browser that
+   prefers dark.                                                            */
+
+:root {
+  --global-font-size: 15px;
+  --global-line-height: 1.5em;
+  --global-space: 10px;
+  /* the measure, counted in the reader's font size, in the two forms the two
+     surfaces need: the reader page sets its own font size and takes the em,
+     the editor's write sheet is on a font size of its own and takes the px */
+  --page-measure: 62;
+  --page-width: calc(var(--page-measure) * 1em);
+  --page-width-px: calc(var(--page-measure) * var(--global-font-size));
+  --doc-scale: 1;         /* + / - in the editor and on the page; see Page.php */
+}
+
+/* Declared wherever a Theme is, so that an element drawn in a Theme of its
+   own — the Editor's read pane, when its Document pins one — derives these
+   from that Theme's tokens rather than inheriting <html>'s. */
+:root, [data-theme] {
+  /* ---------- controls ----------
+     One treatment for every control the reader and the writer can press, in
+     both halves: a resting state that can be seen, a hover that answers, and
+     a ring for the keyboard. Written in terms of the tokens, so each Theme
+     and Palette follows on its own and the page and the editor cannot drift.
+     --ctl-bg is one step away from the page and --ctl-bg-hover a step
+     further, whichever Palette is on.
+
+     A control that has a border of its own colours it --ctl-line; one that
+     has not draws the same edge as --ctl-edge, a shadow. The ring is an
+     outline pulled back inside the edge. None of the three takes any room,
+     so a control's box stays the size it was. */
+  --ctl-fg:          var(--secondary);
+  --ctl-bg:          var(--block-bg);
+  --ctl-line:        var(--border);
+  --ctl-edge:        inset 0 0 0 1px var(--ctl-line);
+  --ctl-fg-hover:    var(--fg-strong);
+  --ctl-bg-hover:    var(--code-bg);
+  --ctl-line-hover:  var(--accent);
+  --ctl-edge-hover:  inset 0 0 0 1px var(--ctl-line-hover);
+  --ctl-ring:        2px solid var(--accent);
+  --ctl-ring-offset: -2px;
+
+  /* ---------- the body's colours ----------
+     Every colour in the body that is not a token is one of these: a Theme's
+     own --accent or --primary mixed into its ground or its ink, at a strength
+     that is the sheet's and the same in every Theme. So each Theme colours
+     its headings, Notes, tables and code in its own hue, and no Theme says
+     anything here.
+
+     A ground tinted toward a Theme's colour moves toward its text as well,
+     so the text on one leans toward --far — the end of the scale away from
+     the page, black on a light ground and white on a dark one — by as much
+     as keeps it as readable as it was on the untinted ground. Its hue stays. */
+  --far:          oklch(from var(--bg) calc(1 - round(l)) 0 0);
+
+  --heading-ink:  color-mix(in srgb, var(--accent) 56%, var(--fg-strong));
+  --accent-ink:   color-mix(in oklab, var(--accent) 75%, var(--far));
+  --h3-ink:       color-mix(in srgb, var(--accent-ink) 90%, var(--secondary));
+  --mark-ink:     color-mix(in srgb, var(--accent) 55%, var(--faint));
+  --bold-ink:     color-mix(in srgb, var(--accent) 36%, var(--fg-strong));
+  --rule-line:    color-mix(in srgb, var(--accent) 90%, var(--border));
+
+  --note-ground:  color-mix(in srgb, var(--accent) 16%, var(--bg));
+
+  --head-ground:  color-mix(in srgb, var(--primary) 24%, var(--bg));
+  --head-ink:     color-mix(in oklab, var(--fg-strong) 65%, var(--far));
+  --cell-line:    color-mix(in srgb, var(--primary) 18%, var(--border));
+  --cell-ink:     color-mix(in oklab, var(--fg) 90%, var(--far));
+  --row-ground:   color-mix(in srgb, var(--primary) 8%, var(--bg));
+  --row-hover:    color-mix(in srgb, var(--primary) 20%, var(--bg));
+
+  /* a block is its bar in the Theme's hue, and its code, CLI and output on
+     a lighter wash of it */
+  --bar-ground:   color-mix(in srgb, var(--accent) 18%, var(--bg));
+  --code-ground:  color-mix(in srgb, var(--accent) 7%, var(--bg));
+  --quiet-ink:    color-mix(in oklab, var(--secondary) 90%, var(--far));
+  --code-kw:      color-mix(in oklab, var(--tk-kw) 80%, var(--far));
+  --code-str:     color-mix(in oklab, var(--tk-str) 80%, var(--far));
+  --code-num:     color-mix(in oklab, var(--tk-num) 80%, var(--far));
+  --code-com:     color-mix(in oklab, var(--tk-com) 80%, var(--far));
+  --code-bi:      color-mix(in oklab, var(--tk-bi) 80%, var(--far));
+  --code-var:     color-mix(in oklab, var(--tk-var) 80%, var(--far));
+}
+
+* { box-sizing: border-box; }
+
+body.reader {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: var(--global-font-size)/var(--global-line-height) var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.reader-page {
+  max-width: var(--page-width);
+  margin: 0 auto;
+  padding: calc(var(--global-space) * 3) calc(var(--global-space) * 2);
+}
+
+/* ---------- document ---------- */
+/* the document's own meta, printed under its title */
+.reader .doc-meta {
+  color: var(--secondary); font-size: .87em;
+  padding-bottom: var(--global-space);
+  margin: calc(var(--global-space) * -1) 0 calc(var(--global-space) * 3);
+  border-bottom: 1px dashed var(--border);
+}
+.reader h1, .reader h2, .reader h3 {
+  font-family: var(--font-heading); font-weight: var(--heading-weight); color: var(--heading-ink); line-height: 1.25;
+  margin: calc(var(--global-space) * 3) 0 var(--global-line-height);
+}
+.reader h1 { font-size: 1.9em; margin-top: 0; letter-spacing: -.02em; }
+.reader h2 { font-size: 1.25em; }
+.reader h3 { font-size: 1.05em; color: var(--h3-ink); }
+.reader h2::before { content: "## "; color: var(--mark-ink); font-weight: 400; }
+.reader h3::before { content: "### "; color: var(--mark-ink); font-weight: 400; }
+
+.reader p { margin: 0 0 calc(var(--global-space) * 2); }
+.reader strong { color: var(--bold-ink); font-weight: 600; }
+.reader em { color: var(--accent); font-style: italic; }
+/* the one link: a region of quieter writing sets --link to rest in another
+   ink, and every link has this hover whatever it rested in */
+.reader a { color: var(--link, var(--primary)); text-decoration: none; border-bottom: 1px solid currentColor; }
+.reader a:hover { background: var(--primary); color: var(--invert-fg); border-color: transparent; }
+
+.reader ul { list-style: none; margin: 0 0 calc(var(--global-space) * 2); padding: 0; }
+.reader li { padding-left: calc(var(--global-space) * 2); position: relative; }
+.reader li::before { content: "-"; position: absolute; left: var(--global-space); color: var(--accent-ink); }
+
+.reader blockquote {
+  margin: calc(var(--global-space) * 2) 0; padding-left: 2ch;
+  color: var(--secondary); font-style: italic; border-left: 3px solid var(--accent);
+}
+.reader blockquote::before { content: "> "; color: var(--faint); font-style: normal; }
+
+.reader hr { border: 0; border-bottom: 1px dashed var(--rule-line); margin: calc(var(--global-space) * 4) 0; }
+
+.reader .note {
+  margin: calc(var(--global-space) * 2) 0;
+  padding: var(--global-space) calc(var(--global-space) * 1.5);
+  background: var(--note-ground); border-left: 3px solid var(--accent); color: var(--fg);
+  border-radius: var(--radius);
+}
+.reader .note-tag {
+  display: block; color: var(--accent-ink); font-size: 11px; font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase; margin-bottom: 3px;
+}
+
+/* ---------- table ---------- */
+.reader .tablewrap { overflow-x: auto; margin: calc(var(--global-space) * 2) 0; }
+.reader table { border-collapse: collapse; width: 100%; font-size: .93em; }
+.reader th, .reader td {
+  border: 1px solid var(--cell-line); padding: 4px 10px; text-align: left; vertical-align: top;
+}
+.reader td { color: var(--cell-ink); }
+.reader th { background: var(--head-ground); color: var(--head-ink); font-weight: 600; }
+.reader tbody tr:nth-child(even) { background: var(--row-ground); }
+.reader tbody tr:hover { background: var(--row-hover); }
+
+/* ---------- code, CLI, output ---------- */
+.reader .block { position: relative; margin: calc(var(--global-space) * 2) 0; }
+.reader .block-bar, .reader pre, .reader code { font-family: var(--mono); }
+/* a block is its bar, its code and its output stacked: the stack is rounded
+   at its outer corners and nowhere between */
+.reader .block > :first-child { border-top-left-radius: var(--radius); border-top-right-radius: var(--radius); }
+.reader .block > :last-child { border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius); }
+.reader .block-bar {
+  display: flex; align-items: center; gap: 8px;
+  border: 1px solid var(--border); border-bottom: 0;
+  background: var(--bar-ground); padding: 2px 8px 2px 10px;
+}
+.reader .block-bar .lang {
+  flex: 1; color: var(--faint); font-size: 10px;
+  letter-spacing: .14em; text-transform: uppercase;
+}
+.reader .block-bar .copy {
+  all: unset; cursor: pointer; color: var(--ctl-fg); font: 11px/1 var(--mono);
+  padding: 3px 8px; border: 1px solid var(--ctl-line); background: var(--ctl-bg);
+  border-radius: var(--radius);
+}
+.reader .block-bar .copy:hover {
+  color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); border-color: var(--ctl-line-hover);
+}
+
+.reader pre {
+  margin: 0; padding: var(--global-space) calc(var(--global-space) * 1.5);
+  border: 1px solid var(--border); background: var(--code-ground);
+  overflow-x: auto; line-height: 1.45;
+}
+.reader pre.cli .pr { color: var(--accent-ink); user-select: none; }
+.reader code { background: var(--code-bg); color: var(--fg-strong); padding: 0 4px; border-radius: var(--radius); }
+.reader p code::before, .reader p code::after,
+.reader li code::before, .reader li code::after { content: "`"; color: var(--faint); }
+.reader td code::before, .reader td code::after { content: ""; }
+
+.reader .outsec { border: 1px solid var(--border); border-top: 0; background: var(--code-ground); }
+.reader .outsec > summary {
+  cursor: pointer; list-style: none; padding: 3px 10px;
+  color: var(--quiet-ink); font-size: 11px; display: flex; align-items: center; gap: 6px;
+  box-shadow: var(--ctl-edge);
+}
+.reader .outsec > summary::-webkit-details-marker { display: none; }
+.reader .outsec > summary::before { content: "▸"; color: var(--faint); }
+.reader .outsec[open] > summary::before { content: "▾"; }
+.reader .outsec > summary:hover {
+  color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); box-shadow: var(--ctl-edge-hover);
+}
+/* the keyboard's own mark, on both of the document's controls at once */
+.reader .block-bar .copy:focus-visible,
+.reader .outsec > summary:focus-visible {
+  outline: var(--ctl-ring); outline-offset: var(--ctl-ring-offset);
+}
+.reader .outsec > summary i { font-style: normal; color: var(--faint); }
+.reader .outsec .outp {
+  margin: 0; border: 0; border-top: 1px dashed var(--border);
+  background: transparent; color: var(--quiet-ink); font-size: .87em;
+  padding: var(--global-space) calc(var(--global-space) * 1.5); overflow-x: auto;
+}
+
+/* a drawn Diagram is in the frame its source was in, centred at its own width */
+.reader .block:has(> svg) { border: 1px solid var(--border); border-radius: var(--radius); }
+.reader .block:has(> svg) > .block-bar { border-width: 0 0 1px; }
+.reader .block > svg { display: block; margin: var(--global-space) auto; }
+
+/* ---------- figures ---------- */
+.reader figure { margin: calc(var(--global-space) * 2) 0; }
+.reader figure img { max-width: 100%; display: block; border: 1px solid var(--border); border-radius: var(--radius); }
+.reader figcaption { color: var(--secondary); font-size: .8em; margin-top: 5px; }
+
+/* ---------- syntax tokens ---------- */
+.tk-kw  { color: var(--tk-kw); }
+.tk-str { color: var(--tk-str); }
+.tk-num { color: var(--tk-num); }
+.tk-com { color: var(--tk-com); font-style: italic; }
+.tk-bi  { color: var(--tk-bi); }
+.tk-var { color: var(--tk-var); }
+/* on a block's tinted wash, each leans toward --far as the body's text does */
+.reader pre .tk-kw  { color: var(--code-kw); }
+.reader pre .tk-str { color: var(--code-str); }
+.reader pre .tk-num { color: var(--code-num); }
+.reader pre .tk-com { color: var(--code-com); }
+.reader pre .tk-bi  { color: var(--code-bi); }
+.reader pre .tk-var { color: var(--code-var); }

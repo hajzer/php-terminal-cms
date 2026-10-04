@@ -1,0 +1,70 @@
+/* GENERATED from shared/themes/baseline.json by bin/build — do not edit.
+   Baseline, from svnaxis/obsidian-baseline by Alexis C, MIT
+   Copyright (c) 2025 aaaaalexis */
+
+[data-theme="baseline"] {
+  --font-body: Inter, system-ui, sans-serif;
+  --font-heading: "Instrument Serif", Inter, system-ui, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "JetBrains Mono", "Fira Code", Menlo, Monaco, Consolas, monospace;
+  --radius: 12px;
+  --heading-weight: 700;
+  --bg: #ffffff;
+  --block-bg: #f6f6f6;
+  --code-bg: #fafafa;
+  --fg: #222222;
+  --fg-strong: #131313;
+  --secondary: #5c5c5c;
+  --faint: #ababab;
+  --border: #e0e0e0;
+  --primary: #8666ee;
+  --accent: #8666ee;
+  --invert-fg: #131313;
+  --tk-kw: #da3120;
+  --tk-str: #0b7d94;
+  --tk-num: #a626a4;
+  --tk-com: #8b90a3;
+  --tk-bi: #a86202;
+  --tk-var: #1476c7;
+}
+
+[data-theme="baseline"][data-palette="dark"] {
+  --bg: #1e1e1e;
+  --block-bg: #262626;
+  --code-bg: #242424;
+  --fg: #dadada;
+  --fg-strong: #ebebeb;
+  --secondary: #b3b3b3;
+  --faint: #666666;
+  --border: #363636;
+  --primary: #8666ee;
+  --accent: #8666ee;
+  --invert-fg: #000000;
+  --tk-kw: #e16d76;
+  --tk-str: #58b6c2;
+  --tk-num: #c678de;
+  --tk-com: #666e7d;
+  --tk-bi: #d19a66;
+  --tk-var: #62afef;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="baseline"]:not([data-palette="light"]) {
+    --bg: #1e1e1e;
+    --block-bg: #262626;
+    --code-bg: #242424;
+    --fg: #dadada;
+    --fg-strong: #ebebeb;
+    --secondary: #b3b3b3;
+    --faint: #666666;
+    --border: #363636;
+    --primary: #8666ee;
+    --accent: #8666ee;
+    --invert-fg: #000000;
+    --tk-kw: #e16d76;
+    --tk-str: #58b6c2;
+    --tk-num: #c678de;
+    --tk-com: #666e7d;
+    --tk-bi: #d19a66;
+    --tk-var: #62afef;
+  }
+}

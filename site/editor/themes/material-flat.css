@@ -1,0 +1,70 @@
+/* GENERATED from shared/themes/material-flat.json by bin/build — do not edit.
+   Material Flat, from threethan/obsidian-material-flat-theme by threethan, MIT
+   Copyright (c) 2021 Joschua Glau, 2023 Ethan Medeiros */
+
+[data-theme="material-flat"] {
+  --font-body: Inter, Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-heading: Inter, Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --mono: "Roboto Mono", ui-monospace, SFMono-Regular, "JetBrains Mono", "Fira Code", Menlo, Monaco, Consolas, monospace;
+  --radius: 8px;
+  --heading-weight: 700;
+  --bg: #ffffff;
+  --block-bg: #e7e2f8;
+  --code-bg: #f7f2fc;
+  --fg: #111111;
+  --fg-strong: #090909;
+  --secondary: #2c273f;
+  --faint: #a3a1ab;
+  --border: #e7e2f8;
+  --primary: #5f42bd;
+  --accent: #7e60e2;
+  --invert-fg: #ffffff;
+  --tk-kw: #7d4f9e;
+  --tk-str: #4a7a3c;
+  --tk-num: #96601f;
+  --tk-com: #938c7e;
+  --tk-bi: #5f42bd;
+  --tk-var: #a34a3c;
+}
+
+[data-theme="material-flat"][data-palette="dark"] {
+  --bg: #1d1c1f;
+  --block-bg: #313036;
+  --code-bg: #252329;
+  --fg: #e5e1e5;
+  --fg-strong: #f1eef1;
+  --secondary: #c5bfd9;
+  --faint: #666666;
+  --border: #302e35;
+  --primary: #bcadeb;
+  --accent: #bcadeb;
+  --invert-fg: #1d1c1f;
+  --tk-kw: #c39ac9;
+  --tk-str: #a3c98f;
+  --tk-num: #d9b06a;
+  --tk-com: #6d7679;
+  --tk-bi: #bcadeb;
+  --tk-var: #e0a49a;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="material-flat"]:not([data-palette="light"]) {
+    --bg: #1d1c1f;
+    --block-bg: #313036;
+    --code-bg: #252329;
+    --fg: #e5e1e5;
+    --fg-strong: #f1eef1;
+    --secondary: #c5bfd9;
+    --faint: #666666;
+    --border: #302e35;
+    --primary: #bcadeb;
+    --accent: #bcadeb;
+    --invert-fg: #1d1c1f;
+    --tk-kw: #c39ac9;
+    --tk-str: #a3c98f;
+    --tk-num: #d9b06a;
+    --tk-com: #6d7679;
+    --tk-bi: #bcadeb;
+    --tk-var: #e0a49a;
+  }
+}

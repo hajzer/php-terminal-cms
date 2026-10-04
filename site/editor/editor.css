@@ -1,0 +1,452 @@
+/* Editor chrome only. Everything about how a document *reads* is in theme.css.
+   --doc-scale is set from ui.js by + and -: chrome keeps its size, the document
+   in both panes grows and shrinks. Every rule that sizes document text does it
+   in em, so one variable is enough. */
+
+html, body { height: 100%; }
+body { overflow: hidden; font: 14px/1.6 var(--font-body); }
+
+/* the one column is the window's width, not the widest row's: a bar that
+   cannot fit has to wrap, not widen the page past the edge */
+.app { height: 100vh; height: 100dvh; display: grid; grid-template-rows: auto auto 1fr auto auto auto;
+  grid-template-columns: minmax(0, 1fr); }
+
+/* ---------------------------------------------------------------- topbar
+   Wider than the screen, the bar wraps rather than run past the edge: body
+   hides overflow, so whatever ran past it could not be reached. */
+.topbar {
+  display: flex; flex-wrap: wrap; align-items: center;
+  border-bottom: 1px solid var(--border); background: var(--bg);
+  padding: 0 14px; min-height: 30px; font-size: 12px;
+}
+.topbar .brand { color: var(--fg-strong); font-weight: 600; padding-right: 18px; white-space: nowrap; }
+/* the same mark the site wears, capped to the bar's line whatever the
+   file's own size is, so it fits without moving anything */
+.topbar .brand .logo {
+  height: 18px; width: auto; vertical-align: middle;
+  margin-right: 7px; position: relative; top: -1px;
+}
+.topbar .brand span { color: var(--accent); }
+.topbar .brand .ver {
+  font-style: normal; font-weight: 400; font-size: 11px;
+  color: var(--faint); padding-left: 7px;
+}
+.topbar .grow { flex: 1; }
+
+/* what the editor can do to the document as a whole, wearing the one control
+   treatment theme.css derives from the theme's own tokens. Each control is
+   the bar's height less its border, so a row of them is the bar's line. */
+.topbar .acts { display: flex; flex-wrap: wrap; align-items: stretch; align-self: stretch; }
+.topbar .acts button {
+  all: unset; cursor: pointer; display: flex; align-items: center; padding: 0 12px; min-height: 29px;
+  color: var(--ctl-fg); white-space: nowrap;
+  background: var(--ctl-bg); box-shadow: var(--ctl-edge);
+}
+.topbar .acts button:hover {
+  color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); box-shadow: var(--ctl-edge-hover);
+}
+/* a button that can do nothing is not a control, so it loses the box too */
+.topbar .acts button[disabled], .topbar .acts button[disabled]:hover {
+  color: var(--faint); cursor: default; background: transparent; box-shadow: none;
+}
+.topbar .acts select {
+  font: inherit; color: var(--ctl-fg); background: var(--ctl-bg); cursor: pointer;
+  border: 0; border-radius: 0; box-shadow: var(--ctl-edge); padding: 0 8px; min-height: 29px;
+}
+.topbar .acts select:hover {
+  color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); box-shadow: var(--ctl-edge-hover);
+}
+.topbar .acts .bar { width: 1px; background: var(--border); margin: 5px 8px; }
+
+/* ------------------------------------------------------------------ tabs */
+.tabs {
+  display: flex; align-items: stretch; min-height: 26px; font-size: 12px;
+  border-bottom: 1px solid var(--border); background: var(--block-bg);
+}
+.tabs button {
+  all: unset; cursor: pointer; padding: 0 16px; display: flex; align-items: center;
+  color: var(--secondary); border-right: 1px solid var(--border);
+}
+.tabs button:hover { color: var(--fg-strong); }
+/* the pane a tab opens is below it, so the mark that says which one is open
+   goes along the bottom edge, against the pane */
+.tabs button.on { background: var(--bg); color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
+.tabs .grow { flex: 1; }
+.tabs .doc {
+  display: flex; align-items: center; padding: 0 12px;
+  font-size: 11px; white-space: nowrap; overflow: hidden;
+}
+.tabs .doc b {
+  color: var(--secondary); font-weight: 400; cursor: text;
+  border-bottom: 1px dotted var(--border); padding: 0 1px;
+}
+.tabs .doc b:hover { color: var(--accent); border-bottom-color: var(--accent); }
+.tabs .doc b[contenteditable] {
+  outline: none; color: var(--fg-strong); background: var(--code-bg);
+  box-shadow: 0 0 0 1px var(--accent); border-bottom-color: transparent;
+}
+.tabs .icon { padding: 0 10px; border-right: 1px solid var(--border); }
+.tabs .zoom { display: flex; align-items: stretch; border-left: 1px solid var(--border); }
+.tabs .zoom button {
+  all: unset; cursor: pointer; display: flex; align-items: center; padding: 0 9px;
+  color: var(--ctl-fg); font-size: 11px;
+  background: var(--ctl-bg); box-shadow: var(--ctl-edge);
+}
+.tabs .zoom button:hover {
+  color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); box-shadow: var(--ctl-edge-hover);
+}
+.tabs .zoom #zoomPct { color: var(--faint); min-width: 34px; justify-content: center; }
+
+/* ----------------------------------------------------------------- panes */
+.panes { display: grid; min-height: 0; overflow: hidden; }
+.panes .pane { overflow: auto; min-height: 0; min-width: 0; display: none; }
+
+.panes[data-mode="write"] .pane.write,
+.panes[data-mode="read"]  .pane.readwrap,
+.panes[data-mode="raw"]   .pane.readwrap { display: block; }
+
+/* the reading pane has two faces, and shows one */
+.panes[data-face="read"] .raw-page,
+.panes[data-face="raw"]  .reader-page { display: none; }
+
+/* split: two live panes, either way round */
+.panes[data-mode="split"] { grid-template-columns: 1fr 1fr; }
+.panes[data-mode="split"] .pane { display: block; }
+.panes[data-mode="split"] .pane.write { border-right: 1px solid var(--border); }
+.panes[data-mode="split"][data-swap="yes"] .pane.write  { order: 2; border-right: 0;
+  border-left: 1px solid var(--border); }
+.panes[data-mode="split"][data-swap="yes"] .pane.readwrap { order: 1; }
+.panes[data-mode="split"] .sheet { max-width: none; padding: 20px 12px 40vh; }
+.panes[data-mode="split"] .readwrap .reader-page,
+.panes[data-mode="split"] .readwrap .raw-page { padding: 20px 16px 40vh; }
+.panes[data-mode="split"] .raw-page pre { max-width: none; }
+
+@media (max-width: 900px) {
+  .panes[data-mode="split"] { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+  .panes[data-mode="split"] .pane.write { border-right: 0; border-bottom: 1px solid var(--border); }
+}
+
+/* --------------------------------------------------------- write surface */
+/* the read pane's measure: --page-width is counted in the reader's font size,
+   which is not this sheet's, so the sheet takes the same measure in the px
+   form theme.css derives beside it */
+.sheet {
+  max-width: calc(var(--page-width-px) * var(--doc-scale));
+  margin: 0 auto; padding: 30px 0 40vh;
+  font-size: calc(14px * var(--doc-scale)); }
+.ln {
+  display: grid; grid-template-columns: 50px 1fr; align-items: start;
+  position: relative; padding: 0 20px 0 0;
+}
+.ln .gut {
+  color: transparent; font-size: 10px; text-align: right; padding: 6px 12px 0 0;
+  white-space: nowrap; user-select: none; line-height: 1.6;
+}
+.ln:hover .gut, .ln.cur .gut { color: var(--faint); }
+.ln .gut .sg { color: var(--secondary); }
+.ln.cur .gut .sg { color: var(--accent); }
+.ln .grip { position: absolute; left: 0; top: 6px; color: transparent; cursor: grab; font-size: 11px; }
+.ln:hover .grip { color: var(--faint); }
+.ln .txt { padding: 1px 4px; white-space: pre-wrap; word-break: break-word; }
+.ln.cur { background: var(--block-bg); }
+.ln.cur::before {
+  content: ""; position: absolute; left: 42px; top: 1px; bottom: 1px;
+  border-left: 2px solid var(--accent);
+}
+.ln.dragging { opacity: .4; }
+.ln.over .txt { box-shadow: 0 -2px 0 var(--accent); }
+.ln .txt[contenteditable] { outline: none; box-shadow: 0 0 0 1px var(--accent); background: var(--code-bg); }
+.ln .ph { color: var(--faint); font-style: normal; }
+
+/* each line already wears its own style — the sheet is the preview */
+.ln.h1 .txt, .ln.h2 .txt, .ln.h3 .txt { font-family: var(--font-heading); font-weight: var(--heading-weight); }
+.ln.h1 .txt { font-size: 1.9em; color: var(--fg-strong);
+  letter-spacing: -.02em; line-height: 1.25; padding-top: 14px; }
+.ln.h2 .txt { font-size: 1.25em; color: var(--fg-strong); padding-top: 16px; }
+.ln.h3 .txt { font-size: 1.05em; color: var(--secondary); padding-top: 10px; }
+.ln.list .txt { padding-left: 22px; position: relative; }
+.ln.list .txt::before { content: "-"; position: absolute; left: 6px; color: var(--secondary); }
+.ln.quote .txt { font-style: italic; color: var(--secondary);
+  border-left: 1px solid var(--border); padding-left: 14px; }
+.ln.note .txt { background: var(--block-bg); border-left: 2px solid var(--accent); padding: 4px 12px;
+  border-radius: var(--radius); }
+.ln.rule .txt { border-bottom: 1px dashed var(--border); height: 0; overflow: hidden; margin: 14px 0; }
+.ln.meta .txt { color: var(--faint); font-size: .86em; }
+.ln.img .txt { border: 1px solid var(--border); background: var(--block-bg);
+  color: var(--faint); text-align: center; padding: 24px; font-size: .86em; }
+
+/* a run of code / CLI / table lines is one visual block */
+.run { margin: 16px 0; border: 1px solid var(--border); border-radius: var(--radius); font-family: var(--mono); }
+.run .runbar {
+  display: flex; align-items: center; gap: 8px; padding: 2px 8px 2px 12px;
+  background: var(--block-bg); border-bottom: 1px solid var(--border);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.run .runbar .lang { flex: 1; color: var(--faint); font-size: 10px;
+  letter-spacing: .14em; text-transform: uppercase; }
+.run .runbar button { all: unset; cursor: pointer; color: var(--ctl-fg);
+  font: 11px/1 var(--mono); padding: 3px 8px;
+  background: var(--ctl-bg); box-shadow: var(--ctl-edge); }
+.run .runbar button:hover {
+  color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); box-shadow: var(--ctl-edge-hover); }
+.run .runbar button.done { color: var(--tk-str); }
+.run .ln { padding-right: 8px; }
+.run .ln .txt { font-size: .93em; line-height: 1.5; white-space: pre; overflow-x: auto; }
+.run .ln .gut { padding-top: 3px; }
+.run.cli .pr { color: var(--accent); user-select: none; }
+.run.table .ln .txt { white-space: pre; font-size: .93em; }
+.run.table .ln:first-of-type .txt { color: var(--fg-strong); font-weight: 600; }
+.run.table .ln .cell { cursor: text; }
+.run.table .ln .cell:hover { background: var(--ctl-bg-hover); }
+.run.table .ln .txt[contenteditable] .cell:hover { background: none; }
+
+/* the Columns of the Run the cursor is in, one entry each, numbered and
+   carrying the heading Cell — write-pane chrome that no document ever holds */
+.colstrip {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  padding: 6px 8px 6px 12px; background: var(--block-bg);
+  border-bottom: 1px solid var(--border);
+}
+.colstrip b {
+  cursor: pointer; font: 400 11px/1.3 var(--mono);
+  color: var(--ctl-fg); background: var(--ctl-bg); box-shadow: var(--ctl-edge);
+  padding: 4px 8px; max-width: 16ch;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.colstrip b:hover {
+  color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); box-shadow: var(--ctl-edge-hover);
+}
+.colstrip b i { font-style: normal; color: var(--secondary); margin-right: 6px; }
+.colstrip b.on, .colstrip b.on:hover {
+  background: var(--accent); color: var(--bg); box-shadow: none;
+}
+.colstrip b.on i { color: var(--bg); opacity: .7; }
+/* the four, drawn only while a Column is selected — `:col` with a place to be
+   clicked, set apart from the entries so they cannot be read as one more */
+.colstrip .colops { display: flex; gap: 4px; margin-left: 8px; }
+.colstrip .colops button {
+  font: 400 12px/1 var(--mono); min-width: 24px; padding: 4px 6px;
+  color: var(--ctl-fg); background: var(--ctl-bg); box-shadow: var(--ctl-edge);
+  border: 0; cursor: pointer;
+}
+.colstrip .colops button:hover {
+  color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); box-shadow: var(--ctl-edge-hover);
+}
+
+.foldrow {
+  display: grid; grid-template-columns: 50px 1fr; cursor: pointer;
+  border-top: 1px dashed var(--border);
+}
+.foldrow .gut { color: var(--faint); font-size: 10px; text-align: right; padding: 4px 12px 0 0; }
+.foldrow .lbl { padding: 3px 4px; color: var(--ctl-fg); font-size: 11px; }
+.foldrow:hover .lbl { color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); }
+.foldrow .lbl i { font-style: normal; color: var(--faint); }
+.run .ln.out { border-top: 1px dashed var(--border); }
+.run .ln.out .txt { color: var(--secondary); font-size: .93em; }
+
+/* ------------------------------------------------------------ read pane */
+.readwrap .reader-page {
+  padding: 32px 24px 80px;
+  font-size: calc(var(--global-font-size) * var(--doc-scale));
+}
+
+/* a Document that pins a Theme is read in it: the pane takes the page's
+   ground, face and ink from its own tokens, across the pane's whole width */
+.readwrap .reader-page[data-theme] {
+  min-height: 100%;
+  background: var(--bg); color: var(--fg); font-family: var(--font-body);
+  box-shadow: 0 0 0 100vmax var(--bg); clip-path: inset(0 -100vmax);
+}
+
+/* the raw face: the Export bytes as they are, wrapped for reading only —
+   a copy of them is the file */
+.readwrap .raw-page {
+  padding: 32px 24px 80px;
+  font-size: calc(14px * var(--doc-scale));
+}
+.raw-page pre {
+  margin: 0 auto; max-width: calc(var(--page-width-px) * var(--doc-scale));
+  white-space: pre-wrap; word-break: break-word; font: inherit; color: var(--fg);
+}
+
+/* -------------------------------------------------------------- legend */
+.legend {
+  display: flex; flex-wrap: wrap; padding: 3px 10px; font-size: 11px;
+  border-top: 1px solid var(--border); color: var(--faint);
+}
+/* the line types, then the writing loop as buttons — the same actions the keys
+   have. Every chip is its own box, so that on a screen with no keyboard the
+   strip reads as the row of buttons it is */
+.legend b {
+  font-weight: 400; padding: 1px 7px; cursor: pointer;
+  color: var(--ctl-fg); background: var(--ctl-bg); box-shadow: var(--ctl-edge);
+}
+.legend b:hover {
+  color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); box-shadow: var(--ctl-edge-hover);
+}
+/* the type this line already is, filled rather than outlined — it is a state,
+   not something to press, so the hover says nothing */
+.legend b.on, .legend b.on:hover { background: var(--accent); color: var(--bg); box-shadow: none; }
+.legend b i { font-style: normal; color: var(--secondary); margin-left: 5px; }
+.legend b.on i { color: var(--bg); opacity: .7; }
+.legend .sep { flex: 1; }
+.legend .act { color: var(--secondary); }
+.legend .act kbd { font: inherit; color: var(--fg); }
+
+/* ------------------------------------------------- command line + status */
+.cmd { display: flex; align-items: center; padding: 2px 12px; min-height: 20px; font-size: 13px; }
+.cmd.hidden { display: none; }
+.cmd input { all: unset; flex: 1; color: var(--fg-strong); font: 13px/1 var(--mono); }
+.compl { display: flex; flex-wrap: wrap; align-items: center; padding: 0 12px 3px 22px; }
+.compl.hidden { display: none; }
+.compl b { font-weight: 400; padding: 0 7px; font-size: 11px; color: var(--faint); cursor: pointer; }
+.compl b:hover { color: var(--fg-strong); }
+.compl b.on { background: var(--accent); color: var(--bg); }
+.compl i { font-style: normal; padding: 0 7px; font-size: 11px; color: var(--faint); opacity: .7; }
+
+.status {
+  display: flex; align-items: center; background: var(--block-bg);
+  color: var(--secondary); font-size: 11px; height: 22px; border-top: 1px solid var(--border);
+}
+.status .sess {
+  background: var(--accent); color: var(--bg); padding: 0 10px; height: 100%;
+  display: flex; align-items: center; font-weight: 600;
+}
+.status .w { padding: 0 10px; cursor: pointer; }
+.status .w.on { color: var(--accent); background: var(--code-bg); }
+.status .grow { flex: 1; }
+.status .msg { color: var(--tk-str); padding-right: 12px; }
+.status .right { padding: 0 10px; }
+
+/* ------------------------------------------------------------ overlays */
+.ov { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; z-index: 60; place-items: center; }
+.ov.on { display: grid; }
+.ov .card {
+  background: var(--bg); border: 1px solid var(--accent);
+  width: min(760px, 92vw); max-height: 84vh; display: flex; flex-direction: column;
+}
+.ov .card h4 {
+  margin: 0; padding: 12px 18px; font-size: 11px; color: var(--accent);
+  letter-spacing: .16em; text-transform: uppercase;
+  border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px;
+}
+.ov .card h4 .grow { flex: 1; }
+.ov .card h4 button {
+  all: unset; cursor: pointer; color: var(--ctl-fg); font-size: 11px;
+  letter-spacing: .06em; padding: 3px 9px;
+  border: 1px solid var(--ctl-line); background: var(--ctl-bg);
+}
+.ov .card h4 button:hover {
+  color: var(--ctl-fg-hover); background: var(--ctl-bg-hover); border-color: var(--ctl-line-hover);
+}
+.ov .body { overflow: auto; padding: 16px 18px; font-size: 13px; }
+.ov .row { display: grid; grid-template-columns: 150px 1fr; padding: 2px 0; color: var(--secondary); }
+.ov .row kbd { font: inherit; color: var(--fg-strong); }
+.ov .row .subs { color: var(--faint); font-size: 12px; word-spacing: .3em; }
+/* the command table is generated from the commands themselves — see ui.js */
+.ov .cmds .row { grid-template-columns: 215px 1fr; }
+.ov .cmds .row kbd { color: var(--tk-kw); }
+.ov h5 { margin: 16px 0 6px; font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--faint); font-weight: 400; }
+.ov pre { margin: 0; padding: 12px 14px; background: var(--code-bg);
+  border: 1px solid var(--border); overflow: auto; font-size: 12px; line-height: 1.5; color: var(--fg); }
+.ov .path { color: var(--tk-str); font-size: 12px; margin-bottom: 10px; }
+.ov .path b { color: var(--fg-strong); font-weight: 400; }
+
+/* the address overlay — the links in a line, and the two fields behind them */
+.pick b {
+  display: block; font-weight: 400; padding: 5px 9px; cursor: pointer;
+  color: var(--secondary); border: 1px solid transparent;
+}
+.pick b:hover { color: var(--fg-strong); }
+.pick b.on { border-color: var(--accent); color: var(--fg-strong); background: var(--code-bg); }
+.pick b u { text-decoration: none; color: var(--faint); padding-right: 9px; }
+.pick b i { font-style: normal; color: var(--tk-str); }
+.fld { display: grid; grid-template-columns: 90px 1fr; align-items: center; margin-bottom: 8px; }
+.fld label { color: var(--faint); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
+.fld input {
+  all: unset; font: inherit; color: var(--fg-strong); background: var(--code-bg);
+  border: 1px solid var(--border); padding: 6px 9px;
+}
+.fld input:focus { border-color: var(--accent); }
+.form .warn { color: var(--tk-kw); font-size: 12px; min-height: 1.6em; }
+.form .hint { color: var(--faint); font-size: 11px; margin-top: 6px; }
+
+/* an image whose src did not load is the file name in a box, as it was — the
+   picture itself is hidden by hand, and theme.css gives it a display of its
+   own, so the hiding has to be said here to outrank it */
+.reader figure img[hidden] { display: none; }
+.reader .imgbox {
+  border: 1px dashed var(--border); color: var(--secondary);
+  padding: 14px; font-size: 12px; word-break: break-all;
+}
+
+/* what Mermaid said about a Diagram it could not draw, under its source */
+.reader .derr {
+  border: 1px solid var(--border); border-top: 0; color: var(--tk-var);
+  padding: var(--global-space) calc(var(--global-space) * 1.5);
+  font-size: .87em; white-space: pre-wrap; overflow-x: auto;
+}
+
+.prefix {
+  position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  background: var(--accent); color: var(--bg); padding: 10px 18px; font-size: 13px;
+  display: none; z-index: 70; letter-spacing: .1em;
+}
+.prefix.on { display: block; }
+
+/* drop a .md anywhere to open it */
+body.dropping::after {
+  content: "drop a .md file to edit it";
+  position: fixed; inset: 8px; z-index: 80; pointer-events: none;
+  border: 2px dashed var(--accent); color: var(--accent);
+  display: grid; place-items: center; font-size: 14px;
+  background: rgba(0,0,0,.35);
+}
+
+/* ------------------------------------------------- the keyboard's own mark
+   Every control in the chrome a tab can reach, in one rule, so that none is
+   left out of it. The file name while it is being edited is not in it: the
+   accent box it already wears is the same mark said once. */
+.topbar .acts button:focus-visible,
+.topbar .acts select:focus-visible,
+.tabs button:focus-visible,
+.tabs .zoom button:focus-visible,
+.tabs .doc b:not([contenteditable]):focus-visible,
+.run .runbar button:focus-visible,
+.ov .card h4 button:focus-visible {
+  outline: var(--ctl-ring); outline-offset: var(--ctl-ring-offset);
+}
+
+/* ------------------------------------------------------------------ touch
+   A tablet in landscape is 1024px wide and has no cursor: the legend along the
+   bottom is the writing loop when there is no keyboard to run it from, so it
+   has to be hittable at any width. Sizes only — the layout is below. */
+@media (pointer: coarse) {
+  .topbar .acts button, .topbar .acts select { padding: 10px 12px; min-height: 0; }
+  .tabs button { padding: 10px 16px; }
+  .ln .txt { padding: 5px 4px; }
+  .ln .grip { display: none; }        /* dragging is a mouse; J and K are not */
+  .foldrow .lbl { padding: 10px 4px; }
+  .run .runbar button { padding: 9px 10px; }
+  .colstrip b { padding: 9px 10px; }  /* the strip is why a finger can reach a Column */
+  .colstrip .colops button { padding: 9px 10px; }
+  .legend { padding: 4px 6px; }
+  .legend b { padding: 9px 10px; }
+  .legend .act { display: none; }     /* keys nobody can press on a screen */
+  .status .w { padding: 0 14px; }
+  .ov .card h4 button { padding: 9px 12px; }
+}
+
+/* -------------------------------------------------------- small screens */
+@media (max-width: 900px) {
+  .tabs { flex-wrap: wrap; }
+  .tabs .doc { flex: 1 0 100%; border-top: 1px solid var(--border); padding: 6px 12px; }
+  .sheet { padding: 14px 0 45vh; }
+  .ln { grid-template-columns: 34px 1fr; padding-right: 10px; }
+  .ln.cur::before { left: 26px; }
+  .foldrow { grid-template-columns: 34px 1fr; }
+  .readwrap .reader-page,
+  .readwrap .raw-page { padding: 18px 14px 60px; }
+  .legend .sep { flex-basis: 100%; height: 0; }
+}

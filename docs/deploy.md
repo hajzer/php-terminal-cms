@@ -5,7 +5,12 @@ Two halves, two places, no connection between them.
 ## The site
 
 Everything under `site/` goes on the web host. Only `site/public/` should be the
-document root — `src/`, `content/` and `site.php` must sit **above** it.
+document root — `src/`, `content/`, `editor/` and `site.php` must sit **above** it.
+
+`site/editor/` is a copy of the Editor that `php bin/build` makes, for a Bundle
+to carry; the site reads it and never serves it. Above the document root no
+address reaches it. The Editor you run yourself is the top-level `editor/` —
+see [below](#the-editor).
 
 ```console
 $ tar xzf php-terminal-cms-*.tar.gz
@@ -114,7 +119,7 @@ $ rsync -az php-terminal-cms-*/editor/ deploy@example.com:/var/www/editor.exampl
 
 If you change `shared/theme.css`, a Theme in `shared/themes/` or
 `shared/langs.json`, run `php bin/build` before deploying either half — both
-copies are generated.
+copies are generated, and so is `site/editor/`, from `editor/`.
 
 ## Publishing a document
 

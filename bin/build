@@ -22,6 +22,11 @@
  *                                                  for what the policy refuses
  *                                                  first in <head>, and the
  *                                                  probe script appended)
+ *   editor/ -> site/editor/  (the Editor a Bundle carries, after the files
+ *                             above that land in editor/ are written; each
+ *                             copy keeps its source's mtime, which a Bundle
+ *                             stamps it with, and a file editor/ no longer has
+ *                             is taken out of the copy)
  *
  * bin/test fails if any copy has drifted from its source.
  */
@@ -76,4 +81,26 @@ foreach ($targets as $rel => $content) {
     file_put_contents($path, $content);
     printf("  %-28s %6d bytes\n", ltrim($rel, '/'), strlen((string) $content));
 }
+
+$from = $root . '/editor';
+$to   = $root . '/site/editor';
+$it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($from, FilesystemIterator::SKIP_DOTS));
+$copied = 0;
+foreach ($it as $f) {
+    $rel = substr($f->getPathname(), strlen($from));
+    @mkdir(dirname($to . $rel), 0755, true);
+    if (!is_file($to . $rel) || md5_file($to . $rel) !== md5_file($f->getPathname())) {
+        copy($f->getPathname(), $to . $rel);
+    }
+    touch($to . $rel, $f->getMTime());
+    $copied++;
+}
+$it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($to, FilesystemIterator::SKIP_DOTS),
+                                    RecursiveIteratorIterator::CHILD_FIRST);
+foreach ($it as $f) {
+    if (!file_exists($from . substr($f->getPathname(), strlen($to)))) {
+        $f->isDir() ? rmdir($f->getPathname()) : unlink($f->getPathname());
+    }
+}
+printf("  %-28s %6d files\n", 'site/editor/', $copied);
 echo "build ok\n";

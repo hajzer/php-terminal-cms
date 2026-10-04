@@ -1,0 +1,70 @@
+/* GENERATED from shared/themes/minimal.json by bin/build — do not edit.
+   Minimal, from kepano/obsidian-minimal by kepano, MIT
+   Copyright (c) 2020-2024 Steph Ango (@kepano) */
+
+[data-theme="minimal"] {
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Ubuntu, system-ui, sans-serif;
+  --font-heading: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Ubuntu, system-ui, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "JetBrains Mono", "Fira Code", Menlo, Monaco, Consolas, monospace;
+  --radius: 8px;
+  --heading-weight: 600;
+  --bg: #ffffff;
+  --block-bg: #f5f5f5;
+  --code-bg: #f5f5f5;
+  --fg: #0f0f0f;
+  --fg-strong: #080808;
+  --secondary: #707070;
+  --faint: #afafaf;
+  --border: #e5e5e5;
+  --primary: #607a88;
+  --accent: #617a88;
+  --invert-fg: #ffffff;
+  --tk-kw: #af5078;
+  --tk-str: #607733;
+  --tk-num: #7f5fb6;
+  --tk-com: #8d8d8d;
+  --tk-bi: #97671a;
+  --tk-var: #3c7b73;
+}
+
+[data-theme="minimal"][data-palette="dark"] {
+  --bg: #262626;
+  --block-bg: #212121;
+  --code-bg: #212121;
+  --fg: #d1d1d1;
+  --fg-strong: #e6e6e6;
+  --secondary: #999999;
+  --faint: #595959;
+  --border: #363636;
+  --primary: #889eaa;
+  --accent: #7992a0;
+  --invert-fg: #262626;
+  --tk-kw: #be7090;
+  --tk-str: #a8c373;
+  --tk-num: #9e86c8;
+  --tk-com: #6b6b6b;
+  --tk-bi: #e5b567;
+  --tk-var: #73bbb2;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="minimal"]:not([data-palette="light"]) {
+    --bg: #262626;
+    --block-bg: #212121;
+    --code-bg: #212121;
+    --fg: #d1d1d1;
+    --fg-strong: #e6e6e6;
+    --secondary: #999999;
+    --faint: #595959;
+    --border: #363636;
+    --primary: #889eaa;
+    --accent: #7992a0;
+    --invert-fg: #262626;
+    --tk-kw: #be7090;
+    --tk-str: #a8c373;
+    --tk-num: #9e86c8;
+    --tk-com: #6b6b6b;
+    --tk-bi: #e5b567;
+    --tk-var: #73bbb2;
+  }
+}

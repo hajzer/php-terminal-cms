@@ -1,0 +1,70 @@
+/* GENERATED from shared/themes/github.json by bin/build — do not edit.
+   GitHub Theme, from krios2146/obsidian-theme-github by krios2146, MIT
+   Copyright (c) 2023 Vladimir Kidyaev */
+
+[data-theme="github"] {
+  --font-body: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  --font-heading: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "JetBrains Mono", "Fira Code", Menlo, Monaco, Consolas, monospace;
+  --radius: 8px;
+  --heading-weight: 700;
+  --bg: #ffffff;
+  --block-bg: #f6f8fa;
+  --code-bg: #f6f8fa;
+  --fg: #24292f;
+  --fg-strong: #14171a;
+  --secondary: #57606a;
+  --faint: #6e7781;
+  --border: #d0d7de;
+  --primary: #096cdc;
+  --accent: #0a72e9;
+  --invert-fg: #ffffff;
+  --tk-kw: #cf222e;
+  --tk-str: #1f7e7c;
+  --tk-num: #795adc;
+  --tk-com: #6e7781;
+  --tk-bi: #b35900;
+  --tk-var: #086ddd;
+}
+
+[data-theme="github"][data-palette="dark"] {
+  --bg: #0d1117;
+  --block-bg: #161b22;
+  --code-bg: #161b22;
+  --fg: #c9d1d9;
+  --fg-strong: #e1e6ea;
+  --secondary: #8b949e;
+  --faint: #6e7681;
+  --border: #30363d;
+  --primary: #57a5ff;
+  --accent: #439bff;
+  --invert-fg: #0d1117;
+  --tk-kw: #f47067;
+  --tk-str: #a5d6ff;
+  --tk-num: #d2a8ff;
+  --tk-com: #6e7681;
+  --tk-bi: #ffa657;
+  --tk-var: #6cb6ff;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="github"]:not([data-palette="light"]) {
+    --bg: #0d1117;
+    --block-bg: #161b22;
+    --code-bg: #161b22;
+    --fg: #c9d1d9;
+    --fg-strong: #e1e6ea;
+    --secondary: #8b949e;
+    --faint: #6e7681;
+    --border: #30363d;
+    --primary: #57a5ff;
+    --accent: #439bff;
+    --invert-fg: #0d1117;
+    --tk-kw: #f47067;
+    --tk-str: #a5d6ff;
+    --tk-num: #d2a8ff;
+    --tk-com: #6e7681;
+    --tk-bi: #ffa657;
+    --tk-var: #6cb6ff;
+  }
+}

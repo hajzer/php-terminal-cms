@@ -232,7 +232,8 @@ editor/        index.html  editor.js  ui.js    ← the static editor
 site/
   public/      index.php  .htaccess  theme.css  themes/  site.css  media/
   src/         Router  Markdown  Renderer  Highlighter  Document  Line  Listing
-               Language  Page  Site  BasePath
+               Language  Page  Site  BasePath  Zip
+  editor/      a generated copy of editor/, never served
   content/     <category>/<slug>.md   <slug>-<lang>.md
   site.php.example
 bin/           build  test  fmt  package  page-build  manifest.php  themes.php
@@ -261,10 +262,11 @@ writing loop — adding, removing, editing, folding, clicking away mid-edit — 
 see pass/fail on the page. It is generated from `editor/index.html`, so it
 always drives the page the editor actually is.
 
-`bin/build` exists because three files are derived: `editor/langs.js` (the editor
+`bin/build` exists because these files are derived: `editor/langs.js` (the editor
 must work from `file://`, where `fetch()` is blocked), the two copies of
 `theme.css`, each Theme's stylesheet in both halves with `editor/themes.js`,
-and the probe page above. `bin/test` fails if any has drifted from
+the probe page above, and `site/editor/`, the whole of `editor/` copied into
+`site/`. `bin/test` fails if any has drifted from
 its source.
 
 ## Requirements
