@@ -69,17 +69,16 @@ main.reader-page { font-size: calc(var(--global-font-size) * var(--doc-scale)); 
 
 /* the languages one document exists in, the one being read marked */
 .languages { white-space: nowrap; font-size: 11px; color: var(--faint); padding-right: 8px; }
-.languages a {
-  color: var(--secondary); border: 0; letter-spacing: .08em;
-  padding: 4px 3px; text-decoration: none;
-}
-.languages a:hover { color: var(--accent); background: transparent; }
-.languages a.on { color: var(--accent); }
+.languages a { letter-spacing: .08em; padding: 4px 3px; }
+.languages a.on { --link: var(--accent); }
 .languages i { font-style: normal; color: var(--border); padding: 0 1px; }
 
 .doc.intro { margin-bottom: calc(var(--global-space) * 2); }
 
-/* ---------- footers ---------- */
+/* ---------- footers ----------
+   A link here is the reader sheet's link, resting quieter: these regions set
+   the ink it rests in and nothing else, so its hover is every link's. */
+.doc-foot, .site-foot, .languages { --link: var(--secondary); }
 .doc-foot {
   display: flex; align-items: baseline; gap: 16px;
   border-top: 1px dashed var(--border);
@@ -87,7 +86,6 @@ main.reader-page { font-size: calc(var(--global-font-size) * var(--doc-scale)); 
   padding-top: var(--global-space);
   font-size: 12px; color: var(--secondary);
 }
-.doc-foot a { color: var(--secondary); border: 0; }
 
 /* whatever site.php put there, one span per line, centred, and nothing else */
 .site-foot {
@@ -96,8 +94,6 @@ main.reader-page { font-size: calc(var(--global-font-size) * var(--doc-scale)); 
   border-top: 1px solid var(--border); margin-top: calc(var(--global-space) * 4);
   padding-top: var(--global-space); padding-bottom: calc(var(--global-space) * 3);
 }
-.site-foot a { color: var(--secondary); }
-.site-foot a:hover { color: var(--accent); }
 .site-foot code { font-size: .95em; }
 
 /* ---------- touch ----------

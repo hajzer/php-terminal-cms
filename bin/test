@@ -281,6 +281,74 @@ ok(preg_match("~\{ name: 'theme', arg: '\[name\]'~", $uiJs) === 1
    && str_contains($uiJs, "getElementById('cmdlist').innerHTML = COMMANDS.map("),
    'the ? overlay lists :theme and :palette');
 
+/* ---------------------------------------------------------------- link styles */
+echo "\nlink styles\n";
+
+/* A link is drawn by the one rule in the reader sheet, its hover included. The
+   site's sheet may make a region's links quieter at rest, through the --link
+   the rule reads, and may not draw a link itself: whatever it sets on a link
+   ties or outranks the shared hover and paints over it. The top bar and a
+   Listing's rows are a menu and a row, not links in writing, and draw their
+   own — always the ink and the ground together on hover. */
+/** @return list<array{0:list<string>,1:string}> each innermost rule's selectors and body */
+function cssRules(string $css): array
+{
+    $css = (string) preg_replace('~/\*.*?\*/~s', '', $css);
+    preg_match_all('~([^{}]+)\{([^{}]*)\}~', $css, $m, PREG_SET_ORDER);
+    return array_map(
+        static fn (array $r): array => [array_map('trim', explode(',', $r[1])), $r[2]],
+        $m,
+    );
+}
+/** The compound a selector styles: what follows its last combinator. */
+function subject(string $selector): string
+{
+    $parts = preg_split('#\s*[\s>+~]\s*#', trim($selector)) ?: [''];
+    return (string) end($parts);
+}
+$siteCss   = (string) file_get_contents($root . '/site/public/site.css');
+$unpaired  = [];
+$overdrawn = [];
+foreach (['shared/theme.css' => $sheet, 'site/public/site.css' => $siteCss] as $name => $css) {
+    foreach (cssRules($css) as [$selectors, $body]) {
+        $ink    = preg_match('~(?<![-\w])color\s*:~', $body) === 1;
+        $ground = preg_match('~(?<![-\w])background(?:-color)?\s*:~', $body) === 1;
+        $draws  = preg_match('~(?<![-\w])(?:color|background(?:-color)?|border(?:-bottom)?(?:-color)?'
+                           . '|text-decoration(?:-color)?|opacity|filter|all)\s*:~', $body) === 1;
+        foreach ($selectors as $one) {
+            $what = subject($one);
+            if (preg_match('#^a(?:[.:\[\#]|$)|\.brand(?![-\w])#', $what) !== 1) {
+                continue;
+            }
+            if (str_contains($what, ':hover') && $ink !== $ground) {
+                $unpaired[] = "$name: $one";
+            }
+            $own = str_starts_with($one, '.topbar ') || preg_match('~^\.listing a\.row(?::hover)?$~', $one) === 1
+                || ($name === 'shared/theme.css' && preg_match('~^\.reader a(?::hover)?$~', $one) === 1);
+            if (!$own && $draws) {
+                $overdrawn[] = "$name: $one";
+            }
+        }
+    }
+}
+ok($unpaired === [], 'a link\'s hover sets its ink and its ground together, in both sheets',
+   implode("\n", $unpaired));
+ok($overdrawn === [],
+   'and no rule draws a link but the reader sheet\'s own, the top bar\'s and a Listing\'s rows',
+   implode("\n", $overdrawn));
+ok(preg_match('~^\.reader a \{[^}]*color: var\(--link, var\(--primary\)\)~m', $sheet) === 1,
+   'the reader sheet\'s link rests in --link, which is --primary where nothing quieter is asked for');
+$quiet = [];
+foreach (cssRules($siteCss) as [$selectors, $body]) {
+    if (preg_match('~(?<![-\w])--link\s*:~', $body) === 1) {
+        array_push($quiet, ...$selectors);
+    }
+}
+sort($quiet);
+ok($quiet === ['.doc-foot', '.languages', '.languages a.on', '.site-foot'],
+   'and the footers and the Language indicator are the regions that ask for it',
+   implode(' | ', $quiet));
+
 /* ---------------------------------------------------- the vendored library
  *
  * The one third-party file. What its first line says about itself is checked

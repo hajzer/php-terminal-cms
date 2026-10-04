@@ -114,7 +114,9 @@ body.reader {
 .reader p { margin: 0 0 calc(var(--global-space) * 2); }
 .reader strong { color: var(--fg-strong); font-weight: 600; }
 .reader em { color: var(--accent); font-style: italic; }
-.reader a { color: var(--primary); text-decoration: none; border-bottom: 1px solid currentColor; }
+/* the one link: a region of quieter writing sets --link to rest in another
+   ink, and every link has this hover whatever it rested in */
+.reader a { color: var(--link, var(--primary)); text-decoration: none; border-bottom: 1px solid currentColor; }
 .reader a:hover { background: var(--primary); color: var(--invert-fg); border-color: transparent; }
 
 .reader ul { list-style: none; margin: 0 0 calc(var(--global-space) * 2); padding: 0; }
