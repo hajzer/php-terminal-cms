@@ -1,6 +1,6 @@
 # 14 — Migrations: `site/migrate`, and the Media move as the first
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 Blocked by: 06
 
@@ -70,18 +70,31 @@ request. A Migration that loads `site/src`. Rewriting a Document's Lines.
 
 ## Acceptance
 
-- [ ] A bare run over the fixture lists exactly the expected actions and
+- [x] A bare run over the fixture lists exactly the expected actions and
   leaves the tree's hash unchanged
-- [ ] After `--apply`, a second run lists no `copy` and no `insert`
-- [ ] After `--apply`, the current Renderer resolves every Image Line in the
+- [x] After `--apply`, a second run lists no `copy` and no `insert`
+- [x] After `--apply`, the current Renderer resolves every Image Line in the
   fixture to a file that exists, except the one the fixture leaves broken
-- [ ] `require site.php` gives the same array before and after, and the file
+- [x] `require site.php` gives the same array before and after, and the file
   passes `php -l`
-- [ ] Every `$site['…']` key read in `site/src` is declared in
+- [x] Every `$site['…']` key read in `site/src` is declared in
   `site.php.example`, live or commented
-- [ ] `site/migrations/0.3.0.php` is pinned by hash in `bin/test`
-- [ ] `bin/page-build` warns on a fixture with pending steps and builds
-- [ ] `site/migrate` refuses a non-CLI SAPI and a target without `site.php`
-- [ ] `docs/deploy.md` Upgrading uses `site/migrate`
+- [x] `site/migrations/0.3.0.php` is pinned by hash in `bin/test`
+- [x] `bin/page-build` warns on a fixture with pending steps and builds
+- [x] `site/migrate` refuses a non-CLI SAPI and a target without `site.php`
+- [x] `docs/deploy.md` Upgrading uses `site/migrate`
 
 ## Comments
+Done in `site/migrate` and `site/migrations/0.3.0.php`. A Migration file
+returns a closure `fn (string $site): array` of actions, each
+`['copy', from, to]`, `['insert', block]` or `['note', line]`, paths relative
+to the Instance's `site/`. A bare run exits 2 while a `copy` or `insert` is
+left — `bin/page-build` keys its warning on that and counts the report's
+action lines. An insert block must be comments alone, or the runner refuses
+it; a `site.php` whose last entry has no comma gets a note, since a key
+switched on below it would not parse.
+
+Left as the spec words it: a flat file counts as named when any text in
+`content/` or `site.php` holds `/media/<name>`, so a src such as
+`../media/shot.png` — which 0.3.0 reads as the Document's own `shot.png` —
+keeps the "unused" note from appearing. It only ever withholds a note.
