@@ -33,16 +33,16 @@ Tab cycles the dialect of a code or CLI line, and `:lang php` picks one by name,
 
 ## The document, and what it is called
 
-The topbar has the three things that act on the whole document, and nothing else: **Open .md**, **New .md** and **Clear**. There is no save button, because there is nowhere to save to.
+The topbar has the four things that act on the whole document: **Open .md**, **New .md**, **Export .md** and **Clear**. There is no save button, because there is nowhere to save to.
 
-The tab bar shows the name the file will have, and only the name. Click it to type a new one, or press **R**. Until you set one it follows the title, so naming a post is usually just writing its heading. The directory is not shown there because it is not something you set there — it comes from the `category:` meta line, and **E** shows the two together as the path the file belongs at.
+The tab bar shows the name the file will have, and only the name. Click it to type a new one, or press **R**. Until you set one it follows the title, so naming a post is usually just writing its heading. The directory is not shown there because it is not something you set there — it comes from the `category:` meta line, and **E** shows the two together as the path the file belongs at. A Sub-category is written with its parent: `category: guides/hosting` is `content/guides/hosting/`.
 
 ```console
 $ ls content/guides/
 ```
 
 ```output
-index.md  install-in-five-minutes.md  publishing-is-a-file-copy.md  writing-in-the-editor.md
+hosting  index.md  install-in-five-minutes.md  publishing-is-a-file-copy.md  writing-in-the-editor.md
 ```
 
 ## The command line
@@ -72,6 +72,14 @@ sent 4.2K bytes  received 95 bytes  2.86K bytes/sec
 ```
 
 Press **z** to fold or unfold the output of the block under the cursor. The cursor never gets stuck inside something folded: moving onto a hidden line unfolds it rather than leaving you typing into nothing.
+
+## Pictures
+
+Press **f** for an image line and **a** to write its file name and its caption. A bare name — `overlay.png` — is a file in the document's own directory, `site/public/media/<category>/<name>/`, so two documents can each have a `shot.png`. The read pane looks there too, beside the editor's own page, and shows the picture; a file it does not find is a box with the name in it.
+
+## Not yet
+
+A meta line `published: false` keeps a document off the site while its file is on the server: no address, no listing. Any value but `true` keeps it off, so a typo never releases a draft. The preview shows the document as it will read once the line is gone.
 
 ## Getting the file out
 

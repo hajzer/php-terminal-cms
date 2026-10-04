@@ -1,5 +1,172 @@
 # Changelog
 
+## 0.3.0
+
+A Category divides into Sub-categories, a Document can sit on the server
+before it is read, each Document keeps its own pictures, a reader can take a
+Document away as a ZIP and open it offline, every picture opens in a Full
+View, and the body of a page takes its Theme's colour. It is the first release
+that needs an instance's own files in a new shape, and the first that carries
+the tool to put them there — so the upgrade comes first.
+
+Upgrading an instance:
+
+- **Run `site/migrate` before the new code is copied over.** From the unpacked
+  release, `php php-terminal-cms-0.3.0/site/migrate <the instance's site/>`
+  is a report and changes nothing: read it. The same command with `--apply`
+  does what the report listed. Then copy the code, as always without
+  `site.php`. `docs/deploy.md` has the commands under *Upgrading*, with a
+  recipe for a host that has no shell and one for an instance kept in a
+  repository. What the tool adds, 0.2.0 never reads, so the site goes on
+  working at every step and no reader meets a broken picture in between.
+- **A bare file name in an Image Line now names the Document's own picture.**
+  This is the one breaking change. Until 0.3.0 `![x](shot.png)` — or
+  `./shot.png`, or any other src that is not an absolute path — named
+  `site/public/media/shot.png`. It now names `shot.png` in the Document's own
+  Media, `site/public/media/<the Document's path under content/>/`, and the
+  site does not look in the old place. The 0.3.0 Migration copies each such
+  picture into the directory of every Document that shows it, a picture two
+  Documents name into each. The flat originals stay; the report names the
+  ones nothing addresses as `/media/<name>` any more, and they are yours to
+  delete. A picture that was already missing is named with its Document and
+  line. An Image Line that writes an absolute path, `/media/shot.png`, is
+  unchanged and needs nothing.
+- **`site.php` is told what it lacks and what is no longer read.** Each key
+  this release reads and the file does not have is inserted before its
+  closing `];` with its documentation, every line commented out, so no value
+  the site runs on changes and the file stays as it was written. For a
+  file copied from 0.2.0's example that is `bundle` alone. A key the release
+  does not read is named and left alone.
+- **`accent` is one of those, and `theme` is what replaces it.** 0.2.0
+  retired `accent` and has drawn every page in Baseline since, unless
+  `theme` named another Theme. The report now says so: it names `accent` as
+  not read, and inserts `theme` and `palette`, commented out, into a file
+  that has neither. Set `theme`, and delete the `accent` line.
+- **Bundles are on unless `site.php` says otherwise.** Once the code is
+  copied, every Document and Category page offers `↓ bundle`. `'bundle' =>
+  false` turns them off; see below.
+- `site/` gains `migrate`, `migrations/` and `editor/`, all above the document
+  root, where no address reaches them. Copying the whole of `site/`, as
+  `docs/deploy.md` does, brings them.
+- An instance published by a Page Build migrates in its checkout and commits
+  the result. `bin/page-build` runs the report first and prints `site/migrate
+  has N step(s) to do` when an instance has not been migrated; it builds
+  anyway, so read the pipeline's log.
+
+What is new:
+
+- **Migrations.** `php site/migrate [--apply] [<site-dir>]` brings an
+  instance's own files into the shape a release reads them in. It runs every
+  Migration the code carries, in version order, and then a standing step over
+  `site.php`. Each looks at what the instance holds rather than at a version
+  it was told, so a second run finds nothing left to do. There are three
+  actions and no others: `copy` a file to a path that does not exist, `insert`
+  a commented-out block into `site.php`, and `note` something for the operator
+  to decide. Nothing is removed and nothing is overwritten. A report with
+  steps to do exits 2, a run with only notes exits 0, and `--apply` stops at
+  the first write that fails. It runs from the command line and refuses any
+  other way of being run. A released Migration is never edited, and `bin/test`
+  pins its hash and runs the whole chain over a 0.2.0 instance kept as a
+  fixture (`docs/adr/0027-a-migration-adds-and-never-removes.md`).
+- **Sub-categories.** A category declared in `site.php` may carry
+  `categories` of its own, one level down, each a directory inside its
+  parent's. `content/guides/php/intro.md` says `category: guides/php` and is
+  read at `/guides/php/intro`; `/guides/php` is the Sub-category's page. A
+  parent keeps Documents of its own: its page prints its `index.md`, names its
+  Sub-categories, and lists its own directory. The homepage lists from every
+  level, and the navigation names the top level only. There is one level, and
+  a directory that is not declared is a 404 as it always was. A Sub-category
+  with the name of a Document in its parent hides that Document, and
+  `bin/test` warns of it. The example content gains `guides/hosting`
+  (`docs/adr/0022-a-sub-category-is-declared-one-level-down.md`).
+- **Published.** `published: false` in a Document's Meta, or `'published' =>
+  false` on a category or a Sub-category in `site.php`, keeps it off the site
+  while it sits on the server: a 404 at its address, in no listing, not in the
+  navigation, not linked by the language indicator, in no Bundle and in no
+  Page Build. A category takes everything under it. Only no `published` at
+  all, or exactly `true`, publishes — `flase` hides, because a typo in a draft
+  should keep it a draft. It is the one setting that fails closed. Each
+  language is its own file, so a translation can be held back alone. Not
+  Published is not secret: the file is on the server and in the repository.
+  The line is not printed under the title, and the editor has no draft mark
+  (`docs/adr/0023-published-fails-closed.md`).
+- A file's Meta is read to the end of its frontmatter, whatever its line
+  endings. It was read for fifty lines and split on `\n` alone, which was
+  enough for a title and a date and is not enough for a line that hides a
+  page.
+- **A Document's own Media.** A Document's pictures are in
+  `site/public/media/<path>/`, its path under `content/` without the language
+  and the `.md`, so every language of it shares one directory and two
+  Documents can each have a `shot.png`. Every src that is not an absolute
+  path is reduced to its file name and looked for there; an absolute path
+  names that path, for a picture that belongs to no one Document, as the logo
+  does. There is no fallback to the flat directory
+  (`docs/adr/0024-a-document-owns-its-media.md`).
+- The editor's read pane shows an Image Line's picture from the same place,
+  `../site/public/media/<category>/<name>/` beside its own page, which is
+  where a checkout and an unzipped Bundle keep it. It does not know the
+  site's languages, so a picture that does not load is looked for once more
+  with a trailing two-letter suffix taken off the name. It reduces a src
+  exactly as the site does: an `https://` src used to be fetched from where it
+  pointed, which the page never did, and is now a file name in the Media like
+  any other. `bin/test` renders the same Image Lines through both halves and
+  compares them.
+- **Bundles.** A Document page carries `↓ bundle` in its foot and a category
+  page under its Sub-categories: a plain link to the page's own address with
+  `.zip` on it. The ZIP is a slice of the repository — the editor, the
+  Document in every language it is Published in under `site/content/`, its
+  pictures under `site/public/media/`, and a `README.txt` — so unzipping it
+  and opening `editor/index.html` reads and edits the Document offline,
+  pictures included, and an edited one goes back onto an instance with the
+  `rsync` that deploys one. A category's Bundle holds its `index.md`, its
+  Documents and its Sub-categories'. The homepage has none. `'bundle' =>
+  false` in `site.php` turns them off and a Document's `bundle:` Meta beats
+  it either way; a file that says `bundle: false` is in no Bundle at all. A
+  Bundle carries nothing that is not Published
+  (`docs/adr/0025-a-bundle-is-a-slice-of-the-repository.md`).
+- The ZIP is written by the site's own writer, `site/src/Zip.php`: stored, not
+  compressed, streamed to the response as it is read, with no PHP extension
+  needed and nothing written to disk. `php bin/build` keeps a copy of the
+  editor in `site/editor/` for a Bundle to carry, and `bin/test` fails if it
+  differs from `editor/`. A Bundle is about 4 MB, most of it the editor's copy
+  of Mermaid.
+- A Page Build writes every offered Bundle beside the pages, at the same
+  addresses and with the same bytes the request-time site answers, and leaves
+  out everything that is not Published. The output grows by about 4 MB for
+  each page that offers one.
+- **Full View.** Every Image and Diagram on a published page carries a
+  magnifying glass. It opens the picture alone over the page, fitted to the
+  screen and one tap from its own size, with scrolling; `Esc`, × or a tap
+  beside the picture closes it, and focus returns to the glass. From there an
+  Image saves as its file, and a Diagram as the SVG being looked at or as its
+  `.mmd` source. The page's script adds all of it: the Renderer's markup and
+  the Content-Security-Policy are unchanged, a page with no picture is sent
+  nothing new, and with scripts blocked a picture is as it was. The editor's
+  preview has none.
+- **One link rule.** A link in the site footer, under a Document and in the
+  language indicator is the article's link, resting in a quieter colour: the
+  same underline and the same hover. A footer link's text used to vanish on
+  hover in Baseline, drawn in the colour of its own fill. The top navigation
+  is a menu and keeps its own rule. `bin/test` fails a rule that sets a link's
+  hover ink without its ground, or draws a link anywhere else.
+- **The body takes the Theme's colour.** The structural sheet tints the body
+  from each Theme's own `--accent` and `--primary`: headings and bold, a
+  Note, a table's head and its rows, a quote's bar, the rule, and every code
+  and CLI block. No Theme file changes, and a new Theme is tinted the moment
+  it exists. Text on a tinted ground leans toward black or white as far as
+  keeps it as readable as it was, and `bin/test` works out every piece of
+  body text in every Theme and both Palettes and fails one that the tints
+  take below 4.5:1. Every page looks different after the upgrade, and none
+  needs anything done
+  (`docs/adr/0026-the-body-takes-the-themes-colour.md`).
+- The editor's export overlay names a Sub-category's directory:
+  `category: guides/php` is `content/guides/php/`. It used to make one
+  directory name of the two.
+- `docs/deploy.md` has *Upgrading* rewritten around `site/migrate`, and *From
+  a Bundle*: how an edited Bundle goes back onto an instance.
+- CONTEXT.md gains **Sub-category**, **Published**, **Media**, **Bundle**,
+  **Full View** and **Migration**.
+
 ## 0.2.0
 
 A diagram is written in the document and drawn where it is read, markdown comes

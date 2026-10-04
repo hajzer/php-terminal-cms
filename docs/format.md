@@ -219,7 +219,9 @@ A Diagram is a code run in the `mermaid` dialect, and in the file it is
 nothing but a standard ```` ```mermaid ```` fence — the one GitLab and GitHub
 draw in place. The picture is not stored anywhere: the fence's lines are the
 source, they round trip like any code block's, and the picture is drawn from
-them in the reader's browser each time. See
+them in the reader's browser each time. A reader who wants the picture as a
+file saves it from the page's Full View, as SVG or as the source in a `.mmd`.
+See
 [line-types.md](line-types.md#code--code).
 
 ## Inline markup

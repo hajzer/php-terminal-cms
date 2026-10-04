@@ -6,8 +6,9 @@ are.
 ## What is reachable from the internet
 
 On the public origin: Apache (or nginx), the PHP runtime, one entry point of
-under eighty lines and the renderer, router, listing and page shell in
-`site/src/` — about 2,300 lines in all. That is the whole of what runs there —
+under ninety lines and the renderer, router, listing, page shell and Bundle
+writer in `site/src/` — about 3,200 lines in all. That is the whole of what
+runs there —
 there is no other code, and none of it is somebody else's. One file the origin
 serves is somebody else's: `mermaid.min.js`, which the server only hands
 over, and which runs in the browser of a reader whose page has a Diagram and
@@ -16,14 +17,16 @@ nowhere else (see *The one script on the page*).
 ## What does not exist
 
 No database. No login, session, cookie or token. No form, no upload, no POST
-route — the site handles `GET` and has no code path that writes anything. No
+route — the site handles `GET` and has no code path that writes anything: a
+page and a Bundle's ZIP alike go to the response and nowhere else. No
 third-party library in the PHP: no Parsedown, no framework, no composer
 dependency. One third-party file on the origin with a CVE feed to track —
 Mermaid, vendored and pinned, which only a page with a Diagram loads (see
 *The one script on the page*). No CDN request, no external font. The one inline script on a
-published page adds a copy button, a Palette toggle and a text-size control; it
-reads and writes two `localStorage` keys and touches nothing else, and it runs
-under a per-request nonce rather than `unsafe-inline`.
+published page adds a copy button, a Palette toggle and a text-size control,
+and the Full View on a page with a picture; it reads and writes two
+`localStorage` keys and touches nothing else, and it runs under a per-request
+nonce rather than `unsafe-inline`.
 
 The editor has no server component at all, so it has no endpoints to attack. It
 cannot write to `content/`, which means **a compromise of the web tier cannot
@@ -181,24 +184,83 @@ take the same reduction before they are escaped into the page shell.
 ## The router
 
 The request string never becomes a filesystem path. The category must be
-identical to one declared in `site.php`; the slug is compared for equality
-against real filenames from `scandir()`. Path traversal has no expression in the
-code rather than being filtered out of it
-([ADR-0004](adr/0004-routing-by-comparison.md)).
+identical to one declared in `site.php`, and so must a Sub-category, among
+the ones its category declares; the slug is compared for equality against
+real filenames from `scandir()`. An address has at most three segments, and
+only the first two can name a directory, each by being one `site.php` already
+named. Path traversal has no expression in the code rather than being
+filtered out of it ([ADR-0004](adr/0004-routing-by-comparison.md)).
 
-Only the category is checked for shape, and it is checked where it is read:
-`TerminalCms\Site` drops a declared category that is not one segment of a URL,
-so a malformed `site.php` entry is never routed, never navigated to and never
-turned into a path. The slug gets no shape rule, deliberately — comparing it
-with the real file names is the boundary, and a rule on top of it would only
-make a document whose file is called `Release-1.2.md` unreachable while its own
-listing still linked to it.
+Only the category and the Sub-category are checked for shape, and they are
+checked where they are read: `TerminalCms\Site` drops a declared category
+that is not one segment of a URL, at either level, so a malformed `site.php`
+entry is never routed, never navigated to and never turned into a path. The
+slug gets no shape rule, deliberately — comparing it with the real file names
+is the boundary, and a rule on top of it would only make a document whose
+file is called `Release-1.2.md` unreachable while its own listing still
+linked to it.
 
-`bin/test` covers `../`, percent-encoded `../`, unknown categories,
-over-deep paths, malformed category entries, and the request lines (`//`, `///`)
-that `parse_url` cannot read as a path at all. A category declared in `site.php`
-with no directory behind it is an empty listing, not a warning printed into the
-page.
+`bin/test` covers `../`, percent-encoded `../`, unknown categories and
+Sub-categories, over-deep paths, malformed category entries, and the request
+lines (`//`, `///`) that `parse_url` cannot read as a path at all. A category
+declared in `site.php` with no directory behind it is an empty listing, not a
+warning printed into the page.
+
+## Published
+
+A document whose Meta has a `published` line that is not `true`, and a
+category whose declaration has a `published` that is not `true`, is not
+served: its address is a 404, and no
+listing, navigation, language indicator, Bundle or Page Build names it. The
+setting fails closed — a misspelt value hides — and is asked in two places
+that every reader of `content/` goes through: `Site` drops a category that is
+not Published as it drops a malformed one, and the listing drops a file that
+is not ([ADR-0023](adr/0023-published-fails-closed.md)).
+
+It keeps a document off the site and is **not a secret**. The file is on the
+server, in the repository and in its history, and anyone who can read those
+reads it. Do not put in a draft what must not be read.
+
+## The Bundle
+
+A page's address with `.zip` on it answers the page's Bundle: the document or
+the category as files, with the Editor
+([ADR-0025](adr/0025-a-bundle-is-a-slice-of-the-repository.md)). The suffix is
+taken off first and the rest is routed exactly as the page is, so a Bundle
+exists only where a page does, and a `.zip` address reaches no file a page
+address could not.
+
+What a Bundle reads is what the site could already show. Every path is a
+category path from `site.php` or a name `scandir()` gave, under three
+directories: `content/`, `public/media/` and `site/editor/`. It carries no
+document that is not Published and none whose Meta says `bundle: false`.
+Walking a document's pictures and the Editor it follows no symbolic link and
+takes no dot file. `site.php` and
+`src/` are in none. A reader of a Bundle gets the markdown source, where a
+reader of the page gets the HTML — the same writing, and a Meta line the
+page does not print is in the file.
+
+The ZIP is written to the response as its files are read. Nothing is written
+to disk and no extension is used; the response carries the same headers and
+the same policy as a page. `site/editor/` is a copy of the Editor above the
+document root, read for Bundles and served at no address. `'bundle' => false`
+in `site.php` makes a `.zip` address a 404, but for a document whose own Meta
+says `bundle: true`.
+
+## The one program that writes
+
+`site/migrate` changes an instance's own files when a release needs them in a
+new shape ([ADR-0027](adr/0027-a-migration-adds-and-never-removes.md)). It is
+not part of what answers a request. It sits in `site/`, above the document
+root, and refuses to run under any SAPI but the command line, so no address
+runs it. The operator runs it, with their own permissions: the web user still
+needs to write nowhere.
+
+It copies a file to a path that does not exist and inserts commented-out lines
+into `site.php`, and can do nothing else: it removes nothing and overwrites
+nothing, and a bare run only reports. It finds the keys of `site.php` by
+reading the file as text; the 0.3.0 Migration also runs `site.php`, as every
+request does, to learn the instance's languages.
 
 ## The one script on the page
 
@@ -333,6 +395,9 @@ reflects nothing: it is a file, written before any request. The only thing
 that puts markup into it is the build, from the content, and the Renderer
 cannot express raw HTML. Someone who can change what the build reads can
 already change the page. The nonce does not stand between them.
+
+A build leaves out what is not Published and writes each offered Bundle
+beside its page, the same bytes the PHP site answers at that address.
 
 The inline script, the Mermaid script and a Diagram's placed stylesheet carry
 the build's nonce exactly as they carry a request's. `bin/test` builds the

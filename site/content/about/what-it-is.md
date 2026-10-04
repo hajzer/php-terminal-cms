@@ -20,10 +20,10 @@ php-terminal-cms
 |-- site/
 |   |-- content/     one markdown file = one document (page)
 |   |-- public/      the site's main directory (web server root)
-|   |-- src/         the site's PHP, ~2,200 lines
+|   |-- src/         the site's PHP, ~3,100 lines
 |   `-- site.php     the system's configuration
 |-- shared/          the one copy of the theme and the language table
-`-- bin/             build, test, fmt, package
+`-- bin/             build, test, fmt, package, page-build
 ```
 
 Two components, one repository. The editor is a static HTML page; the server is a PHP script that reads and interprets markdown files. Nothing is generated ahead of time and nothing is cached — a page is rendered from its markdown file on every request.

@@ -5,7 +5,8 @@ Two halves, two places, no connection between them.
 ## The site
 
 Everything under `site/` goes on the web host. Only `site/public/` should be the
-document root — `src/`, `content/`, `editor/` and `site.php` must sit **above** it.
+document root — `src/`, `content/`, `editor/`, `migrate`, `migrations/` and
+`site.php` must sit **above** it.
 
 `site/editor/` is a copy of the Editor that `php bin/build` makes, for a Bundle
 to carry; the site reads it and never serves it. Above the document root no
@@ -125,14 +126,20 @@ copies are generated, and so is `site/editor/`, from `editor/`.
 
 1. Write it in the editor.
 2. `E`, then **download .md** (or copy the markdown).
-3. Put the file at `content/<category>/<slug>.md` and move it:
+3. Put the file at `content/<category>/<slug>.md` — the path `E` shows, which
+   for a Sub-category is `content/<category>/<sub-category>/<slug>.md` — and
+   move it:
 
 ```console
 $ git add content/guides/my-post.md && git commit -m 'post: my post' && git push
 $ rsync -az content/ deploy@example.com:/var/www/example.com/content/
 ```
 
-It is live on arrival — there is no build to run and no cache to clear.
+It is live on arrival — there is no build to run and no cache to clear. A
+document that should be on the server before it is read says `published:
+false` in its Meta, and is read once the line is gone — see
+[format.md](format.md#published). Its pictures go to its own directory under
+`public/media/`, as [Media](#media) above says.
 
 To revise: drop the `.md` back onto the editor, edit, export, copy over.
 
@@ -348,6 +355,8 @@ The first run is a report and changes nothing; read it. It lists each action:
   more.
 
 `--apply` performs the list in order and stops at the first write that fails.
+It writes into `public/media/` and `site.php`, so run it as a user who may —
+the one who owns the tree, not the web user, who still needs to write nowhere.
 Nothing it does removes or overwrites a file, so it is safe to run again, and
 a second run lists the notes alone and exits 0; a report with steps still to
 do exits 2. Delete what the notes name when you have read them, and switch on
@@ -397,10 +406,17 @@ picture a bare name showed into the directory of every Document that shows it
 — a picture two Documents both name is copied into each — and names the flat
 originals that nothing addresses as `/media/<name>` any more.
 
+The same run looks at `site.php`. A file that still sets `accent` is told the
+key is not read — 0.2.0 retired it — and a file with no `theme` gets one
+inserted, commented out: set it, or the site stays in Baseline. `bundle` is
+inserted the same way; without it every page offers its Bundle, and
+`'bundle' => false` turns them off. See [config.md](config.md).
+
 ## Two instances
 
 Deploy the same archive twice, into two directories under two vhosts, each with
-its own `site.php` and `content/`. The code has no notion of which site it is
-serving and no shared state between them — a page is rendered from its markdown
-file on every request, so there is nothing generated for two instances to share
+its own `site.php`, `content/` and `public/media/`. The code has no notion of
+which site it is serving and no shared state between them — a page is rendered
+from its markdown file on every request, so there is nothing generated for two
+instances to share
 ([ADR-0002](adr/0002-request-time-rendering.md)).

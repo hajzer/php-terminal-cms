@@ -49,6 +49,12 @@ return [
 | `footer` | the whole footer — see below |
 | `categories` | see below |
 
+A release that reads a new key does not need this file rewritten. `php
+site/migrate` inserts each key the release's example declares and this file
+lacks, with its documentation and commented out, and names each key the file
+sets that the release does not read — see
+[deploy.md](deploy.md#upgrading).
+
 ## The tagline
 
 `tagline` is one line of description. It sits beside the title in the top bar,
@@ -399,6 +405,7 @@ decides, silently, and a page never fails over a spelling. `''` or no
 A 404 and a Category with no `index.md` have no Document, and take what this
 file says. An `accent` left in a `site.php` from before the Themes is
 ignored like any key this file does not list: a Theme owns its colours.
+`php site/migrate` names it as not read.
 
 A Theme's colours, faces, corner and heading weight are in
 `shared/themes/<name>.json`; `php bin/build` writes it into a stylesheet for

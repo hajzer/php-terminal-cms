@@ -94,7 +94,9 @@ A run in the `mermaid` dialect is a **Diagram**. In the file it is a standard
 emit it as the code block it is — there is no fifteenth type. The picture is
 drawn over that block in the reader's browser, on the published page and in
 the editor's read pane alike, by a pinned copy of Mermaid that only a page with
-a Diagram loads. The lines stay the source: the write pane shows them
+a Diagram loads. On the published page it carries the glass of the Full View,
+as an image does, and saves from there as the SVG on the screen or as its
+`.mmd` source. The lines stay the source: the write pane shows them
 highlighted like any other code, the copy button and `C` copy the source, and
 flipping the Palette or changing the Theme draws the picture again in the new
 colours. With scripts blocked a Diagram is its code block. A source that does
@@ -156,25 +158,35 @@ stands — see [format.md](format.md#media). The editor's read pane shows the
 picture itself, from the same directory beside its own page; a src that does not
 load falls back to a box with the file name in it.
 
+On the published page every image carries a magnifying glass in its corner.
+It opens the **Full View**: the picture alone over the page, fitted to the
+screen and one tap from its own size, with a button that saves the file. The
+page's script adds the glass, so the markup is the same `<figure>` either way
+and with scripts blocked the picture is as it was. The editor's preview has
+none.
+
 ### `meta` — metadata
 
-Key `m`. One `key: value` per line, exported as YAML frontmatter. Five keys are
+Key `m`. One `key: value` per line, exported as YAML frontmatter. Seven keys are
 read by the system:
 
 | key | used for |
 | --- | --- |
 | `title` | page `<title>`, listing entries, the exported filename |
-| `category` | which directory the document belongs to, and the nav highlight |
+| `category` | which directory the document belongs to — `guides`, or `guides/php` for a Sub-category — where its pictures are, and the nav highlight |
 | `date` | listing order, newest first |
 | `theme` | the Theme the page is drawn in — see [format.md](format.md) |
 | `palette` | the Palette the page opens in, `light` or `dark` — see [format.md](format.md) |
+| `published` | whether a reader can see the document at all: a value other than `true` keeps it off the site — see [format.md](format.md#published) |
+| `bundle` | whether the page offers its Bundle, `true` or `false` — see [format.md](format.md#bundle) |
 
 Any other key is carried through untouched and ignored.
 
-Every meta line except `title` and `palette` is printed on the page, once, in
-one line directly under the document's title — `title` is left out because the
-title is already there, and `palette` because the reader may have flipped the
-page since, so it would say something the page may not be doing. A document
+Every meta line except `title`, `palette` and `published` is printed on the
+page, once, in one line directly under the document's title — `title` is left
+out because the title is already there, `palette` because the reader may have
+flipped the page since, so it would say something the page may not be doing,
+and `published` because a reader only ever meets a document that is. A document
 with meta but no `H1` prints them where the title would have been; a document
 with no meta gets no such line. The editor's preview shows the same line in the
 same place.

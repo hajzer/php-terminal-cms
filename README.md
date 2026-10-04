@@ -45,8 +45,9 @@ No database. No login. No session, cookie, form or upload. No admin panel. No
 build step where the host runs PHP. No composer dependency, no npm package, no
 CDN, and not one byte of third-party JavaScript on any page without a diagram.
 The published page runs no script of its own except one short inline
-enhancement that adds a copy button, a light/dark toggle and a text-size
-control — remove it and every page still reads perfectly.
+enhancement that adds a copy button, a light/dark toggle, a text-size control
+and, on a picture, a glass that opens it alone over the page — remove it and
+every page still reads perfectly.
 
 A page with a diagram is the one exception, and it says so: that page loads
 Mermaid to draw it — a pinned copy served from the site's own origin, under the
@@ -176,6 +177,38 @@ beside the lines as you write them. `+` and `-` size the document in both panes
 
 Full reference: [docs/keymap.md](docs/keymap.md).
 
+## On the site
+
+What the published half does with the files it is given, beyond drawing them:
+
+- **Sub-categories.** A category declared in `site.php` may declare
+  categories of its own, one level down. `content/guides/php/intro.md` says
+  `category: guides/php` and is read at `/guides/php/intro`; `/guides` names
+  its Sub-categories above its own documents.
+- **Published.** `published: false` in a document's meta — or on a category
+  in `site.php` — keeps it on the server and off the site: a 404, in no
+  listing, in no navigation. Only no line at all, or exactly `true`,
+  publishes, so a typo keeps a draft a draft.
+- **A document's own media.** `![the overlay](overlay.png)` names
+  `overlay.png` in the document's own directory,
+  `site/public/media/<category>/<name>/`, shared by its languages. Two
+  documents can each have a `shot.png`, and the editor's read pane shows the
+  picture from the same place.
+- **Bundles.** A document page offers `↓ bundle`: its own address with `.zip`
+  on it, holding the document in every language, its pictures and the editor.
+  Unzip it, open `editor/index.html`, and the document reads and edits
+  offline; a category page offers the whole category. PHP writes the ZIP as it
+  is asked for, with no extension and no file written.
+- **Full View.** Every image and diagram on a page carries a magnifying glass
+  that opens it alone, fitted to the screen and one tap from its real size. An
+  image saves as its file, a diagram as SVG or as its Mermaid source.
+- **Themes.** Twelve, each in a light and a dark palette, chosen in `site.php`
+  or by a document's `theme:` meta. The body takes the Theme's colour — its
+  headings, notes, tables, quotes and code blocks.
+
+[docs/config.md](docs/config.md) has the `site.php` half of each and
+[docs/format.md](docs/format.md) the half a document writes.
+
 ## Languages
 
 A document's language is the suffix on its file name: `what-it-is.md` is the
@@ -230,32 +263,38 @@ docs/          line-types · keymap · format · config · themes · deploy
 shared/        langs.json  theme.css  themes/ ← single sources
 editor/        index.html  editor.js  ui.js    ← the static editor
 site/
-  public/      index.php  .htaccess  theme.css  themes/  site.css  media/
+  public/      index.php  .htaccess  theme.css  themes/  site.css
+               mermaid.min.js  media/<category>/<slug>/ ← a document's pictures
   src/         Router  Markdown  Renderer  Highlighter  Document  Line  Listing
-               Language  Page  Site  BasePath  Zip
+               Language  Page  Policy  Site  BasePath  Bundle  Zip
   editor/      a generated copy of editor/, never served
   content/     <category>/<slug>.md   <slug>-<lang>.md
+               <category>/<sub-category>/<slug>.md
+  migrate      migrations/                     ← what an upgrade does to an instance
   site.php.example
 bin/           build  test  fmt  package  page-build  manifest.php  themes.php
-tests/         js-dump.js  js-model.js  js-tables.js  js-inline.js
+tests/         js-dump.js  js-model.js  js-tables.js  js-inline.js  js-media.js
                editor-probe.html  editor-probe.js  editor-probe-watch.js
+               fixtures/
 ```
 
 `site/site.php` — title, logo, favicon, tagline, languages, Theme, Palette,
-footer, the category list, which index pages list the documents below them, how
-many the homepage lists, and whether a link that leaves the site opens in a new
-tab — is the only file that differs between two installations. Copy it from
-`site.php.example`; it is in neither the repository nor the package.
+footer, the categories and their Sub-categories, which of them are published,
+which index pages list the documents below them, how many the homepage lists,
+whether pages offer a Bundle, and whether a link that leaves the site opens in
+a new tab — is the only file that differs between two installations. Copy it
+from `site.php.example`; it is in neither the repository nor the package.
 
 ## Commands
 
 | | |
 | --- | --- |
 | `php bin/build` | regenerate derived files from `shared/` |
-| `php bin/test` | the whole suite — round trip, PHP/JS agreement, the editor's model, escaping, link targets, routing, listings, the footer, the Themes, the page shell, the Page Build, the release manifest |
+| `php bin/test` | the whole suite — round trip, PHP/JS agreement, the editor's model, escaping, link targets, routing, Sub-categories, Published, listings, media, the footer, the Themes, the page shell, the Full View, the Page Build, Bundles, Migrations, the release manifest |
 | `php bin/fmt` | rewrite `content/` into canonical form (`--check` to only report) |
 | `php bin/package` | build `dist/php-terminal-cms-<version>.{tar.gz,zip}` |
 | `php bin/page-build --output=<dir> [--base-url=<url>]` | render every page of the Instance to files, for a host that runs no PHP |
+| `php site/migrate [--apply] [<site-dir>]` | say what an Instance's own files need to be read by this release; `--apply` does it — see [upgrading](docs/deploy.md#upgrading) |
 
 Open `tests/editor-probe.html` in a browser to run the editor's DOM through the
 writing loop — adding, removing, editing, folding, clicking away mid-edit — and

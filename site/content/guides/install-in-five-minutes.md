@@ -16,7 +16,7 @@ $ cd php-terminal-cms-*/
 $ cp site/site.php.example site/site.php
 ```
 
-`site/site.php` is the only file that differs between two installations. It holds the title, the tagline, the accent colour, the footer and the category list.
+`site/site.php` is the only file that differs between two installations. It holds the title, the tagline, the Theme, the footer and the category list.
 
 ```php
 <?php
@@ -24,7 +24,7 @@ return [
     'title'   => 'my notes',
     'tagline' => 'kept in the open',
     'lang'    => 'en',
-    'accent'  => '#21e08a',
+    'theme'   => 'things',
     'listing' => true,
     'footer'  => [
         '[my notes](https://example.com/) · [write to me](mailto:you@example.com)',
@@ -40,6 +40,8 @@ return [
 The title and the tagline are the top bar. The footer is the one place on the page you write yourself: each string is one line, written in the same inline markdown a document uses — `[text](url)`, `**bold**`, `*italic*` — and escaped the same way. Leave it out and the page has no footer.
 
 `listing` decides whether an index page prints the documents below it. The one at the top is the homepage; the one inside a category is that category's page. Set it to `false` where you would rather write the page yourself, and `index.md` is all that appears.
+
+A category can hold categories of its own, one level down: give its entry a `categories` list in the same shape, and `content/guides/hosting/` is read at `/guides/hosting`. An entry that says `'published' => false` stays off the site, with everything under it, until the line is gone.
 
 > [!NOTE]
 > A category slug must match a directory under `site/content/`. A URL segment that is not in this list is a 404 even if the directory exists. The editor is not told the list: it takes whatever the document's `category:` meta line says, so that line and this one have to agree.

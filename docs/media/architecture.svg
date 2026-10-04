@@ -142,7 +142,7 @@
 <text class="s" x="438" y="610">Compares the URL</text>
 <text class="s" x="438" y="624">with the Category</text>
 <text class="s" x="438" y="638">list in site.php,</text>
-<text class="s" x="438" y="652">the second segment</text>
+<text class="s" x="438" y="652">the Document's name</text>
 <text class="s" x="438" y="666">with real filenames.</text>
 <text class="s" x="438" y="680">Never builds a path</text>
 <text class="s" x="438" y="694">from the request.</text>

@@ -20,10 +20,10 @@ php-terminal-cms
 |-- site/
 |   |-- content/     jeden markdown = jeden dokument (stránka)
 |   |-- public/      hlavný adresár webu (webserver root)
-|   |-- src/         PHP kód webu, ~2 200 riadkov
+|   |-- src/         PHP kód webu, ~3 100 riadkov
 |   `-- site.php     konfigurácia systému
 |-- shared/          jedna kópia témy a tabuľky jazykov
-`-- bin/             build, test, fmt, package
+`-- bin/             build, test, fmt, package, page-build
 ```
 
 Dve komponenty, jeden repozitár. Editor je statická HTML stránka; server je PHP skript, ktorý číta a interpretuje markdown súbory. Nič sa negeneruje dopredu a nič sa necachuje — stránka sa vykreslí zo svojho markdown súboru pri každej požiadavke.
