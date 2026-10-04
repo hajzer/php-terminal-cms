@@ -120,6 +120,16 @@ return [
      * top one. A Sub-category with the name of a Document in its parent
      * hides that Document, and bin/test says so.
      *
+     * 'series' => true on a category makes each of its Sub-categories a
+     * Series — one thing written as several Documents, `01-…`, `02-…`, its
+     * Parts. A Series is one row in a listing, its index.md's: title, date
+     * and languages, leading to the Series' page, which lists its Parts by
+     * name rather than by date. The homepage lists that row and none of the
+     * Parts, and the category's page lists its Series as rows among its own
+     * Documents instead of naming them above. A Series with no published
+     * index.md has no row anywhere, and bin/test says so. Only exactly true
+     * makes Series, and the key means nothing on a Sub-category.
+     *
      * 'published' => false takes a category or a Sub-category off the site:
      * its page and its Documents are a 404 and nothing names them, as if it
      * were not declared, and a category takes its Sub-categories with it.

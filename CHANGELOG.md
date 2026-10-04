@@ -2,12 +2,13 @@
 
 ## 0.3.0
 
-A Category divides into Sub-categories, a Document can sit on the server
-before it is read, each Document keeps its own pictures, a reader can take a
-Document away as a ZIP and open it offline, every picture opens in a Full
-View, and the body of a page takes its Theme's colour. It is the first release
-that needs an instance's own files in a new shape, and the first that carries
-the tool to put them there — so the upgrade comes first.
+A Category divides into Sub-categories, a Sub-category can be a Series that
+is listed as one row, a Document can sit on the server before it is read, each
+Document keeps its own pictures, a reader can take a Document away as a ZIP
+and open it offline, every picture opens in a Full View, and the body of a
+page takes its Theme's colour. It is the first release that needs an
+instance's own files in a new shape, and the first that carries the tool to
+put them there — so the upgrade comes first.
 
 Upgrading an instance:
 
@@ -79,6 +80,20 @@ What is new:
   with the name of a Document in its parent hides that Document, and
   `bin/test` warns of it. The example content gains `guides/hosting`
   (`docs/adr/0022-a-sub-category-is-declared-one-level-down.md`).
+- **Series.** A category that says `'series' => true` in `site.php` makes
+  each of its Sub-categories a Series, and each Document in one a Part. A
+  Series is one row in a listing, in place of its Parts: its `index.md`'s
+  title, date and languages, leading to the Series' page and naming
+  `<category>/<sub-category>`. The homepage takes that row and no Part; the
+  parent's page lists its Series as rows among its own Documents, by date,
+  and no longer names them above; the Series' page lists its Parts by name,
+  ascending, whatever their dates. A Series with no Published `index.md` has
+  no row anywhere while its page and Parts still answer, and `bin/test` warns
+  of it. Only exactly `true` makes Series, the parent says it for all of its
+  Sub-categories, and nothing else about one differs — addresses, Media,
+  Bundles and `published` are a Sub-category's. No Migration brings an
+  instance here: a category without the key is listed as before
+  (`docs/adr/0028-a-series-is-one-row.md`).
 - **Published.** `published: false` in a Document's Meta, or `'published' =>
   false` on a category or a Sub-category in `site.php`, keeps it off the site
   while it sits on the server: a 404 at its address, in no listing, not in the

@@ -174,7 +174,7 @@ read by the system:
 | --- | --- |
 | `title` | page `<title>`, listing entries, the exported filename |
 | `category` | which directory the document belongs to — `guides`, or `guides/php` for a Sub-category — where its pictures are, and the nav highlight |
-| `date` | listing order, newest first |
+| `date` | listing order, newest first — a Series' row takes its `index.md`'s, and its Parts are listed by name instead |
 | `theme` | the Theme the page is drawn in — see [format.md](format.md) |
 | `palette` | the Palette the page opens in, `light` or `dark` — see [format.md](format.md) |
 | `published` | whether a reader can see the document at all: a value other than `true` keeps it off the site — see [format.md](format.md#published) |

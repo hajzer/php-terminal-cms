@@ -110,7 +110,8 @@ without the suffix is the one the address belongs to.
 
 An index page ends with the documents below it, newest first — the homepage
 lists recent documents from every category and sub-category, and a category
-page lists its own.
+page lists its own. A [Series](#series) is the exception: it is one row in
+place of its documents, and its own page lists them by name.
 `listing` turns that off:
 
 ```php
@@ -346,6 +347,51 @@ homepage lists from every level, and a row names a Sub-category's document as
   names the document. `php bin/test`
   prints a `warn` line naming the hidden file, for the configuration in
   `site.php.example` and in `site.php`.
+
+### Series
+
+Some writing is one thing in several documents: a solution with its design
+chapters, a subject with its lessons. A category that says `'series' => true`
+makes each of its Sub-categories a **Series**, and each document in one a
+**Part**:
+
+```php
+['slug' => 'solutions', 'label' => 'solutions', 'series' => true, 'categories' => [
+    ['slug' => 'vault',  'label' => 'Vault'],
+    ['slug' => 'consul', 'label' => 'Consul'],
+]],
+```
+
+with `content/solutions/vault/index.md`, `01-use-cases.md`, `02-design.md`
+and so on. A Series is a Sub-category in everything but how it is listed:
+
+- **A Series is one row**, wherever a listing would have taken its Parts. The
+  row is the Series' `index.md`: its `title`, its `date` and its languages.
+  It leads to the Series' page, `/solutions/vault`, and names
+  `solutions/vault`. Adding a Part does not move the row — the date is the
+  `index.md`'s, and yours to change.
+- **The homepage** lists that row and none of the Parts.
+- **The category's page** lists its Series as rows among the documents it
+  holds itself, by date, and does not name them above the listing. With
+  `'listing' => false` it prints its `index.md` and nothing else.
+- **The Series' page** lists its Parts **by name, ascending** — `01-…`,
+  `02-…` is the reading order, whatever the dates say. Names are compared
+  character by character, so `10-…` comes before `2-…`: write `02-…`. Its
+  own `'listing' => false` still turns that listing off.
+- **A Series with no published `index.md` has no row anywhere.** Its page and
+  its Parts still answer at their addresses; nothing lists them. `php
+  bin/test` prints a `warn` line naming the Series, for the configuration in
+  `site.php.example` and in `site.php`.
+
+The parent says it for all of its Sub-categories: a category does not mix
+Series with ordinary Sub-categories, and `series` on a Sub-category's own
+entry means nothing. Only exactly `true` makes Series; without the key, or
+with any other value, the Sub-categories are listed as they are above.
+
+Addresses, pictures, Bundles and `published` are a Sub-category's. Turning a
+flat category into Series is moving files into directories, so a Part's
+address changes — `/solutions/vault-01-use-cases` becomes
+`/solutions/vault/01-use-cases` — and nothing redirects the old one.
 
 ### Published
 

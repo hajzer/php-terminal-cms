@@ -13,6 +13,10 @@ namespace TerminalCms;
  * One entry is one Document, not one file: a document that exists in three
  * languages is one line in the listing, printed in the site's own language,
  * with the three addresses beside it.
+ *
+ * A Series' entry is its index.md's: its category is the Series' path, its
+ * slug the Series' own, and it leads to the Series' page rather than to the
+ * index.md as a Document.
  */
 final class Entry
 {
@@ -22,6 +26,8 @@ final class Entry
      * @param array<string,string> $languages code => URL, in the declared order —
      *        empty unless this document exists in more than one language
      * @param BasePath $at where the site begins, which the URLs are written under
+     * @param ?string $page the path of the page the entry leads to, when that
+     *        is not its Document's own
      */
     public function __construct(
         public readonly string $category,
@@ -31,12 +37,13 @@ final class Entry
         public readonly string $lang = '',
         public readonly array $languages = [],
         private readonly BasePath $at = new BasePath(),
+        private readonly ?string $page = null,
     ) {
     }
 
     public function url(): string
     {
-        return $this->at->page($this->category . '/' . $this->slug);
+        return $this->at->page($this->page ?? $this->category . '/' . $this->slug);
     }
 }
 
@@ -110,6 +117,92 @@ final class Listing
         BasePath $at = new BasePath(),
         array $subCategories = [],
     ): array {
+        return self::newestFirst(array_values(self::entries($contentDir, $category, $codes, $at, $subCategories)));
+    }
+
+    /**
+     * The Listing a Category's page prints, or a Sub-category's. A Series'
+     * is its Parts by Name, ascending, whatever their dates. A Category
+     * whose Sub-categories are Series lists each as one row among its own
+     * Documents, newest first; any other page's is forCategory().
+     *
+     * @param array{path:string, series:bool, categories:list<array{slug:string, label:string, path:string, series:bool}>} $declared
+     *        as Site::categories() declares it
+     * @param list<string> $codes the declared languages, the site's own first
+     * @param BasePath $at where the site begins — forCategory()
+     * @return list<Entry>
+     */
+    public static function forPage(string $contentDir, array $declared, array $codes, BasePath $at = new BasePath()): array
+    {
+        $entries = self::entries($contentDir, $declared['path'], $codes, $at, array_column($declared['categories'], 'slug'));
+        if ($declared['series']) {
+            ksort($entries, SORT_STRING);
+            return array_values($entries);
+        }
+
+        $entries = array_values($entries);
+        foreach ($declared['categories'] as $sub) {
+            $row = $sub['series'] ? self::series($contentDir, $sub, $codes, $at) : null;
+            if ($row !== null) {
+                $entries[] = $row;
+            }
+        }
+        return self::newestFirst($entries);
+    }
+
+    /**
+     * A Series' one row: its Published index.md's title, date and Languages,
+     * in the Language any row is printed in, leading to the Series' page.
+     * The site's own Language of it is read on that page, and each other at
+     * the address the index.md has as a Document. Null for a Series with no
+     * Published index.md, which no Listing names.
+     *
+     * @param array{slug:string, label:string, path:string} $declared the Series, as
+     *        Site::categories() declares it
+     * @param list<string> $codes the declared languages, the site's own first
+     * @param BasePath $at where the site begins — forCategory()
+     */
+    public static function series(string $contentDir, array $declared, array $codes, BasePath $at = new BasePath()): ?Entry
+    {
+        $path = $declared['path'];
+        $dir  = $contentDir . '/' . $path;
+        $variants = is_dir($dir) ? self::variants($dir, 'index', $codes) : [];
+        if ($variants === []) {
+            return null;
+        }
+        $default = $codes[0] ?? Site::LANG;
+        $code = self::printed($variants, $default);
+        $meta = Document::peekMeta($dir . '/' . $variants[$code]);
+
+        $addresses = Language::addresses('index', $variants, $path, $default, $at);
+        if (isset($addresses[$default])) {
+            $addresses[$default] = $at->page($path);
+        }
+        $one = count($addresses) < 2;
+
+        return new Entry(
+            $path,
+            $declared['slug'],
+            $meta['title'] ?? $declared['label'],
+            $meta['date'] ?? '',
+            $one ? '' : Language::code($code, $default),
+            $one ? [] : $addresses,
+            $at,
+            $path,
+        );
+    }
+
+    /**
+     * Every Document in one directory as an entry, by its Name without its
+     * Language, in no order — what forCategory() describes, before it is
+     * sorted.
+     *
+     * @param list<string> $codes
+     * @param list<string> $subCategories
+     * @return array<string,Entry>
+     */
+    private static function entries(string $contentDir, string $category, array $codes, BasePath $at, array $subCategories): array
+    {
         $dir = $contentDir . '/' . $category;
         if (!is_dir($dir)) {
             return [];
@@ -124,10 +217,8 @@ final class Listing
                 continue;
             }
 
-            /* printed in the site's own language, and in whatever it was
-               written in when that language is not one of them */
-            $code = isset($variants['']) ? '' : (isset($variants[$default]) ? $default : array_key_first($variants));
-            $slug = Language::slug($base, (string) $code, $default);
+            $code = self::printed($variants, $default);
+            $slug = Language::slug($base, $code, $default);
             if (in_array($slug, $subCategories, true)) {
                 continue;
             }
@@ -136,26 +227,45 @@ final class Listing
             $addresses = Language::addresses($base, $variants, $category, $default, $at);
             $one   = count($addresses) < 2;
 
-            $entries[] = new Entry(
+            $entries[$base] = new Entry(
                 $category,
                 $slug,
                 $meta['title'] ?? $base,
                 $meta['date'] ?? '',
-                $one ? '' : Language::code((string) $code, $default),
+                $one ? '' : Language::code($code, $default),
                 $one ? [] : $addresses,
                 $at,
             );
         }
-
-        usort($entries, static fn (Entry $a, Entry $b) => [$b->date, $b->slug] <=> [$a->date, $a->slug]);
-
         return $entries;
     }
 
     /**
-     * Recent documents across every declared Category and Sub-category.
+     * The Language a row is printed in: the site's own, and whatever the
+     * Document was written in when that is not one of them.
      *
-     * @param list<array{path:string, categories:list<array{slug:string}>}> $categories
+     * @param non-empty-array<string,string> $variants code => file name, as documents() returns them
+     */
+    private static function printed(array $variants, string $default): string
+    {
+        return isset($variants['']) ? '' : (isset($variants[$default]) ? $default : (string) array_key_first($variants));
+    }
+
+    /**
+     * @param list<Entry> $entries
+     * @return list<Entry>
+     */
+    private static function newestFirst(array $entries): array
+    {
+        usort($entries, static fn (Entry $a, Entry $b) => [$b->date, $b->slug] <=> [$a->date, $a->slug]);
+        return $entries;
+    }
+
+    /**
+     * Recent documents across every declared Category and Sub-category. A
+     * Series gives its one row, and none of its Parts.
+     *
+     * @param list<array{label:string, path:string, series:bool, categories:list<array{slug:string}>}> $categories
      *        as Site::everyCategory() returns them — malformed entries are gone
      * @param list<string> $codes
      * @param ?int $limit how many to print — null is every one there is, which
@@ -173,13 +283,17 @@ final class Listing
     ): array {
         $all = [];
         foreach ($categories as $c) {
-            $subs = array_column($c['categories'], 'slug');
-            foreach (self::forCategory($contentDir, $c['path'], $codes, $at, $subs) as $entry) {
-                $all[] = $entry;
+            if ($c['series']) {
+                $row = self::series($contentDir, $c, $codes, $at);
+                if ($row !== null) {
+                    $all[] = $row;
+                }
+                continue;
             }
+            $subs = array_column($c['categories'], 'slug');
+            array_push($all, ...self::forCategory($contentDir, $c['path'], $codes, $at, $subs));
         }
-        usort($all, static fn (Entry $a, Entry $b) => [$b->date, $b->slug] <=> [$a->date, $a->slug]);
 
-        return array_slice($all, 0, $limit);
+        return array_slice(self::newestFirst($all), 0, $limit);
     }
 }

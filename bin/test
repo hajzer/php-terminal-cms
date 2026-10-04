@@ -1015,11 +1015,11 @@ $declared = TerminalCms\Site::categories(['categories' => [
     ['slug' => 'about', 'categories' => 'not a list'],
 ]]);
 $want = [
-    ['slug' => 'guides', 'label' => 'Guides', 'listing' => true, 'path' => 'guides', 'categories' => [
-        ['slug' => 'php',   'label' => 'PHP',   'listing' => false, 'path' => 'guides/php',   'categories' => []],
-        ['slug' => 'shell', 'label' => 'shell', 'listing' => true,  'path' => 'guides/shell', 'categories' => []],
+    ['slug' => 'guides', 'label' => 'Guides', 'listing' => true, 'path' => 'guides', 'series' => false, 'categories' => [
+        ['slug' => 'php',   'label' => 'PHP',   'listing' => false, 'path' => 'guides/php',   'series' => false, 'categories' => []],
+        ['slug' => 'shell', 'label' => 'shell', 'listing' => true,  'path' => 'guides/shell', 'series' => false, 'categories' => []],
     ]],
-    ['slug' => 'about', 'label' => 'about', 'listing' => true, 'path' => 'about', 'categories' => []],
+    ['slug' => 'about', 'label' => 'about', 'listing' => true, 'path' => 'about', 'series' => false, 'categories' => []],
 ];
 ok($declared === $want,
    'Site::categories() keeps each Category\'s well-formed Sub-categories, drops the rest, and ignores a second level',
@@ -1288,6 +1288,178 @@ unlink("$pub/notes/cr.md");
 unlink("$pub/notes/long.md");
 
 removeTree($pub);
+
+/* ------------------------------------------------------------------ series */
+echo "\nseries\n";
+
+/**
+ * Content with a Category of Series beside an ordinary one, and the Site
+ * Config it is served with: a Series in two Languages whose Parts' dates run
+ * against their Names, one whose index.md is not Published, one with none,
+ * and one with its listing off. Every title no Listing may print starts
+ * UNLISTED.
+ *
+ * @return array<string,mixed> the Site Config
+ */
+function seriesFixture(string $dir): array
+{
+    $files = [
+        'index.md'                         => "---\ntitle: Home\n---\n\n# Home\n",
+        'solutions/index.md'               => "---\ntitle: Solutions\n---\n\n# Solutions\n",
+        'solutions/own.md'                 => "---\ntitle: Own\ndate: 2026-03-05\n---\n\n# Own\n",
+        'solutions/old.md'                 => "---\ntitle: Old\ndate: 2026-01-01\n---\n\n# Old\n",
+        'solutions/vault/index.md'         => "---\ntitle: Vault\ndate: 2026-03-01\n---\n\n# Vault\n",
+        'solutions/vault/index-sk.md'      => "---\ntitle: Trezor\ndate: 2026-03-02\n---\n\n# Trezor\n",
+        'solutions/vault/01-use-cases.md'  => "---\ntitle: Use cases\ndate: 2026-04-03\n---\n\n# Use cases\n",
+        'solutions/vault/02-design.md'     => "---\ntitle: Design\ndate: 2026-04-01\n---\n\n# Design\n",
+        'solutions/vault/10-operations.md' => "---\ntitle: Operations\ndate: 2026-04-02\n---\n\n# Operations\n",
+        'solutions/consul/index.md'        => "---\ntitle: UNLISTED Consul\npublished: false\ndate: 2026-05-01\n---\n\n# x\n",
+        'solutions/consul/01-agents.md'    => "---\ntitle: UNLISTED Agents\ndate: 2026-05-02\n---\n\n# Agents\n",
+        'solutions/nomad/01-jobs.md'       => "---\ntitle: UNLISTED Jobs\ndate: 2026-05-03\n---\n\n# Jobs\n",
+        'solutions/quiet/index.md'         => "---\ntitle: Quiet\ndate: 2026-02-01\n---\n\n# Quiet\n",
+        'solutions/alpha/index.md'         => "---\ntitle: Alpha\ndate: 2026-02-01\n---\n\n# Alpha\n",
+        'solutions/quiet/01-hush.md'       => "---\ntitle: UNLISTED Hush\ndate: 2026-05-04\n---\n\n# Hush\n",
+        'notes/top.md'                     => "---\ntitle: Top\ndate: 2026-03-03\n---\n\n# Top\n",
+        'notes/php/index.md'               => "---\ntitle: PHP notes\ndate: 2026-03-04\n---\n\n# PHP notes\n",
+        'notes/php/arrays.md'              => "---\ntitle: Arrays\ndate: 2026-02-02\n---\n\n# Arrays\n",
+    ];
+    foreach ($files as $rel => $md) {
+        if (!is_dir(dirname("$dir/$rel"))) {
+            mkdir(dirname("$dir/$rel"), 0755, true);
+        }
+        file_put_contents("$dir/$rel", $md);
+    }
+    return ['title' => 'series', 'languages' => ['sk'], 'listing_max' => 0, 'categories' => [
+        ['slug' => 'solutions', 'label' => 'Solutions', 'series' => true, 'categories' => [
+            ['slug' => 'vault',  'label' => 'Vault'],
+            ['slug' => 'consul', 'label' => 'Consul'],
+            ['slug' => 'nomad',  'label' => 'Nomad'],
+            ['slug' => 'quiet',  'label' => 'Quiet', 'listing' => false],
+            ['slug' => 'alpha',  'label' => 'Alpha'],
+        ]],
+        ['slug' => 'notes', 'label' => 'Notes', 'categories' => [
+            ['slug' => 'php', 'label' => 'PHP', 'series' => true],
+        ]],
+    ]];
+}
+
+/**
+ * The Series no Listing names: a Sub-category of a `series` Category with no
+ * Published index.md.
+ *
+ * @param array<string,mixed> $site
+ * @return list<string> each directory, from content/
+ */
+function unlistedSeries(array $site, string $contentDir): array
+{
+    $codes = TerminalCms\Site::languages($site);
+    $out = [];
+    foreach (TerminalCms\Site::everyCategory($site) as $c) {
+        if ($c['series'] && TerminalCms\Listing::series($contentDir, $c, $codes) === null) {
+            $out[] = 'content/' . $c['path'];
+        }
+    }
+    return $out;
+}
+
+/** The address each row of a page's Listing leads to, in order. @return list<string> */
+function rows(string $body): array
+{
+    preg_match_all('~<a class="row" href="([^"]*)"~', $body, $m);
+    return $m[1];
+}
+
+$ser = sys_get_temp_dir() . '/tcms-series-' . getmypid();
+$serSite = seriesFixture($ser);
+$serRouter = new TerminalCms\Router($serSite, $ser);
+
+/* the parent says it, for all of its Sub-categories, and only with true */
+$flags = [];
+foreach (TerminalCms\Site::everyCategory($serSite) as $c) {
+    $flags[$c['path']] = $c['series'];
+}
+ok($flags === ['solutions' => false, 'solutions/vault' => true, 'solutions/consul' => true, 'solutions/nomad' => true,
+               'solutions/quiet' => true, 'solutions/alpha' => true, 'notes' => false, 'notes/php' => false],
+   'each Sub-category of a Category that says series is a Series, and the key on a Sub-category\'s own entry is ignored',
+   var_export($flags, true));
+
+$plain = $serSite;
+unset($plain['categories'][0]['series']);
+$plainRouter = new TerminalCms\Router($plain, $ser);
+$uris = ['/', '/solutions', '/solutions/vault', '/solutions/vault/01-use-cases', '/notes', '/notes/php'];
+foreach ([["'true'", 'true'], ['1', 1], ["'yes'", 'yes'], ['false', false], ['null', null]] as [$value, $set]) {
+    $odd = $serSite;
+    $odd['categories'][0]['series'] = $set;
+    $oddRouter = new TerminalCms\Router($odd, $ser);
+    $differ = array_filter($uris, static fn (string $u) => $oddRouter->route($u) != $plainRouter->route($u));
+    ok($differ === [], sprintf("'series' => %-6s is not true, and renders byte for byte as no series does", $value),
+       implode("\n", $differ));
+}
+$r = $plainRouter->route('/solutions');
+ok(str_contains($r['body'], '<ul class="sub-categories"><li><a href="/solutions/vault">Vault</a></li>')
+   && rows($r['body']) === ['/solutions/own', '/solutions/old']
+   && rows($plainRouter->route('/solutions/vault')['body'])
+      === ['/solutions/vault/01-use-cases', '/solutions/vault/10-operations', '/solutions/vault/02-design'],
+   'which is Sub-categories named by label, and their Documents newest first', $r['body']);
+
+/* the homepage: one row per Series, none for a Part */
+$home = $serRouter->route('/')['body'];
+ok(rows($home) === ['/solutions/own', '/notes/top', '/solutions/vault', '/notes/php/arrays', '/solutions/quiet', '/solutions/alpha',
+                    '/solutions/old'],
+   'the homepage Listing has one row per Series, by its index.md\'s date, and no row for a Part',
+   implode("\n", rows($home)));
+ok(str_contains($home, '<li><a class="row" href="/solutions/vault"><time>2026-03-01</time><span class="t">Vault</span>'
+                     . '<span class="c">solutions/vault</span></a><span class="languages">(<a href="/solutions/vault" class="on">EN</a>'
+                     . ' <i>|</i> <a href="/solutions/vault/index-sk">SK</a>)</span></li>'),
+   'the row carries the index.md\'s title, date and Languages, leads to the Series\' page and names its path', $home);
+ok($serRouter->route('/solutions/vault/index-sk')['status'] === 200,
+   'and the other Language it names answers');
+
+/* no Published index.md: no row anywhere, and everything still answers */
+$parent = $serRouter->route('/solutions')['body'];
+$statuses = array_map(static fn (string $u) => $serRouter->route($u)['status'],
+    ['/solutions/consul', '/solutions/consul/01-agents', '/solutions/nomad', '/solutions/nomad/01-jobs']);
+ok(!preg_match('~UNLISTED|consul|nomad~', $home . $parent) && $statuses === [200, 200, 200, 200],
+   'a Series whose index.md is absent or not Published has no row anywhere, and its page and Parts still answer',
+   implode(' ', $statuses) . "\n" . $home . $parent);
+ok(unlistedSeries($serSite, $ser) === ['content/solutions/consul', 'content/solutions/nomad'],
+   'and both are the ones bin/test names', implode("\n", unlistedSeries($serSite, $ser)));
+
+/* the parent's page */
+ok(rows($parent) === ['/solutions/own', '/solutions/vault', '/solutions/quiet', '/solutions/alpha', '/solutions/old'],
+   'the parent\'s page lists its Series as rows among its own Documents, by date and then by slug as Documents are', implode("\n", rows($parent)));
+ok(!str_contains($parent, 'sub-categories') && str_contains($parent, 'class="doc intro"'),
+   'and prints no list of labels', $parent);
+$off = $serSite;
+$off['categories'][0]['listing'] = false;
+$r = (new TerminalCms\Router($off, $ser))->route('/solutions');
+ok(str_contains($r['body'], 'class="doc intro"') && !str_contains($r['body'], 'class="listing"')
+   && !str_contains($r['body'], 'sub-categories') && !str_contains($r['body'], 'vault'),
+   "and with 'listing' => false prints its index.md alone", $r['body']);
+
+/* a Series' page */
+$r = $serRouter->route('/solutions/vault');
+ok(rows($r['body']) === ['/solutions/vault/01-use-cases', '/solutions/vault/02-design', '/solutions/vault/10-operations'],
+   'a Series\' page lists its Parts by Name ascending, whatever their dates', implode("\n", rows($r['body'])));
+ok(str_contains($r['body'], 'class="doc intro"') && str_contains($r['body'], '<a href="/solutions/vault.zip">↓ bundle</a>')
+   && str_contains($serRouter->route('/solutions/vault/02-design')['body'], '<a href="/solutions/vault">← solutions/vault</a>'),
+   'and is a Sub-category\'s page in everything else', $r['body']);
+$r = $serRouter->route('/solutions/quiet');
+ok($r['status'] === 200 && !str_contains($r['body'], 'class="listing"'),
+   'its own listing switch still turns its Listing off', $r['body']);
+ok(rows($serRouter->route('/notes/php')['body']) === ['/notes/php/arrays']
+   && str_contains($serRouter->route('/notes')['body'], '<ul class="sub-categories">'),
+   'and the Category beside it is as it was', $serRouter->route('/notes')['body']);
+
+removeTree($ser);
+
+/* the same check over the repository's own content, as for a shadowed
+   Document: a warning in the suite's output, not a failure */
+foreach (array_filter(['site.php.example', 'site.php'], static fn ($f) => is_file("$root/site/$f")) as $f) {
+    foreach (unlistedSeries(require "$root/site/$f", $root . '/site/content') as $dir) {
+        echo "  warn $dir is a Series with no Published index.md, so no Listing names it, in site/$f\n";
+    }
+}
 
 /* ------------------------------------------------------- the index listings */
 echo "\nlistings\n";
@@ -2978,6 +3150,36 @@ foreach ($built as $page) {
     }
 }
 ok($named === [], 'and no built page names what it left out', implode("\n", $named));
+
+/* a Page Build of Series carries the Listings the site serves */
+removeTree($instance . '/site/content');
+$serSite = seriesFixture($instance . '/site/content');
+file_put_contents($instance . '/site/site.php', '<?php return ' . var_export($serSite, true) . ";\n");
+[$status, $said] = pageBuild($instance, ['--output=' . $box . '/series', '--base-url=https://example.gitlab.io/proj/']);
+$built = array_values(array_filter(array_keys(snapshot($box . '/series')),
+    static fn (string $f) => str_ends_with($f, '.html')));
+$differ = $status === 0
+    ? parity($box . '/series', $built, '/proj', $serSite, new TerminalCms\Router($serSite, $instance . '/site/content'))
+    : [];
+ok($status === 0 && $differ === [] && in_array('solutions/vault/02-design/index.html', $built, true)
+   && in_array('solutions/vault/index-sk/index.html', $built, true)
+   && in_array('solutions/nomad/01-jobs/index.html', $built, true) && in_array('solutions/consul/index.html', $built, true),
+   'a Page Build of Series builds every Series and Part, and each page is the one the site serves',
+   $said . implode("\n", $differ) . "\n" . implode("\n", $built));
+$page = (string) @file_get_contents($box . '/series/index.html');
+ok(rows($page) === ['/proj/solutions/own/', '/proj/notes/top/', '/proj/solutions/vault/', '/proj/notes/php/arrays/',
+                    '/proj/solutions/quiet/', '/proj/solutions/alpha/', '/proj/solutions/old/'],
+   'its homepage has the Series\' rows and no Part\'s', implode("\n", rows($page)));
+$wrong = [];
+foreach ($built as $page) {
+    foreach (localAddresses((string) file_get_contents("$box/series/$page")) as $a) {
+        if (!str_starts_with($a, '/proj/') || servedFile($box . '/series', substr($a, strlen('/proj'))) === '') {
+            $wrong[] = "$page: $a";
+        }
+    }
+}
+ok($wrong === [], 'and every address a row names, a Series\' other Language included, is a file in the build',
+   implode("\n", array_slice($wrong, 0, 8)));
 
 removeTree($box);
 

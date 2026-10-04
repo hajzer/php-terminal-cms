@@ -185,6 +185,10 @@ What the published half does with the files it is given, beyond drawing them:
   categories of its own, one level down. `content/guides/php/intro.md` says
   `category: guides/php` and is read at `/guides/php/intro`; `/guides` names
   its Sub-categories above its own documents.
+- **Series.** A category that says `'series' => true` makes each of its
+  Sub-categories one thing in several documents: one row in a listing, its
+  `index.md`'s, in place of its documents — and a page of its own that lists
+  them by name, `01-…`, `02-…`, rather than by date.
 - **Published.** `published: false` in a document's meta — or on a category
   in `site.php` — keeps it on the server and off the site: a 404, in no
   listing, in no navigation. Only no line at all, or exactly `true`,
@@ -290,7 +294,7 @@ from `site.php.example`; it is in neither the repository nor the package.
 | | |
 | --- | --- |
 | `php bin/build` | regenerate derived files from `shared/` |
-| `php bin/test` | the whole suite — round trip, PHP/JS agreement, the editor's model, escaping, link targets, routing, Sub-categories, Published, listings, media, the footer, the Themes, the page shell, the Full View, the Page Build, Bundles, Migrations, the release manifest |
+| `php bin/test` | the whole suite — round trip, PHP/JS agreement, the editor's model, escaping, link targets, routing, Sub-categories, Published, Series, listings, media, the footer, the Themes, the page shell, the Full View, the Page Build, Bundles, Migrations, the release manifest |
 | `php bin/fmt` | rewrite `content/` into canonical form (`--check` to only report) |
 | `php bin/package` | build `dist/php-terminal-cms-<version>.{tar.gz,zip}` |
 | `php bin/page-build --output=<dir> [--base-url=<url>]` | render every page of the Instance to files, for a host that runs no PHP |

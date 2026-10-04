@@ -89,8 +89,8 @@ final class Router
      * The declaration in a list whose slug is identical to a segment of the
      * request, or null.
      *
-     * @param list<array{slug:string, label:string, listing:bool, path:string, categories:list<array<string,mixed>>}> $declared
-     * @return array{slug:string, label:string, listing:bool, path:string, categories:list<array<string,mixed>>}|null
+     * @param list<array{slug:string, label:string, listing:bool, path:string, series:bool, categories:list<array<string,mixed>>}> $declared
+     * @return array{slug:string, label:string, listing:bool, path:string, series:bool, categories:list<array<string,mixed>>}|null
      */
     private static function declared(array $declared, string $segment): ?array
     {
@@ -193,11 +193,12 @@ final class Router
 
     /**
      * A Category's page, or a Sub-category's: its index.md or its label, the
-     * Sub-categories it declares, the way to its Bundle, and the Documents in
-     * its own directory. With $zip, the Bundle. Whether it is offered is its
-     * index.md's to say, as the rest of what the page does is.
+     * Sub-categories it declares, the way to its Bundle, and its Listing.
+     * Series are rows of that Listing, and not named above it. With $zip,
+     * the Bundle. Whether it is offered is its index.md's to say, as the
+     * rest of what the page does is.
      *
-     * @param array{label:string, listing:bool, path:string, categories:list<array{slug:string, label:string, path:string}>} $declared
+     * @param array{label:string, listing:bool, path:string, series:bool, categories:list<array{slug:string, label:string, path:string, series:bool}>} $declared
      *        as Site::categories() declares it
      * @return array{status:int, title:string, body:string, active:?string, lang:string, meta?:array<string,string>, bundle?:Bundle}
      */
@@ -226,11 +227,13 @@ final class Router
             $body .= '<h1>' . e($label) . '</h1>';
         }
 
-        if ($declared['categories'] !== []) {
-            $items = '';
-            foreach ($declared['categories'] as $sub) {
+        $items = '';
+        foreach ($declared['categories'] as $sub) {
+            if (!$sub['series']) {
                 $items .= '<li><a href="' . e($this->at->page($sub['path'])) . '">' . e($sub['label']) . '</a></li>';
             }
+        }
+        if ($items !== '') {
             $body .= '<ul class="sub-categories">' . $items . '</ul>';
         }
 
@@ -239,10 +242,7 @@ final class Router
         }
 
         if ($declared['listing']) {
-            $body .= $this->listing(
-                Listing::forCategory($this->contentDir, $path, Site::languages($this->site), $this->at,
-                                     array_column($declared['categories'], 'slug'))
-            );
+            $body .= $this->listing(Listing::forPage($this->contentDir, $declared, Site::languages($this->site), $this->at));
         }
 
         return ['status' => 200, 'title' => $label, 'active' => $path, 'body' => $body,

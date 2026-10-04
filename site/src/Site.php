@@ -109,18 +109,25 @@ final class Site
      * Category that is not Published is an undeclared one, and its
      * Sub-categories with it.
      *
+     * A Category that says `'series' => true` makes each of its
+     * Sub-categories a Series, and `series` on a declaration here is whether
+     * it is one — so it is never true of a Category. Only exactly true says
+     * so, and on a Sub-category's own entry the key says nothing.
+     *
      * @param array<string,mixed> $site
-     * @return list<array{slug:string, label:string, listing:bool, path:string,
-     *         categories:list<array{slug:string, label:string, listing:bool, path:string, categories:array{}}>}>
+     * @return list<array{slug:string, label:string, listing:bool, path:string, series:false,
+     *         categories:list<array{slug:string, label:string, listing:bool, path:string, series:bool, categories:array{}}>}>
      */
     public static function categories(array $site): array
     {
         $out = [];
         foreach (self::declarations($site['categories'] ?? [], '') as $c) {
+            $series = $c['series'];
             $c['categories'] = array_map(
-                static fn (array $sub): array => array_replace($sub, ['categories' => []]),
+                static fn (array $sub): array => array_replace($sub, ['series' => $series, 'categories' => []]),
                 self::declarations($c['categories'], $c['path'] . '/'),
             );
+            $c['series'] = false;
             $out[] = $c;
         }
         return $out;
@@ -132,7 +139,7 @@ final class Site
      * that hold Documents.
      *
      * @param array<string,mixed> $site
-     * @return list<array{slug:string, label:string, listing:bool, path:string, categories:list<array<string,mixed>>}>
+     * @return list<array{slug:string, label:string, listing:bool, path:string, series:bool, categories:list<array<string,mixed>>}>
      */
     public static function everyCategory(array $site): array
     {
@@ -145,9 +152,10 @@ final class Site
 
     /**
      * One level of declarations, read as categories() describes. The
-     * `categories` each carries is still what the config holds.
+     * `categories` each carries is still what the config holds, and its
+     * `series` is whether its own entry says so.
      *
-     * @return list<array{slug:string, label:string, listing:bool, path:string, categories:mixed}>
+     * @return list<array{slug:string, label:string, listing:bool, path:string, series:bool, categories:mixed}>
      */
     private static function declarations(mixed $list, string $prefix): array
     {
@@ -163,6 +171,7 @@ final class Site
                 'label'      => $label,
                 'listing'    => ($c['listing'] ?? true) !== false,
                 'path'       => $prefix . $c['slug'],
+                'series'     => ($c['series'] ?? null) === true,
                 'categories' => $c['categories'] ?? [],
             ];
         }

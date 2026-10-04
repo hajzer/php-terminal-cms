@@ -42,6 +42,7 @@ declare(strict_types=1);
 use TerminalCms\BasePath;
 use TerminalCms\Bundle;
 use TerminalCms\Highlighter;
+use TerminalCms\Language;
 use TerminalCms\Listing;
 use TerminalCms\Page;
 use TerminalCms\Policy;
@@ -134,20 +135,31 @@ function write(string $dir, string $rel, string|Bundle $what): void
 /**
  * Every address the site answers with a page, and the file it is built to:
  * the homepage, each Category and Sub-category, and each Document in each of
- * its Languages as the Listing enumerates them. The addresses are the
- * request-time site's, so each one is also the page's directory under the
- * output.
+ * its Languages as the Listings on those pages enumerate them — and a
+ * Series' index.md in each of its Languages, when it has more than one. The
+ * addresses are the request-time site's, so each one is also the page's
+ * directory under the output.
  *
  * @param array<string,mixed> $config
  * @return array<string,string> address => file, relative to the output
  */
 function addresses(array $config, string $content): array
 {
+    $codes = Site::languages($config);
     $out = ['/' => 'index.html'];
     foreach (Site::everyCategory($config) as $c) {
         $out['/' . $c['path']] = $c['path'] . '/index.html';
-        $subs = array_column($c['categories'], 'slug');
-        foreach (Listing::forCategory($content, $c['path'], Site::languages($config), new BasePath(), $subs) as $entry) {
+
+        /* a Series' row names its index.md's other Languages, and each of
+           those pages names the rest as the Documents they are */
+        $index = $c['series'] && is_dir($content . '/' . $c['path'])
+            ? Listing::variants($content . '/' . $c['path'], 'index', $codes)
+            : [];
+        foreach (count($index) > 1 ? Language::addresses('index', $index, $c['path'], $codes[0]) : [] as $url) {
+            $out[$url] = ltrim($url, '/') . '/index.html';
+        }
+
+        foreach (Listing::forPage($content, $c, $codes) as $entry) {
             foreach ($entry->languages ?: [$entry->url()] as $url) {
                 /* a file named `.md`, `..md` or `...md` is a Document the
                    request-time site cannot be asked for either — its address
