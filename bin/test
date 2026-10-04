@@ -2556,7 +2556,7 @@ mkdir($box . '/instance/bin', 0755, true);
 $box = (string) realpath($box);
 $instance = $box . '/instance';
 copy($root . '/bin/page-build', $instance . '/bin/page-build');
-foreach (['src', 'shared', 'public', 'content'] as $dir) {
+foreach (['src', 'shared', 'public', 'content', 'editor'] as $dir) {
     copyTree($root . '/site/' . $dir, $instance . '/site/' . $dir);
 }
 copy($root . '/site/site.php.example', $instance . '/site/site.php');
@@ -2592,11 +2592,6 @@ $pages = array_values(array_filter($files, static fn (string $f) => str_ends_wit
 $wrong = [];
 foreach ($pages as $page) {
     foreach (localAddresses((string) file_get_contents("$out/$page")) as $a) {
-        /* a Bundle is not a file the Page Build writes, so a link to one is
-           not looked for in the output */
-        if (str_ends_with($a, '.zip')) {
-            continue;
-        }
         if (!str_starts_with($a, '/proj/')) {
             $wrong[] = "$page: $a does not start with /proj/";
         } elseif (servedFile($out, substr($a, strlen('/proj'))) === '') {
@@ -2729,15 +2724,50 @@ ok(count($differ) === 2 && str_starts_with($differ[0], '/about/what-it-is differ
    implode("\n", $differ));
 removeTree($box . '/tampered');
 
+/** The bytes the request-time site answers a Bundle's address with, or null
+ *  where it offers none. */
+function servedBundle(TerminalCms\Router $router, string $address): ?string
+{
+    $route = $router->route($address);
+    if (!isset($route['bundle'])) {
+        return null;
+    }
+    $mem = fopen('php://memory', 'w+b');
+    $route['bundle']->write($mem);
+    rewind($mem);
+    return (string) stream_get_contents($mem);
+}
+
+/* every Bundle a page offers is built at the address its page links, and is
+   the bytes the request-time site answers there */
+$zips = array_values(array_filter($files, static fn (string $f) => str_ends_with($f, '.zip')));
+sort($zips);
+$wantZips = ['about.zip', 'about/everything-is-a-line.zip', 'about/what-it-is-sk.zip', 'about/what-it-is.zip',
+             'guides.zip', 'guides/hosting.zip', 'guides/hosting/without-php.zip',
+             'guides/install-in-five-minutes.zip', 'guides/publishing-is-a-file-copy.zip',
+             'guides/writing-in-the-editor.zip'];
+ok($zips === $wantZips, 'a Bundle is built beside each page that offers one, at its address with .zip on it',
+   implode("\n", array_diff($zips, $wantZips)) . "\n--\n" . implode("\n", array_diff($wantZips, $zips)));
+$instanceRouter = new TerminalCms\Router($site, $instance . '/site/content');
+$differ = [];
+foreach ($zips as $zip) {
+    if (file_get_contents("$out/$zip") !== servedBundle($instanceRouter, '/' . $zip)) {
+        $differ[] = $zip;
+    }
+}
+ok($differ === [] && in_array('about/what-it-is.zip', $zips, true) && in_array('guides.zip', $zips, true),
+   'every built Bundle — a Document\'s and a Category\'s — is byte for byte what the site answers at its address',
+   implode("\n", $differ));
+ok(is_file("$out/about/what-it-is.zip")
+   && file_get_contents("$out/about/what-it-is.zip") === file_get_contents("$out/about/what-it-is-sk.zip"),
+   'and a Document\'s Bundle is the same file at each of its Languages\' addresses');
+
 /* no --base-url: the site begins at the host's root */
 $rootOut = $box . '/root';
 [$status, $said] = pageBuild($instance, ['--output=' . $rootOut]);
 $wrong = [];
 foreach ($pages as $page) {
     foreach (localAddresses((string) file_get_contents("$rootOut/$page")) as $a) {
-        if (str_ends_with($a, '.zip')) {
-            continue;
-        }
         if (!str_starts_with($a, '/') || str_starts_with($a, '/proj') || servedFile($rootOut, $a) === '') {
             $wrong[] = "$page: $a";
         }
@@ -2837,14 +2867,23 @@ removeTree($instance . '/site/public/guides');
 removeTree($instance . '/site/content');
 $hiddenSite = unpublishedFixture($instance . '/site/content');
 file_put_contents($instance . '/site/site.php', '<?php return ' . var_export($hiddenSite, true) . ";\n");
+file_put_contents($instance . '/site/content/notes/off.md', "---\ntitle: Off\nbundle: false\n---\n\n# Off\n");
 [$status, $said] = pageBuild($instance, ['--output=' . $box . '/hidden']);
 $built = array_values(array_filter(array_keys(snapshot($box . '/hidden')),
     static fn (string $f) => str_ends_with($f, '.html')));
 sort($built);
-$wantBuilt = ['404.html', 'index.html', 'notes/both/index.html', 'notes/index.html', 'notes/php/arrays/index.html',
-              'notes/php/index.html', 'notes/shown/index.html', 'notes/sk-only-sk/index.html', 'notes/yes/index.html'];
+$wantBuilt = ['404.html', 'index.html', 'notes/both/index.html', 'notes/index.html', 'notes/off/index.html',
+              'notes/php/arrays/index.html', 'notes/php/index.html', 'notes/shown/index.html',
+              'notes/sk-only-sk/index.html', 'notes/yes/index.html'];
 ok($status === 0 && $built === $wantBuilt, 'a Page Build writes what is Published and nothing else',
    $said . implode("\n", array_diff($built, $wantBuilt)) . implode("\n", array_diff($wantBuilt, $built)));
+$zips = array_values(array_filter(array_keys(snapshot($box . '/hidden')),
+    static fn (string $f) => str_ends_with($f, '.zip')));
+sort($zips);
+$wantZips = ['notes.zip', 'notes/both.zip', 'notes/php.zip', 'notes/php/arrays.zip', 'notes/shown.zip',
+             'notes/sk-only-sk.zip', 'notes/yes.zip'];
+ok($zips === $wantZips, 'and no Bundle of a page that is not Published, nor of one that says bundle: false',
+   implode("\n", array_diff($zips, $wantZips)) . "\n--\n" . implode("\n", array_diff($wantZips, $zips)));
 $named = [];
 foreach ($built as $page) {
     if (preg_match('~HIDDEN|href="[^"]*(?:hidden|both-sk|/sk-only/"|wip|drafts)~', (string) file_get_contents("$box/hidden/$page"), $m)) {

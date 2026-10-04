@@ -194,6 +194,30 @@ $ php bin/page-build --output=dist/serve/proj --base-url=http://localhost:8080/p
 $ php -S localhost:8080 -t dist/serve
 ```
 
+Each page is a directory holding an `index.html`, and beside it, where the page
+offers one, is its Bundle under the same address with `.zip` on it:
+
+```
+dist/pages/index.html
+dist/pages/guides/index.html                         dist/pages/guides.zip
+dist/pages/guides/hosting/index.html                 dist/pages/guides/hosting.zip
+dist/pages/guides/install-in-five-minutes/index.html dist/pages/guides/install-in-five-minutes.zip
+```
+
+These are the bytes the site answers at the same address through `index.php`,
+so a reader downloads the same Bundle from either host. Only its name may
+differ: a static host names the download after the address, so
+`guides/hosting.zip` saves as `hosting.zip`, where `index.php` names it after
+the directory inside, `guides-hosting.zip`. A Document in two
+Languages has a Bundle at each Language's address, and the two are the same
+file. Nothing that is not Published, and no page whose `bundle` Meta says
+`false`, gets one.
+
+Every Bundle carries its own copy of the Editor, so the output grows by about
+4 MB for each page that offers one — the sample content builds to about 40 MB.
+A host that limits the size of a site counts them; `'bundle' => false` in Site
+Config builds none but for a Document whose own Meta says `bundle: true`.
+
 A Page Build replaces its output only when that output is absent, empty, or
 an earlier Page Build, and never writes into the repository's root, `site/` or
 `content/`. If any page fails, the previous output is left as it was.

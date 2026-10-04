@@ -13,9 +13,14 @@
  *   <category>/index.html                 each Category
  *   <category>/<sub>/index.html           each Sub-category
  *   <category>[/<sub>]/<slug>/index.html  each Document, in each of its Languages
+ *   <category>[/<sub>].zip                each Category's Bundle, where it offers one
+ *   <category>[/<sub>]/<slug>.zip         each Document's, in each of its Languages
  *   404.html                              the answer to an address that is nothing
  *
- * beside everything in site/public/ but its PHP and its .htaccess. The path of
+ * beside everything in site/public/ but its PHP and its .htaccess. A Bundle is
+ * what the request-time site answers for the page's address with .zip on it,
+ * written by the same Bundle and Zip, so the two give the same bytes; each of
+ * a Document's Languages has one, and they are the same file. The path of
  * --base-url is the Base Path every local address starts with; without it the
  * site begins at the host's root. A static host sends no header the site
  * chooses, so every page names the request-time policy itself, in a <meta>,
@@ -31,6 +36,7 @@
 declare(strict_types=1);
 
 use TerminalCms\BasePath;
+use TerminalCms\Bundle;
 use TerminalCms\Highlighter;
 use TerminalCms\Listing;
 use TerminalCms\Page;
@@ -98,17 +104,27 @@ function copyPublic(string $from, string $to, array $within = []): void
     }
 }
 
-/** Writes one page, into a place nothing in site/public/ already took. */
-function write(string $dir, string $rel, string $html): void
+/** Writes one page, or one Bundle, into a place nothing in site/public/ already took. */
+function write(string $dir, string $rel, string|Bundle $what): void
 {
     $file = $dir . '/' . $rel;
     if (file_exists($file)) {
-        throw new RuntimeException("$rel is both a page and a file in site/public/");
+        throw new RuntimeException("$rel is both " . ($what instanceof Bundle ? 'a Bundle' : 'a page')
+                                   . ' and a file in site/public/');
     }
     if (!is_dir(dirname($file))) {
         mkdir(dirname($file), 0755, true);
     }
-    file_put_contents($file, $html);
+    if (is_string($what)) {
+        file_put_contents($file, $what);
+        return;
+    }
+    $out = fopen($file, 'xb');
+    try {
+        $what->write($out);
+    } finally {
+        fclose($out);
+    }
 }
 
 /**
@@ -265,6 +281,10 @@ try {
             throw new RuntimeException("$address is listed, and answers {$page['status']}");
         }
         write($fresh, $file, Page::html($config, $page, $nonce, $at, ownPolicy: true));
+        $bundle = $router->route($address . '.zip')['bundle'] ?? null;
+        if ($bundle !== null) {
+            write($fresh, ltrim($address, '/') . '.zip', $bundle);
+        }
     }
     $page = $router->route(NOWHERE);
     if ($page['status'] !== 404) {
