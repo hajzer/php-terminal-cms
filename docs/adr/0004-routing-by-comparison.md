@@ -1,6 +1,6 @@
 # Resolve URLs by comparison, never by concatenation
 
-Status: accepted
+Status: accepted · amended by ADR-0022
 Date: 2026-09-09
 
 The router never builds a filesystem path out of the request. The first URL

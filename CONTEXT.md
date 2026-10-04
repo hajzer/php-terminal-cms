@@ -48,6 +48,17 @@ drawn in the reader's browser and nowhere else, so with the drawing blocked a
 Diagram is an ordinary code block.
 _Avoid_: chart, graph, figure (that is the Image), mermaid (that is the Dialect)
 
+**Full View**:
+An Image or a Diagram shown alone over the whole public page, opened by the
+magnifying glass that every one of them carries: fitted to the screen, or at
+its own size to be scrolled, one tap apart. It is also where a picture is
+saved: an Image as the file it is, a Diagram as the drawing the reader is
+looking at or as its source. It is the reader's — the Editor's
+preview has none — and it is added by the page, not written into it, so with
+scripting off a reader has the picture as it was.
+_Avoid_: lightbox, zoom, modal, popup, viewer (the public site is not called
+that either)
+
 **Cell**:
 One of the `|`-separated parts of a Table Line. A Line's text is the whole row,
 and its Cells are what that one string is read as.
@@ -62,11 +73,12 @@ _Avoid_: field, axis
 
 **Meta**:
 A Line holding one `key: value` pair, exported as YAML frontmatter. `title`,
-`category`, `date`, `theme` and `palette` are the ones the system reads;
-anything else is carried through untouched. Every Meta but `title` and
-`palette` is shown on the page, in one line under the title: the title is
-already there as the heading, and the Palette is the reader's to flip, so what
-the Document says about it is only how the page opens.
+`category`, `date`, `theme`, `palette` and `published` are the ones the
+system reads; anything else is carried through untouched. Every Meta but
+`title`, `palette` and `published` is shown on the page, in one line under
+the title: the title is already there as the heading, the Palette is the
+reader's to flip, so what the Document says about it is only how the page
+opens, and a reader only ever meets a Document that is Published.
 _Avoid_: frontmatter (when you mean the Line), header, attribute
 
 **Link**:
@@ -123,12 +135,48 @@ under `content/`. The public navigation is exactly the Category list; a URL
 segment that is not a Category is a 404.
 _Avoid_: section, folder, tag, collection
 
+**Sub-category**:
+A Category declared inside another one, and only one level down — a
+Sub-category has no Sub-categories of its own. It is declared in Site Config
+under its parent and matches one directory inside the parent's, so it is
+addressed `<category>/<sub-category>/<slug>` and a Document in it says so in
+its `category` Meta as `<category>/<sub-category>`. Declared or it does not
+exist, exactly as a Category: a directory nobody declared is a 404. The
+public navigation names the top-level Categories; a Category's own page
+names its Sub-categories.
+_Avoid_: subfolder, child category, nested category, subsection
+
+**Media**:
+The files a Document's Image Lines show, kept in one directory that is the
+Document's own: its path under `content/` repeated under `media/`, so
+`about/what-it-is` keeps its pictures in `media/about/what-it-is/`. All of a
+Document's Languages share it — a translation is the same Document, and a
+screenshot is not stored twice. An Image Line that names a bare file name
+names a file there; one that names an absolute path names that path.
+_Avoid_: assets, attachments, uploads, images (an Image is the Line, not the
+file)
+
+**Published**:
+Whether readers can reach a Document, a Category or a Sub-category at all.
+Something not Published does not exist for a reader: its address is a 404,
+no Listing, navigation or Language indicator names it, and a Page Build
+leaves it out — and a Category that is not Published takes everything under
+it along. A Document says so in its `published` Meta, a Category or
+Sub-category in Site Config. Absent is Published, and so is `true`; any
+other word is not, so a misspelling keeps a draft hidden instead of
+releasing it.
+_Avoid_: visible, live, public, hidden, draft (that is a Document that is
+not Published, not the property), unlisted (that is reachable but not
+listed, which nothing here is)
+
 **Editor**:
 The static page on which Lines are composed. It holds one Document in the
 browser tab, opens markdown from a file picker or a drop, takes it in by
 paste, and emits it by download — the Document is never sent anywhere. What
-it fetches is an image a Line names, so that the preview shows the picture,
-and — once the Document holds a Diagram — its own copy of the library that
+it fetches is an image a Line names, so that the preview shows the picture
+(a bare file name is looked for in the Document's Media, where an unzipped
+Bundle or a checkout of the repository keeps it), and — once the Document
+holds a Diagram — its own copy of the library that
 draws one. Its preview keeps the tab the Document is in: a Link clicked there
 opens in another tab, and a drop that is not a file is refused. It knows
 nothing of the Category list — a Document's Category is a
@@ -168,7 +216,23 @@ _Avoid_: collapse, hide, toggle
 **Export**:
 Producing the markdown file from the Lines in the Editor. The only output the
 Editor has.
-_Avoid_: save, publish, download
+_Avoid_: save, publish, download, bundle (that is the site's ZIP, not the
+Editor's file)
+
+**Bundle**:
+A ZIP a reader downloads from the public site: Documents with their Media and
+a copy of the Editor, laid out so that once it is unzipped the Editor opens
+them, shows their pictures and edits them with no server and no network. It
+holds only what the reader could already read — only Published Documents, and
+only their Media. A Document page offers that Document in every Language it
+is Published in; a Category page offers the Category — its `index.md`, its
+Documents and its Sub-categories' Documents. There is no Bundle of a whole
+Instance: that is a copy of the site, which is Transfer's. Offered unless
+something says not to: the Document's
+`bundle` Meta decides, else Site Config's, else it is offered; a word that is
+neither `true` nor `false` is not a choice, and the next one decides.
+_Avoid_: export (that is the Editor's markdown), archive, download (that is
+the act, not the thing), backup, package
 
 **Transfer**:
 Moving an exported file to a server by a means the system knows nothing about —
@@ -184,8 +248,10 @@ _Avoid_: settings, options, env
 
 **Listing**:
 The documents an index page prints below its own writing — every Document in a
-Category on that Category's page, the recent ones from every Category on the
-homepage. One row is one Document whatever Languages it exists in, printed in
+Category on that Category's page, the recent ones from every Category and
+Sub-category on the homepage. A Category's page lists its own Documents and
+names its Sub-categories; it does not list theirs, which are on each
+Sub-category's own page. One row is one Document whatever Languages it exists in, printed in
 the site's own and carrying `(EN | SK)` — the one being read, and the way to the
 others. Each Listing is a switch in Site Config, on unless an Instance says
 otherwise; switched off, the index page is its `index.md` and nothing else.

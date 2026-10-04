@@ -1,0 +1,298 @@
+<!doctype html>
+<!--
+  PROTOTYPE — throwaway. Not part of the software, never shipped.
+  Question: how much colour should a Theme put into the article body?
+  One article, twelve Themes x two Palettes, three modes switched from the
+  bar at the bottom (or ?mode=today|a|b):
+    today  the sheet as it is in 0.2.0
+    a      derived tints: each Theme's own --accent / --primary mixed in at
+           low strength (note wash, table head, zebra, quote bar, headings,
+           bold, the rule)
+    b      a, plus the optional tokens --h1 --h2 --h3 --strong --table-head
+           --table-head-ink where the Theme's Obsidian source sets them by
+           default; anything a source leaves alone falls back to a's tint
+  Open it straight from disk: it links the real generated sheets in
+  site/public/, so it reads the true tokens.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Body colour prototype</title>
+<link rel="stylesheet" href="../../../site/public/theme.css">
+<link rel="stylesheet" href="../../../site/public/themes/baseline.css">
+<link rel="stylesheet" href="../../../site/public/themes/flexoki.css">
+<link rel="stylesheet" href="../../../site/public/themes/github.css">
+<link rel="stylesheet" href="../../../site/public/themes/material-flat.css">
+<link rel="stylesheet" href="../../../site/public/themes/minimal.css">
+<link rel="stylesheet" href="../../../site/public/themes/origami.css">
+<link rel="stylesheet" href="../../../site/public/themes/retroma.css">
+<link rel="stylesheet" href="../../../site/public/themes/reverie.css">
+<link rel="stylesheet" href="../../../site/public/themes/shimmering-focus.css">
+<link rel="stylesheet" href="../../../site/public/themes/things.css">
+<link rel="stylesheet" href="../../../site/public/themes/underwater.css">
+<link rel="stylesheet" href="../../../site/public/themes/wasp.css">
+<style>
+  /* ---- the knobs: the strength of every derived tint (the slider scales them all) */
+  :root {
+    --t-wash:  8%;   /* note background: accent into bg */
+    --t-head:  12%;  /* table head: primary into bg */
+    --t-zebra: 4%;   /* every other row: primary into bg */
+    --t-bar:   70%;  /* quote bar and note bar: accent into border */
+    --t-ink:   28%;  /* h1/h2 text: accent into fg-strong */
+    --t-ink3:  45%;  /* h3 text: accent into secondary */
+    --t-bold:  18%;  /* bold: accent into fg-strong */
+    --t-rule:  45%;  /* the rule: accent into border */
+    --t-codebar: 9%;   /* a Code/CLI block's bar, a CLI body, an output: accent into bg */
+    --t-code:    3.5%; /* a Code block's body: accent into bg */
+  }
+  /* code blocks, every Dialect alike, calibrated on Material Flat's own
+     --block-bg / --code-bg (~18% / ~7% of its accent at 200%) */
+  .mode-a .pane .block-bar, .mode-b .pane .block-bar,
+  .mode-a .pane pre.cli, .mode-b .pane pre.cli,
+  .mode-a .pane .outsec, .mode-b .pane .outsec {
+    background: color-mix(in srgb, var(--accent) var(--t-codebar), var(--bg));
+  }
+  .mode-a .pane pre.code, .mode-b .pane pre.code {
+    background: color-mix(in srgb, var(--accent) var(--t-code), var(--bg));
+  }
+
+  /* ---- prototype chrome (not part of the question) */
+  html, body { margin: 0; background: #888; }
+  body { font: 13px/1.4 system-ui, sans-serif; padding-bottom: 90px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(460px, 1fr)); gap: 12px; padding: 12px; }
+  .pane { background: var(--bg); color: var(--fg); font: var(--global-font-size)/var(--global-line-height) var(--font-body);
+          padding: 14px 20px 6px; border-radius: 6px; min-width: 0; }
+  .pane .label { font: 600 11px/1 system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase;
+                 color: var(--faint); margin: 0 0 12px; display: flex; justify-content: space-between; gap: 12px; }
+  .pane .label span { text-align: right; }
+  .pane .label b { color: var(--fg); }
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; background: #111; color: #eee; padding: 10px 14px;
+         display: flex; gap: 18px; align-items: center; flex-wrap: wrap; z-index: 9; }
+  .bar button { font: inherit; padding: 5px 12px; border-radius: 4px; border: 1px solid #555; background: #222; color: #eee; cursor: pointer; }
+  .bar button.on { background: #eee; color: #111; }
+  .bar label { display: flex; gap: 8px; align-items: center; }
+  .bar .mode-note { color: #aaa; }
+  .filters button { padding: 3px 8px; }
+  .sources { background: #fff; color: #222; margin: 12px; padding: 12px 18px; border-radius: 6px; }
+  .sources table { border-collapse: collapse; font-size: 12px; }
+  .sources td, .sources th { border: 1px solid #ccc; padding: 3px 8px; text-align: left; vertical-align: top; }
+  .sources .sw { display: inline-block; width: 11px; height: 11px; border-radius: 2px; vertical-align: -1px; margin-right: 4px; border: 1px solid #0003; }
+  .pane.hide { display: none; }
+
+  /* ---- mode a: derived tints, and mode b falls back to them ---- */
+  .mode-a .pane .note, .mode-b .pane .note {
+    background: color-mix(in srgb, var(--note, var(--accent)) var(--t-wash), var(--bg));
+    border-left: 3px solid color-mix(in srgb, var(--note, var(--accent)) var(--t-bar), var(--border));
+  }
+  .mode-a .pane .note-tag, .mode-b .pane .note-tag { color: var(--note, var(--accent)); font-weight: 600; }
+
+  .mode-a .pane th, .mode-b .pane th {
+    background: var(--table-head, color-mix(in srgb, var(--primary) var(--t-head), var(--bg)));
+    color: var(--table-head-ink, var(--fg-strong));
+  }
+  .mode-a .pane th, .mode-a .pane td, .mode-b .pane th, .mode-b .pane td {
+    border-color: color-mix(in srgb, var(--primary) 18%, var(--border));
+  }
+  .mode-a .pane tbody tr:nth-child(even), .mode-b .pane tbody tr:nth-child(even) {
+    background: color-mix(in srgb, var(--primary) var(--t-zebra), var(--bg));
+  }
+  .mode-a .pane tbody tr:hover, .mode-b .pane tbody tr:hover {
+    background: color-mix(in srgb, var(--primary) calc(var(--t-zebra) * 2.5), var(--bg));
+  }
+
+  .mode-a .pane blockquote, .mode-b .pane blockquote {
+    border-left: 3px solid color-mix(in srgb, var(--accent) var(--t-bar), var(--border));
+  }
+
+  .mode-a .pane h1, .mode-b .pane h1 { color: var(--h1, color-mix(in srgb, var(--accent) var(--t-ink), var(--fg-strong))); }
+  .mode-a .pane h2, .mode-b .pane h2 { color: var(--h2, color-mix(in srgb, var(--accent) var(--t-ink), var(--fg-strong))); }
+  .mode-a .pane h3, .mode-b .pane h3 { color: var(--h3, color-mix(in srgb, var(--accent) var(--t-ink3), var(--secondary))); }
+  .mode-a .pane h2::before, .mode-a .pane h3::before,
+  .mode-b .pane h2::before, .mode-b .pane h3::before { color: color-mix(in srgb, var(--accent) 55%, var(--faint)); }
+
+  .mode-a .pane strong, .mode-b .pane strong { color: var(--strong, color-mix(in srgb, var(--accent) var(--t-bold), var(--fg-strong))); }
+  .mode-a .pane hr, .mode-b .pane hr { border-bottom-color: color-mix(in srgb, var(--accent) var(--t-rule), var(--border)); }
+  .mode-a .pane li::before, .mode-b .pane li::before { color: var(--accent); }
+</style>
+<style id="ported"></style>
+</head>
+<body>
+
+<div class="sources" id="sources"></div>
+<div class="grid" id="grid"></div>
+
+<div class="bar">
+  <span>mode</span>
+  <button data-mode="today">today</button>
+  <button data-mode="a">A: derived tints</button>
+  <button data-mode="b">B: derived + ported</button>
+  <label>tint strength <input id="k" type="range" min="0" max="250" value="200"> <span id="kv">200%</span></label>
+  <span class="filters">show
+    <button data-show="all" class="on">both</button>
+    <button data-show="light">light</button>
+    <button data-show="dark">dark</button>
+  </span>
+  <span class="mode-note" id="modeNote"></span>
+</div>
+
+<template id="article">
+<article class="doc">
+<h1>Reading in colour</h1>
+<div class="doc-meta">date: 2026-10-04</div>
+<p>A paragraph with <strong>bold words</strong>, <em>an emphasis</em>, a <a href="#">link to the guides</a> and some <code>inline code</code> to see how the body carries colour.</p>
+<h2 id="a-second-level-heading">A second-level heading</h2>
+<ul><li>the first item of a list</li><li>a second item, with <strong>bold</strong> inside</li><li>a third</li></ul>
+<blockquote>A quote, which is somebody else&#039;s words set apart from the writing.</blockquote>
+<div class="note"><span class="note-tag">note</span>A note: the one thing on the page that asks to be noticed.</div>
+<h3 id="a-third-level-heading">A third-level heading</h3>
+<div class="tablewrap"><table><thead><tr><th>Theme</th><th>Palette</th><th>Feel</th></tr></thead><tbody><tr><td>Flexoki</td><td>light</td><td>warm paper</td></tr><tr><td>Things</td><td>dark</td><td>calm blue</td></tr><tr><td>Underwater</td><td>light</td><td>soft rose</td></tr><tr><td>Wasp</td><td>dark</td><td>amber</td></tr></tbody></table></div>
+<div class="block"><div class="block-bar"><span class="lang">php</span></div><pre class="code"><span class="tk-kw">function</span> greet(<span class="tk-kw">string</span> <span class="tk-var">$name</span>): <span class="tk-kw">string</span> {
+    <span class="tk-com">// say hello</span>
+    <span class="tk-kw">return</span> <span class="tk-str">&quot;Hello, &quot;</span> . <span class="tk-var">$name</span> . <span class="tk-num">42</span>;
+}</pre></div>
+<div class="block"><div class="block-bar"><span class="lang">bash</span></div><pre class="cli"><span class="pr">$</span> <span class="tk-bi">ls</span> -la site/content</pre><details class="outsec"><summary>output <i>2 lines</i></summary><pre class="outp">total 12
+drwxr-xr-x about</pre></details></div>
+<hr>
+<p>The end of the sample.</p>
+</article>
+</template>
+
+<script>
+/* The Themes, in the order of shared/themes/. */
+var THEMES = ['baseline', 'flexoki', 'github', 'material-flat', 'minimal', 'origami',
+              'retroma', 'reverie', 'shimmering-focus', 'things', 'underwater', 'wasp'];
+
+/* Mode b's ported values: what each Obsidian source sets by default on body /
+   .theme-light / .theme-dark (no style-settings class applied), resolved in a
+   browser from the source's theme.css. Only values that differ from the
+   source's own text colour are taken; everything else is left unset and
+   falls back to mode a's tint. `from` names the source variable. */
+var PORTED = {
+  'github': {
+    from: '--h1/2/3-color (dark only differs), krios2146/obsidian-theme-github',
+    dark:  { '--h1': '#7ee787', '--h2': '#7ee787', '--h3': '#7ee787' }
+  },
+  'retroma': {
+    from: '--h1/2/3-color = --rtm-color-red/orange/yellow, emarpiee/Retroma',
+    light: { '--h1': 'oklch(0.5 0.1 26.4)', '--h2': 'oklch(0.5 0.1 64.0)', '--h3': 'oklch(0.5 0.1 102.5)' },
+    dark:  { '--h1': 'oklch(0.75 0.15 26.4)', '--h2': 'oklch(0.75 0.15 64.0)', '--h3': 'oklch(0.75 0.15 102.5)' }
+  },
+  'reverie': {
+    from: '--h1/2/3-color, santiyounger/Reverie-Obsidian-Theme',
+    light: { '--h1': '#063530', '--h2': '#073d38', '--h3': '#084540' },
+    dark:  { '--h1': '#c1dde1', '--h2': '#8ab8bd', '--h3': '#56a7b0' }
+  },
+  'shimmering-focus': {
+    from: '--bold-color = --text-accent-hover, --table-header-background = --bg5, chrisgrieser/shimmering-focus',
+    light: { '--strong': '#dc388f', '--table-head': '#d9dbe8' },
+    dark:  { '--strong': '#ed5aa8', '--table-head': '#303241' }
+  },
+  'things': {
+    from: '--h3-color = --blue, colineckert/obsidian-things',
+    light: { '--h3': '#2b73d7' },
+    dark:  { '--h3': '#3986f2' },
+    adjusted: 'source #2e80f2 is 3.83:1 on light and 4.23:1 on dark; nudged to 4.5:1'
+  },
+  'underwater': {
+    from: '--h1 love, --h2 rose, --h3 gold, --bold love, table head iris on surface, seniblue/Underwater',
+    light: { '--h1': '#b4637a', '--h2': '#cc7c78', '--h3': '#9d6923', '--strong': '#b4637a',
+             '--table-head': '#907aa9', '--table-head-ink': '#fffaf3' },
+    dark:  { '--h1': '#eb6f92', '--h2': '#ebbcba', '--h3': '#f6c177', '--strong': '#eb6f92',
+             '--table-head': '#c4a7e7', '--table-head-ink': '#1f1d2e' },
+    adjusted: 'light --h2 rose #d7827e (2.74:1) and --h3 gold #ea9d34 (2.16:1) darkened in their own hue to #cc7c78 (3:1) and #9d6923 (4.5:1)'
+  },
+  'wasp': {
+    from: '--h1/2/3-color, santiyounger/Wasp-Obsidian-Theme',
+    light: { '--h1': '#9a4e12', '--h2': '#924e14', '--h3': '#8f5514' },
+    dark:  { '--h1': '#f8c537', '--h2': '#e8d49a', '--h3': '#d49335' }
+  }
+};
+var NONE = {
+  'baseline': 'sets no heading, bold or table colour of its own',
+  'flexoki': 'ships a palette only; headings stay text',
+  'material-flat': 'headings and bold follow text',
+  'minimal': 'coloured headings are a style-settings option, off by default',
+  'origami': 'coloured headings are an option (o-colorful-headings), off by default'
+};
+
+/* the ported values as a sheet, active in mode b only */
+var css = '';
+Object.keys(PORTED).forEach(function (t) {
+  ['light', 'dark'].forEach(function (p) {
+    var v = PORTED[t][p]; if (!v) return;
+    css += '.mode-b [data-theme="' + t + '"][data-palette="' + p + '"] {' +
+      Object.keys(v).map(function (k) { return k + ':' + v[k]; }).join(';') + '}\n';
+  });
+});
+document.getElementById('ported').textContent = css;
+
+/* the 24 panes */
+var tpl = document.getElementById('article').innerHTML, grid = document.getElementById('grid');
+THEMES.forEach(function (t) {
+  ['light', 'dark'].forEach(function (p) {
+    var s = document.createElement('section');
+    s.className = 'pane reader';
+    s.setAttribute('data-theme', t);
+    s.setAttribute('data-palette', p);
+    s.innerHTML = '<div class="label"><b>' + t + '</b><span>' + p +
+      (PORTED[t] && PORTED[t][p] ? ' · ported: ' + Object.keys(PORTED[t][p]).join(' ') : '') +
+      '</span></div>' + tpl;
+    grid.appendChild(s);
+  });
+});
+
+/* the sources table */
+function sw(c) { return '<span class="sw" style="background:' + c + '"></span>' + c; }
+var rows = '';
+THEMES.forEach(function (t) {
+  var P = PORTED[t];
+  if (!P) { rows += '<tr><td>' + t + '</td><td colspan="3">— ' + (NONE[t] || '') + '</td></tr>'; return; }
+  ['light', 'dark'].forEach(function (p, i) {
+    var v = P[p] || {};
+    rows += '<tr>' + (i === 0 ? '<td rowspan="2">' + t + '</td>' : '') + '<td>' + p + '</td><td>' +
+      (Object.keys(v).map(function (k) { return k + ' ' + sw(v[k]); }).join('<br>') || '— (as light, unset)') +
+      '</td>' + (i === 0 ? '<td rowspan="2">' + P.from + (P.adjusted ? '<br><i>contrast: ' + P.adjusted + '</i>' : '') + '</td>' : '') + '</tr>';
+  });
+});
+document.getElementById('sources').innerHTML =
+  '<b>PROTOTYPE</b> — the body colour question for 0.3.0. Mode b ports these values; every other token falls back to mode a. ' +
+  '<details><summary>ported values and where they came from</summary><table><tr><th>Theme</th><th>Palette</th><th>tokens</th><th>source</th></tr>' +
+  rows + '</table></details>';
+
+/* mode switch, remembered in the URL */
+var NOTES = { today: 'the 0.2.0 sheet, untouched', a: 'every tint derived from the Theme\'s own --accent/--primary',
+              b: 'a, plus the source\'s own heading/bold/table colours where it has them' };
+function setMode(m) {
+  document.documentElement.className = 'mode-' + m;
+  document.querySelectorAll('[data-mode]').forEach(function (b) { b.classList.toggle('on', b.dataset.mode === m); });
+  document.getElementById('modeNote').textContent = NOTES[m];
+  var u = new URL(location.href); u.searchParams.set('mode', m); history.replaceState(null, '', u);
+}
+document.querySelectorAll('[data-mode]').forEach(function (b) { b.onclick = function () { setMode(b.dataset.mode); }; });
+setMode(new URL(location.href).searchParams.get('mode') || 'a');
+
+/* the slider scales every knob from its default */
+var BASE = { '--t-wash': 8, '--t-head': 12, '--t-zebra': 4, '--t-bar': 70, '--t-ink': 28, '--t-ink3': 45, '--t-bold': 18, '--t-rule': 45, '--t-codebar': 9, '--t-code': 3.5 };
+var kIn = document.getElementById('k');
+kIn.oninput = function () {
+  var k = this.value / 100;
+  Object.keys(BASE).forEach(function (n) {
+    document.documentElement.style.setProperty(n, Math.min(100, BASE[n] * k).toFixed(1) + '%');
+  });
+  document.getElementById('kv').textContent = this.value + '%';
+};
+kIn.oninput();
+
+/* light / dark filter */
+document.querySelectorAll('[data-show]').forEach(function (b) {
+  b.onclick = function () {
+    document.querySelectorAll('[data-show]').forEach(function (x) { x.classList.toggle('on', x === b); });
+    document.querySelectorAll('.pane').forEach(function (p) {
+      p.classList.toggle('hide', b.dataset.show !== 'all' && p.dataset.palette !== b.dataset.show);
+    });
+  };
+});
+</script>
+</body>
+</html>
