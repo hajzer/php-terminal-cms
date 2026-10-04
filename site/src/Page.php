@@ -121,7 +121,8 @@ $iconLink . '
 </main>
 
 ' . $footer . '
-' . self::enhancement($nonce, self::hasDiagram($r['body']) ? $at->local(self::MERMAID) : '') . '
+' . self::enhancement($nonce, self::hasDiagram($r['body']) ? $at->local(self::MERMAID) : '',
+                      self::hasImage($r['body'])) . '
 </body>
 </html>
 ';
@@ -177,6 +178,12 @@ $iconLink . '
         return str_contains($body, '<div class="block-bar"><span class="lang">mermaid</span></div><pre class="code">');
     }
 
+    /** Whether the body holds an Image, by the Renderer's own tag, as hasDiagram(). */
+    private static function hasImage(string $body): bool
+    {
+        return str_contains($body, '<figure><img src="');
+    }
+
     /**
      * The page is complete and readable with this script blocked or disabled:
      * on every page it adds a copy button to code blocks, a Palette toggle and a
@@ -187,13 +194,17 @@ $iconLink . '
      * On a page with a Diagram, and only there, it also draws each one over
      * its code block with the Mermaid copy served beside the stylesheets. The
      * tag then names that address, and the script loads it carrying the nonce
-     * it read off its own tag, so the policy names nothing new. On every other
-     * page the script is the three conveniences alone and fetches nothing.
+     * it read off its own tag, so the policy names nothing new.
+     *
+     * On a page with an Image or a Diagram it also adds the Full View. On
+     * every other page the script is the three conveniences alone and fetches
+     * nothing.
      *
      * @param string $mermaid where Mermaid is served, under the Base Path, on a
      *        page with a Diagram; '' on every other page
+     * @param bool $image whether the page has an Image
      */
-    private static function enhancement(string $nonce, string $mermaid): string
+    private static function enhancement(string $nonce, string $mermaid, bool $image): string
     {
         /* nowdocs, so that not one character of the script below is read as
            PHP: a heredoc would interpolate a `$` and eat a `\` */
@@ -260,8 +271,175 @@ $iconLink . '
 })();
 
 HTML
+             . ($mermaid !== '' || $image ? self::FULL_VIEW : '')
              . ($mermaid !== '' ? self::DRAWING : '') . '</script>';
     }
+
+    /**
+     * The Full View, the part of the script a page with an Image or a Diagram
+     * gets. Each picture is given a glass, a button in its corner, that opens
+     * it alone in one <dialog>: fitted to the screen, or at its own size to be
+     * scrolled, a tap on it or the 1:1 button apart. Esc, × or a tap beside
+     * the picture close it, and focus goes back to the glass.
+     *
+     * An Image is shown as a second <img> of the same address and saved from
+     * that address. A Diagram is moved into the dialog and back again, since a
+     * copy would lose the styles placed on it through the CSSOM; while it is
+     * away an empty <svg> of its size keeps its place. It saves as the SVG
+     * being looked at, its stylesheet inside it without the nonce, and as its
+     * source, each a Blob URL let go of once the download has it.
+     *
+     * The drawing announces each picture it places with a tcms-drawn event on
+     * the Diagram's block, the first time and after every redraw, carrying the
+     * source and the Diagram's place on the page.
+     */
+    private const FULL_VIEW = <<<'HTML'
+(function () {
+  var view, stage, saves, oneToOne, shut, returnTo, placeholder = null;
+
+  /* the magnifying glass, parsed as markup so that the parser gives the
+     icon its namespace */
+  var GLASS = '<svg viewBox="0 0 16 16" aria-hidden="true">'
+            + '<circle cx="6.5" cy="6.5" r="4.5"></circle><path d="M10 10l4.5 4.5"></path></svg>';
+  function glass(label, open) {
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'full';
+    btn.setAttribute('aria-label', label);
+    btn.appendChild(document.importNode(
+      new DOMParser().parseFromString(GLASS, 'text/html').querySelector('svg'), true));
+    btn.addEventListener('click', open);
+    return btn;
+  }
+
+  function control(text, act) {
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.textContent = text;
+    btn.addEventListener('click', act);
+    return btn;
+  }
+
+  function build() {
+    view = document.createElement('dialog');
+    view.className = 'full-view';
+    view.setAttribute('aria-label', 'full view');
+    var bar = document.createElement('div');
+    bar.className = 'full-bar';
+    saves = document.createElement('span');
+    oneToOne = control('1:1', function () { actual(!view.classList.contains('actual')); });
+    shut = control('×', function () { view.close(); });
+    shut.setAttribute('aria-label', 'close');
+    bar.append(oneToOne, saves, shut);
+    stage = document.createElement('div');
+    stage.className = 'full-stage';
+    view.append(bar, stage);
+    document.body.appendChild(view);
+
+    /* a tap on the picture is one size or the other, kept under the finger;
+       a tap beside it closes */
+    stage.addEventListener('click', function (e) {
+      var pic = stage.firstElementChild;
+      if (e.target === stage) { view.close(); return; }
+      var was = pic.getBoundingClientRect();
+      var x = (e.clientX - was.left) / was.width, y = (e.clientY - was.top) / was.height;
+      actual(!view.classList.contains('actual'));
+      var now = pic.getBoundingClientRect();
+      stage.scrollLeft += now.left + x * now.width - e.clientX;
+      stage.scrollTop += now.top + y * now.height - e.clientY;
+    });
+    view.addEventListener('close', closed);
+  }
+
+  function actual(on) {
+    view.classList.toggle('actual', on);
+    oneToOne.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  /* a drawing has no size of its own but the one its viewBox names, which
+     the sheet reads off the stage */
+  function open(pic, saving, w, h) {
+    if (!view) build();
+    returnTo = document.activeElement;
+    if (w) {
+      stage.style.setProperty('--full-w', w + 'px');
+      stage.style.setProperty('--full-h', h + 'px');
+    }
+    stage.appendChild(pic);
+    saves.replaceChildren.apply(saves, saving);
+    actual(false);
+    view.showModal();
+    shut.focus();
+  }
+
+  function closed() {
+    var pic = stage.firstElementChild;
+    if (placeholder) { placeholder.replaceWith(pic); placeholder = null; } else if (pic) pic.remove();
+    saves.replaceChildren();
+    if (returnTo && returnTo.isConnected) returnTo.focus();
+  }
+
+  /* a download is an anchor the page clicks: on the Image's own address, or
+     on a Blob URL made for it and let go of once the click has it */
+  function save(href, name) {
+    var a = document.createElement('a');
+    a.href = href; a.download = name;
+    a.click();
+  }
+  function saveText(text, type, name) {
+    var url = URL.createObjectURL(new Blob([text], { type: type }));
+    save(url, name);
+    URL.revokeObjectURL(url);
+  }
+
+  document.querySelectorAll('main figure > img').forEach(function (img) {
+    var at = document.createElement('div');
+    at.className = 'full-at';
+    img.replaceWith(at);
+    at.appendChild(img);
+    at.appendChild(glass('full view of the picture', function () {
+      var big = document.createElement('img');
+      big.src = img.currentSrc || img.src;
+      big.alt = img.alt;
+      open(big, [control('save', function () { save(big.src, ''); })]);
+    }));
+  });
+
+  /* what a page's Diagrams are saved as: the last part of the page's
+     address, and the Diagram's place on it */
+  var base = location.pathname.replace(/\/+$/, '').replace(/^.*\//, '').replace(/\.html?$/, '') || 'index';
+
+  document.addEventListener('tcms-drawn', function (e) {
+    var block = e.target, n = e.detail.n, src = e.detail.src;
+    if (block.querySelector(':scope > .full')) return;
+    block.appendChild(glass('full view of the diagram', function () {
+      var svg = block.querySelector(':scope > svg');
+      var box = svg.viewBox.baseVal, size = svg.getBoundingClientRect();
+      placeholder = document.createElementNS(svg.namespaceURI, 'svg');
+      placeholder.setAttribute('aria-hidden', 'true');
+      placeholder.style.setProperty('width', size.width + 'px');
+      placeholder.style.setProperty('height', size.height + 'px');
+      svg.replaceWith(placeholder);
+      open(svg, [
+        control('svg', function () {
+          saveText(drawing(stage.firstElementChild), 'image/svg+xml', base + '-' + n + '.svg');
+        }),
+        control('mmd', function () { saveText(src, 'text/plain', base + '-' + n + '.mmd'); })
+      ], box && box.width ? box.width : size.width, box && box.height ? box.height : size.height);
+    }));
+  });
+
+  /* the drawing as the reader sees it: on the ground it is shown on, which
+     its colours were chosen for, its own stylesheet inside it, and without
+     the nonce, which belongs to this page and to no other. The copy is never
+     in the page, so nothing in it is read as a stylesheet. */
+  function drawing(svg) {
+    var copy = svg.cloneNode(true);
+    copy.querySelectorAll('style').forEach(function (el) { el.removeAttribute('nonce'); });
+    copy.style.setProperty('background-color', getComputedStyle(view).backgroundColor);
+    return new XMLSerializer().serializeToString(copy);
+  }
+})();
+
+HTML;
 
     /**
      * Drawing, the part of the script a page with a Diagram gets. Mermaid is
@@ -272,7 +450,8 @@ HTML
      * is taken off and written back through the CSSOM once the SVG is in the
      * page, a declaration at a time, which the policy permits. A source that does not parse keeps its
      * code block, and the page says nothing about it. The Palette toggle draws
-     * every Diagram again in the new colours.
+     * every Diagram again in the new colours. Each picture placed is announced
+     * to the Full View with a tcms-drawn event on its block.
      *
      * The Editor's read pane draws in editor/ui.js, its colours read off the
      * pane rather than the page. It keeps drawings between keystrokes and
@@ -288,6 +467,7 @@ HTML
     return lang && pre && lang.textContent === 'mermaid' ? { block: block, shown: pre, src: pre.textContent } : null;
   }).filter(Boolean);
   if (!diagrams.length) return;
+  diagrams.forEach(function (d, i) { d.n = i + 1; });
 
   /* a Diagram's copy button copies its source exactly as written, where a
      code block's takes the prompt's space off every line */
@@ -398,6 +578,7 @@ HTML
     live.forEach(function (el, i) {
       if (inline[i] && /[^\s;]/.test(inline[i])) restyle(el, inline[i]);
     });
+    d.block.dispatchEvent(new CustomEvent('tcms-drawn', { bubbles: true, detail: { src: d.src, n: d.n } }));
   }
 
   /* A style attribute's declarations, read by the browser's own parser in a

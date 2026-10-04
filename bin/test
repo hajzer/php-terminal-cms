@@ -1925,12 +1925,14 @@ ok(preg_match('~\b(fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon|import)
 if ($node === '') {
     echo "  -- node not installed, skipping the parse of the page's script\n";
 } else {
-    foreach (['without' => script($nonced), 'with' => $drawer] as $which => $tag) {
+    foreach (['with an Image' => script($nonced), 'with a Diagram' => $drawer,
+              'with neither' => script(TerminalCms\Page::html($site, $router->route('/guides/install-in-five-minutes')))]
+             as $which => $tag) {
         $tmp = (string) tempnam(sys_get_temp_dir(), 'tcms-page-js');
         file_put_contents($tmp, preg_replace('~^<script[^>]*>|</script>$~', '', $tag));
         exec($node . ' --check ' . escapeshellarg($tmp) . ' 2>&1', $out, $status);
         unlink($tmp);
-        ok($status === 0, "the page's script parses as JavaScript, $which a Diagram", implode("\n", $out));
+        ok($status === 0, "the page's script parses as JavaScript, $which", implode("\n", $out));
         $out = [];
     }
 }
@@ -1959,6 +1961,66 @@ $sayMermaid = [
 ];
 ok(!str_contains(TerminalCms\Page::html($site, $sayMermaid), 'mermaid.render('),
    'a page whose text only says "mermaid" gets no drawing', $sayMermaid['body']);
+
+/* The Full View is the page's script's, added over the markup the Renderer
+   writes: an Image Line is a <figure> with its <img> and caption and no
+   glass, button or wrapper, so a reader with scripting off has the picture */
+echo "\nthe Full View\n";
+[, $imageLines] = Markdown::parse("![A \"shot\" & <more>](shot.png)\n\n![](/media/flat.png?v=2)\n\n"
+                                . "![x](https://example.com/a.png)\n");
+$imageMarkup = Renderer::render($imageLines, false, 'here', new BasePath('/blog'), 'guides/intro');
+ok($imageMarkup === '<figure><img src="/blog/media/guides/intro/shot.png" alt="A &quot;shot&quot; &amp; &lt;more&gt;">'
+                  . '<figcaption>A &quot;shot&quot; &amp; &lt;more&gt;</figcaption></figure>' . "\n"
+                  . '<figure><img src="/blog/media/flat.png" alt=""></figure>' . "\n"
+                  . '<figure><img src="/blog/media/guides/intro/a.png" alt="x"><figcaption>x</figcaption></figure>',
+   'an Image Line is a figure, its picture and its caption, and nothing of the Full View', $imageMarkup);
+
+/* a page with an Image or a Diagram carries it, and a page with neither
+   does not — so its shell stays the one the hash above pins */
+$pictureRoute = $router->route('/');
+ok(str_contains($pictureRoute['body'], '<figure><img src="')
+   && !str_contains($pictureRoute['body'], 'class="lang">mermaid<'),
+   'the sample home page has an Image and no Diagram', $pictureRoute['body']);
+$viewer   = script(TerminalCms\Page::html($site, $pictureRoute, 'N0NCE'));
+$bareRoute = $router->route('/guides/install-in-five-minutes');
+$bare     = script(TerminalCms\Page::html($site, $bareRoute, 'N0NCE'));
+ok(!str_contains($bareRoute['body'], '<figure>') && !str_contains($bareRoute['body'], 'class="lang">mermaid<'),
+   'and a sample page has neither', $bareRoute['body']);
+ok(str_contains($viewer, 'showModal(') && str_contains($viewer, "className = 'full'"),
+   'a page with an Image carries the Full View: a glass, and the one overlay it opens', $viewer);
+ok(str_contains($drawer, 'showModal(') && str_contains($drawer, "className = 'full'"),
+   'and so does a page with a Diagram', $drawer);
+ok(!str_contains($bare, 'showModal(') && !str_contains($bare, "'full'"),
+   'a page with neither carries none of it', $bare);
+ok(!str_contains($viewer, 'mermaid'), 'and a page with an Image alone says nothing about a Diagram', $viewer);
+
+/* the glass goes on what is shown: the drawing says so each time it places a
+   picture, the first time and after every redraw */
+ok(str_contains($drawer, "dispatchEvent(new CustomEvent('tcms-drawn'")
+   && str_contains($drawer, "addEventListener('tcms-drawn'"),
+   'a Diagram gets its glass when it is drawn, and again when it is drawn again', $drawer);
+ok(strpos($drawer, "addEventListener('tcms-drawn'") < strpos($drawer, "dispatchEvent(new CustomEvent('tcms-drawn'"),
+   'and the Full View is listening before the drawing begins', $drawer);
+
+/* what it saves is made from the page's own content — the Image's own
+   address, and Blobs of the drawing and of its source — and every Blob URL
+   it makes it lets go of */
+ok(str_contains($viewer, 'XMLSerializer') && str_contains($viewer, "'.svg'") && str_contains($viewer, "'.mmd'")
+   && str_contains($viewer, '.download'),
+   'a picture saves as its file, a drawing as SVG or as its source', $viewer);
+ok(substr_count($viewer, 'createObjectURL(') > 0
+   && substr_count($viewer, 'createObjectURL(') === substr_count($viewer, 'revokeObjectURL('),
+   'and each Blob URL made for a save is revoked', $viewer);
+
+/* and it asks for nothing and writes nothing the policy refuses */
+preg_match_all('~["\']((?:[a-z][a-z0-9+.-]*:|/)[^"\'\s]*|[^"\'\s]*\.js)["\']~i', $viewer, $named);
+ok($named[1] === [], 'the Full View names no address', implode("\n", $named[1]));
+ok(preg_match('~\b(fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon|import)\s*\(|new\s+(Worker|Image)\b~', $viewer) !== 1,
+   'opens no connection', $viewer);
+ok(inlineStyles($viewer) === [] && handlerAttributes($viewer) === [],
+   'and writes no style attribute, no <style> and no handler attribute',
+   implode("\n", array_merge(inlineStyles($viewer), handlerAttributes($viewer))));
+
 
 /* accent is not a Site Config key: a site.php that names one is a site.php that does not */
 ok(!array_key_exists('accent', $site), 'the example instance names no accent');
@@ -2360,10 +2422,10 @@ ok(stylesheets($built) === ['/proj/theme.css', '/proj/themes/baseline.css', '/pr
    sample address, the policy's nonce fixed. The sample content or the shell
    changing on purpose is what re-records them. */
 $before = [
-    '/'                                 => '6f41dc7badb5b2c0766b309cdb9cf450a51e84788f7caa874bb4a14418d2eec9',
+    '/'                                 => '50afc7888c5b0e4efd6f393f433f6267a35968ead8d719c1c245428abd58b3ac',
     '/about'                            => '1a37d2383edd68fc82ac9b3a589a285303d2124ae00d45c70479837dc85232b1',
     '/guides'                           => '321af1c987b4471da66b12af2052092e002219f0889c6f5ef5b93781d931b822',
-    '/about/everything-is-a-line'       => '5511629267170d4394f4bdf1b7b38d2e593caded95dc05bfca8c70057671ce5e',
+    '/about/everything-is-a-line'       => 'f2d9b79db6ab631a9107a2968415d2464752a269c27b16f18c7cefc28d372809',
     '/about/what-it-is'                 => '8283811c7ec4c59f89e9dbaa843a096a8222feb5cf8d8995e171822ac8ade08a',
     '/about/what-it-is-sk'              => 'a8f6382885c4c7b32d5b2079c15fe14b82b1f6eb5df2b5ae3db6dca346b806a4',
     '/guides/install-in-five-minutes'   => '42f486987ac422f9aef98df7ff80500fde567cce49955e1ae65c9637e9f69f02',

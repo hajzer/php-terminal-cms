@@ -236,6 +236,21 @@ picture in a scratch element with inline styles, and parsing its output does the
 same in an inert document, and the policy blocks both. Each report is the
 boundary holding. The picture is right because placement carries the styles.
 
+A page with an Image or a Diagram also gets the Full View, about a hundred and
+fifty lines more: a button on each picture that opens it alone in a `<dialog>`,
+from which it can be saved. The saves ask for nothing the policy governs.
+An Image is saved from its own address, the one its `<img>` already loaded, through an `<a download>` the script clicks. A Diagram is saved as a
+Blob made from the page's own content, either the SVG on the screen or the
+source text the page already holds, and the Blob URL is revoked as soon as
+the click has it. A download is not a fetch the policy governs. `img-src` is
+still `'self'`, and the saved SVG never goes back into the page: it is a copy
+outside the document, serialised with its stylesheet as a plain `<style>`, and
+the nonce is taken off it, because the nonce belongs to this response and
+nobody else should have it. Opening a Diagram moves the drawing into the
+dialog and back again rather than copying it, so the styles placement set
+through the CSSOM go with it, and the Full View adds no console report of its
+own.
+
 The copy is Mermaid 11.17.2, the npm package's own `dist/mermaid.min.js`
 with one line added at the top that names the version, the licence beside it in
 `shared/mermaid.LICENSE`, and the SHA-256 of everything below that line.
@@ -245,9 +260,9 @@ running `php bin/build`, and correcting this sentence. It is the one file on
 the origin with a CVE feed to watch; the reviews in
 [security-audit.md](security-audit.md) record what was open at each release.
 
-Every other page gets the script byte for byte as it was: nothing new is sent,
-nothing is fetched, and `bin/test` holds the shell of a page without a Diagram to
-a fixed hash.
+A page with neither gets the script byte for byte as it was: nothing new is
+sent, nothing is fetched, and `bin/test` holds the shell of a page without a
+picture to a fixed hash.
 
 ## Headers
 
