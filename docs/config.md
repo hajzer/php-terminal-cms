@@ -24,7 +24,9 @@ return [
     ],
     'categories'  => [
         ['slug' => 'about',  'label' => 'about',  'listing' => true],
-        ['slug' => 'guides', 'label' => 'guides', 'listing' => true],
+        ['slug' => 'guides', 'label' => 'guides', 'listing' => true, 'categories' => [
+            ['slug' => 'hosting', 'label' => 'hosting', 'listing' => true],
+        ]],
     ],
 ];
 ```
@@ -99,7 +101,8 @@ without the suffix is the one the address belongs to.
 ## The listings
 
 An index page ends with the documents below it, newest first — the homepage
-lists recent documents from every category, and a category page lists its own.
+lists recent documents from every category and sub-category, and a category
+page lists its own.
 `listing` turns that off:
 
 ```php
@@ -262,9 +265,44 @@ can be anything, which is how a `/coffee` category can display as
 A slug with no directory behind it is navigable but empty: the category page
 says there is nothing there, and every document address under it is a 404.
 
-A fresh installation ships with `about` and `guides`, each holding example
-documents about the software itself. Delete them once you have your own — they
-are content, not code.
+### Sub-categories
+
+A category entry may carry `categories` of its own: its **Sub-categories**, one
+level down, each a directory inside its parent's and declared exactly as a
+category is — a `slug` spelled the same way, a `label`, a `listing`.
+
+```php
+'categories' => [
+    ['slug' => 'guides', 'label' => 'guides', 'categories' => [
+        ['slug' => 'php',   'label' => 'PHP'],
+        ['slug' => 'shell', 'label' => 'the shell', 'listing' => false],
+    ]],
+],
+```
+
+`site/content/guides/php/intro.md` is read at `/guides/php/intro`, and says
+`category: guides/php` in its Meta. `/guides/php` is the Sub-category's page:
+its `index.md`, or its label as the heading, then its own documents.
+`/guides` prints its `index.md`, then names its Sub-categories, then lists the
+documents in `guides/` itself — a parent keeps documents of its own beside its
+Sub-categories' directories, and each page lists only its own directory. The
+homepage lists from every level, and a row names a Sub-category's document as
+`guides/php`.
+
+- There is **one level**: a Sub-category's own `categories` is ignored, and any
+  address deeper than `/<category>/<sub-category>/<document>` is a 404.
+- The **navigation names top-level categories only**; on a Sub-category's page
+  and its documents, the parent is the one marked.
+- A directory inside a category that is not declared here is a 404, exactly as
+  an undeclared directory under `content/` is.
+- A Sub-category whose slug is also a document's name in its parent **hides
+  that document**: `/guides/php` is the Sub-category's page. `php bin/test`
+  prints a `warn` line naming the hidden file, for the configuration in
+  `site.php.example` and in `site.php`.
+
+A fresh installation ships with `about` and `guides`, and `hosting` inside
+`guides`, each holding example documents about the software itself. Delete them
+once you have your own — they are content, not code.
 
 ## Themes
 
@@ -310,7 +348,7 @@ replacing the file.
 
 It does not know the category list — a document's category is a `category:`
 meta line like any other, and the editor only reads it to say which directory
-the file belongs in.
+the file belongs in: `category: guides/php` is `content/guides/php/`.
 Getting the slug right is the writer's job, the same as getting the title right,
 and the site 404s a category it does not have.
 

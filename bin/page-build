@@ -9,10 +9,11 @@
  * Each page is what the request-time site answers for the same address — the
  * same Router::route() and Page::html(), and nothing assembled here:
  *
- *   index.html                    the homepage
- *   <category>/index.html         each Category
- *   <category>/<slug>/index.html  each Document, in each of its Languages
- *   404.html                      the answer to an address that is nothing
+ *   index.html                            the homepage
+ *   <category>/index.html                 each Category
+ *   <category>/<sub>/index.html           each Sub-category
+ *   <category>[/<sub>]/<slug>/index.html  each Document, in each of its Languages
+ *   404.html                              the answer to an address that is nothing
  *
  * beside everything in site/public/ but its PHP and its .htaccess. The path of
  * --base-url is the Base Path every local address starts with; without it the
@@ -112,9 +113,10 @@ function write(string $dir, string $rel, string $html): void
 
 /**
  * Every address the site answers with a page, and the file it is built to:
- * the homepage, each Category, and each Document in each of its Languages as
- * the Listing enumerates them. The addresses are the request-time site's, so
- * each one is also the page's directory under the output.
+ * the homepage, each Category and Sub-category, and each Document in each of
+ * its Languages as the Listing enumerates them. The addresses are the
+ * request-time site's, so each one is also the page's directory under the
+ * output.
  *
  * @param array<string,mixed> $config
  * @return array<string,string> address => file, relative to the output
@@ -122,9 +124,9 @@ function write(string $dir, string $rel, string $html): void
 function addresses(array $config, string $content): array
 {
     $out = ['/' => 'index.html'];
-    foreach (Site::categories($config) as $c) {
-        $out['/' . $c['slug']] = $c['slug'] . '/index.html';
-        foreach (Listing::forCategory($content, $c['slug'], Site::languages($config), new BasePath()) as $entry) {
+    foreach (Site::everyCategory($config) as $c) {
+        $out['/' . $c['path']] = $c['path'] . '/index.html';
+        foreach (Listing::forCategory($content, $c['path'], Site::languages($config), new BasePath()) as $entry) {
             foreach ($entry->languages ?: [$entry->url()] as $url) {
                 /* a file named `.md`, `..md` or `...md` is a Document the
                    request-time site cannot be asked for either — its address

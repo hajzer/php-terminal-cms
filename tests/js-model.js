@@ -495,6 +495,13 @@ ok('the file name follows the title while none is set', d.fileName() === 'hello-
 ok('and the path is under content/', d.path() === 'content/hello-world.md', d.path());
 d.setMeta('category', 'Guides');
 ok('a category meta names the directory', d.path() === 'content/guides/hello-world.md', d.path());
+d.setMeta('category', 'guides/php');
+ok('a category with a slash names the Sub-category\'s directory',
+   d.path() === 'content/guides/php/hello-world.md', d.path());
+d.setMeta('category', ' /Guides/PHP Tips/ ');
+ok('each part of it spelled as a directory is',
+   d.path() === 'content/guides/php-tips/hello-world.md', d.path());
+d.setMeta('category', 'guides');
 d.setName('Notes On Things.MD');
 ok('a name that was set wins over the title', d.fileName() === 'notes-on-things.md', d.fileName());
 d.setMeta('title', 'Renamed');

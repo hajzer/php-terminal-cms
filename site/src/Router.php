@@ -7,10 +7,11 @@ namespace TerminalCms;
  * URL -> content.
  *
  * The request string never becomes a filesystem path. The category must be
- * identical to one declared in site.php — and Site has already dropped any
- * declaration that is not one segment of a URL; the slug is compared for
- * equality against the real filenames in that one directory, so a path
- * traversal has no expression here rather than being filtered out.
+ * identical to one declared in site.php, and a Sub-category to one declared
+ * inside it — and Site has already dropped any declaration that is not one
+ * segment of a URL; the slug is compared for equality against the real
+ * filenames in that one directory, so a path traversal has no expression here
+ * rather than being filtered out.
  */
 final class Router
 {
@@ -37,39 +38,55 @@ final class Router
             return $this->home();
         }
 
-        /* at most two segments; anything deeper is not a shape we serve */
+        /* at most three segments — a Category, a Sub-category of it, and a
+           Document; anything deeper is not a shape we serve */
         $parts = explode('/', $uri);
-        if (count($parts) > 2) {
+        if (count($parts) > 3) {
             return $this->notFound();
         }
 
-        /* Only the category is checked for shape, because only the category
-           becomes a directory name — and it does so only after matching one
-           declared in site.php. The slug is compared for equality against the
-           real file names in that directory, so a shape rule on it would not
-           keep anything out; it would only make a document whose file name is
-           spelled unusually unreachable while the listing still linked to it. */
-        [$category, $slug] = [$parts[0], $parts[1] ?? null];
-
-        if (!$this->isCategory($category)) {
+        /* Only a Category and a Sub-category become directory names, and each
+           does so only by being identical to one declared in site.php — which
+           Site has already held to the shape of one. The last segment, when it
+           is a Document, is compared for equality against the real file names
+           in that directory, so a shape rule on it would not keep anything
+           out; it would only make a document whose file name is spelled
+           unusually unreachable while the listing still linked to it. */
+        $category = self::declared(Site::categories($this->site), $parts[0]);
+        if ($category === null) {
             return $this->notFound();
         }
+        if (count($parts) === 1) {
+            return $this->category($category);
+        }
 
-        return $slug === null
-            ? $this->category($category)
-            : $this->document($category, $slug);
+        /* the second segment is a Sub-category's page when one is declared by
+           that name — a Document of the same name in the parent is shadowed —
+           and a Document in the Category otherwise */
+        $sub = self::declared($category['categories'], $parts[1]);
+
+        if (count($parts) === 2) {
+            return $sub !== null
+                ? $this->category($sub)
+                : $this->document($category['path'], $parts[1]);
+        }
+
+        return $sub !== null
+            ? $this->document($sub['path'], $parts[2])
+            : $this->notFound();
     }
 
-    private function isCategory(string $candidate): bool
+    /**
+     * The declaration in a list whose slug is identical to a segment of the
+     * request, or null.
+     *
+     * @param list<array{slug:string, label:string, listing:bool, path:string, categories:list<array<string,mixed>>}> $declared
+     * @return array{slug:string, label:string, listing:bool, path:string, categories:list<array<string,mixed>>}|null
+     */
+    private static function declared(array $declared, string $segment): ?array
     {
-        return $this->categoryConfig($candidate) !== null;
-    }
-
-    /** @return array{slug:string, label:string, listing:bool}|null */
-    private function categoryConfig(string $slug): ?array
-    {
-        foreach (Site::categories($this->site) as $c) {
-            if ($c['slug'] === $slug) {
+        foreach ($declared as $c) {
+            if ($c['slug'] === $segment) {
                 return $c;
             }
         }
@@ -86,8 +103,9 @@ final class Router
      * carries no suffix is in the site's own language and answers to its own
      * name.
      *
-     * @param string $category one declared in site.php, or '' for the content
-     *        root, which holds the homepage and nothing else
+     * @param string $category the path of a Category or Sub-category declared in
+     *        site.php — `guides` or `guides/php` — or '' for the content root,
+     *        which holds the homepage and nothing else
      * @return array{file:string, lang:string, languages:array<string,string>}|null
      */
     private function resolve(string $category, string $slug): ?array
@@ -151,32 +169,45 @@ final class Router
                 'active' => $category, 'lang' => $found['lang'], 'meta' => $doc->meta];
     }
 
-    /** @return array{status:int, title:string, body:string, active:?string, lang:string, meta?:array<string,string>} */
-    private function category(string $category): array
+    /**
+     * A Category's page, or a Sub-category's: its index.md or its label, the
+     * Sub-categories it declares, and the Documents in its own directory.
+     *
+     * @param array{label:string, listing:bool, path:string, categories:list<array{label:string, path:string}>} $declared
+     *        as Site::categories() declares it
+     * @return array{status:int, title:string, body:string, active:?string, lang:string, meta?:array<string,string>}
+     */
+    private function category(array $declared): array
     {
-        /* route() only gets here for a declared category, so the fallback is
-           for a direct call, not for a request */
-        $config = $this->categoryConfig($category) ?? ['label' => $category, 'listing' => true];
-        $label  = $config['label'];
+        $path  = $declared['path'];
+        $label = $declared['label'];
 
         $body = '';
         $meta = [];
-        $intro = $this->resolve($category, 'index');
+        $intro = $this->resolve($path, 'index');
         if ($intro !== null) {
-            $doc  = Document::load($intro['file'], $category, 'index');
+            $doc  = Document::load($intro['file'], $path, 'index');
             $meta = $doc->meta;
             $body .= '<article class="doc intro">' . $doc->html($this->linkOpen(), $this->at) . '</article>';
         } else {
             $body .= '<h1>' . e($label) . '</h1>';
         }
 
-        if ($config['listing']) {
+        if ($declared['categories'] !== []) {
+            $items = '';
+            foreach ($declared['categories'] as $sub) {
+                $items .= '<li><a href="' . e($this->at->page($sub['path'])) . '">' . e($sub['label']) . '</a></li>';
+            }
+            $body .= '<ul class="sub-categories">' . $items . '</ul>';
+        }
+
+        if ($declared['listing']) {
             $body .= $this->listing(
-                Listing::forCategory($this->contentDir, $category, Site::languages($this->site), $this->at)
+                Listing::forCategory($this->contentDir, $path, Site::languages($this->site), $this->at)
             );
         }
 
-        return ['status' => 200, 'title' => $label, 'active' => $category, 'body' => $body,
+        return ['status' => 200, 'title' => $label, 'active' => $path, 'body' => $body,
                 'lang' => $intro['lang'] ?? Site::lang($this->site), 'meta' => $meta];
     }
 
@@ -197,7 +228,7 @@ final class Router
         if (Site::lists($this->site)) {
             $body .= $this->listing(Listing::recent(
                 $this->contentDir,
-                Site::categories($this->site),
+                Site::everyCategory($this->site),
                 Site::languages($this->site),
                 Site::listingMax($this->site),
                 $this->at,

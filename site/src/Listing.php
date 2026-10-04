@@ -6,6 +6,10 @@ namespace TerminalCms;
 /**
  * An entry in a category or homepage listing.
  *
+ * Its category is the path of the Category the Document is in — `guides`, or
+ * `guides/php` for a Sub-category's — which is what the row names and what
+ * its address begins with.
+ *
  * One entry is one Document, not one file: a document that exists in three
  * languages is one line in the listing, printed in the site's own language,
  * with the three addresses beside it.
@@ -82,9 +86,13 @@ final class Listing
     }
 
     /**
-     * Every document in one category, newest first. index.md is the category's
-     * own introduction, not an entry in its own listing — in any language.
+     * Every document in one Category or Sub-category, newest first. index.md is
+     * the category's own introduction, not an entry in its own listing — in any
+     * language. A Sub-category's directory is not read here: its Documents are
+     * on its own page.
      *
+     * @param string $category the Category's path under content/, as
+     *        Site::categories() declares it
      * @param list<string> $codes the declared languages, the site's own first
      * @param BasePath $at where the site begins, which the entries' URLs are
      *        written under
@@ -135,10 +143,10 @@ final class Listing
     }
 
     /**
-     * Recent documents across every declared category.
+     * Recent documents across every declared Category and Sub-category.
      *
-     * @param list<array{slug:string, label:string, listing:bool}> $categories
-     *        as Site::categories() returns them — malformed entries are gone
+     * @param list<array{path:string}> $categories as Site::everyCategory()
+     *        returns them — malformed entries are gone
      * @param list<string> $codes
      * @param ?int $limit how many to print — null is every one there is, which
      *        is what Site::listingMax() answers for an instance that asked for
@@ -155,7 +163,7 @@ final class Listing
     ): array {
         $all = [];
         foreach ($categories as $c) {
-            foreach (self::forCategory($contentDir, $c['slug'], $codes, $at) as $entry) {
+            foreach (self::forCategory($contentDir, $c['path'], $codes, $at) as $entry) {
                 $all[] = $entry;
             }
         }

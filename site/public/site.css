@@ -67,6 +67,10 @@ main.reader-page { font-size: calc(var(--global-font-size) * var(--doc-scale)); 
 .listing .c { color: var(--secondary); font-size: 11px; letter-spacing: .06em; }
 .empty { color: var(--faint); }
 
+/* the Sub-categories a Category names above its own Documents, each written
+   as the directory it is */
+.sub-categories a::after { content: "/"; }
+
 /* the languages one document exists in, the one being read marked */
 .languages { white-space: nowrap; font-size: 11px; color: var(--faint); padding-right: 8px; }
 .languages a { letter-spacing: .08em; padding: 4px 3px; }

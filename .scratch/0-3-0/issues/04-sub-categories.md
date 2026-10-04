@@ -37,9 +37,22 @@ Published (05). Media (06). Bundles (08).
 
 ## Acceptance
 
-- [ ] `bin/test`: spec Testing §1 in full
-- [ ] `bin/test`: the Page Build writes the Sub-category page and its Documents
-- [ ] `tests/js-model.js`: the export path for `category: guides/php`
+- [x] `bin/test`: spec Testing §1 in full
+- [x] `bin/test`: the Page Build writes the Sub-category page and its Documents
+- [x] `tests/js-model.js`: the export path for `category: guides/php`
 - [ ] The example Sub-category reachable on `php -S`, and its parent naming it
 
 ## Comments
+
+The example is `guides/hosting`, holding `without-php.md` (on a Page Build).
+It is declared in `site.php.example`; an Instance's own `site.php` has to
+declare it before `/guides/hosting` answers on `php -S`. It answered on a
+copy of `site/` with the example as its `site.php`, and its parent named it.
+
+The Editor's export path did not already work: `slug()` turned the slash
+into `-`. `Doc.prototype.dir()` now spells each part of the Category on its
+own, with no check on how many parts there are.
+
+A Document shadowed by a Sub-category stays in its parent's Listing, and its
+row leads to the Sub-category's page. `bin/test`'s warning is the answer to
+that, as ADR-0022 says, and the Listing makes no choice of its own.

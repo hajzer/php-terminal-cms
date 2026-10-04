@@ -101,9 +101,19 @@ return [
      *
      * 'listing' works as it does above, for that category's own page: false
      * prints its index.md alone, without the documents under it.
+     *
+     * A category may declare 'categories' of its own: Sub-categories, each a
+     * directory inside its parent's, spelled and switched the same way. Its
+     * Documents say `category: guides/hosting` and are read at
+     * /guides/hosting/<name>; the parent's page names them above its own
+     * listing. There is one such level, and the navigation names only the
+     * top one. A Sub-category with the name of a Document in its parent
+     * hides that Document, and bin/test says so.
      */
     'categories' => [
         ['slug' => 'about',  'label' => 'about',  'listing' => true],
-        ['slug' => 'guides', 'label' => 'guides', 'listing' => true],
+        ['slug' => 'guides', 'label' => 'guides', 'listing' => true, 'categories' => [
+            ['slug' => 'hosting', 'label' => 'hosting', 'listing' => true],
+        ]],
     ],
 ];

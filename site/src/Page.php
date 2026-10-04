@@ -56,9 +56,12 @@ final class Page
             $lang = Site::lang($site);
         }
 
+        /* the navigation names top-level Categories, and a Sub-category's page
+           and its Documents have their parent on */
+        $active = explode('/', (string) $r['active'])[0];
         $nav = '';
         foreach (Site::categories($site) as $c) {
-            $on   = $c['slug'] === $r['active'] ? ' class="on"' : '';
+            $on   = $c['slug'] === $active ? ' class="on"' : '';
             $nav .= '<a href="' . e($at->page($c['slug'])) . '"' . $on . '>' . e($c['label']) . '</a>';
         }
 

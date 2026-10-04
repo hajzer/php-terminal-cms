@@ -694,7 +694,8 @@ $files = [];
 foreach (['index.md', 'about/index.md', 'about/what-it-is.md', 'about/what-it-is-sk.md',
           'about/everything-is-a-line.md', 'guides/index.md',
           'guides/install-in-five-minutes.md', 'guides/writing-in-the-editor.md',
-          'guides/publishing-is-a-file-copy.md'] as $f) {
+          'guides/publishing-is-a-file-copy.md', 'guides/hosting/index.md',
+          'guides/hosting/without-php.md'] as $f) {
     $files[] = $root . '/site/content/' . $f;
 }
 
@@ -903,6 +904,19 @@ $cases = [
     '/guides/%2e%2e%2f%2e%2e%2fetc/passwd' => 404,
     '/guides/index'                      => 200,
     '/a/b/c'                             => 404,
+    /* a Sub-category, one level down, and nothing deeper */
+    '/guides/hosting'                    => 200,
+    '/guides/hosting/without-php'        => 200,
+    '/guides/hosting/index'              => 200,
+    '/guides/hosting/does-not-exist'     => 404,
+    '/guides/hosting/without-php/x'      => 404,
+    '/guides/not-declared/without-php'   => 404,
+    '/guides/install-in-five-minutes/x'  => 404,
+    '/about/hosting'                     => 404,
+    '/about/hosting/without-php'         => 404,
+    '/guides/hosting/../../../etc/passwd' => 404,
+    '/guides//without-php'               => 404,
+    '/a/b/c/d'                           => 404,
     /* parse_url cannot read these as a path at all, and a client may send them */
     '//'                                 => 200,
     '///'                                => 200,
@@ -969,6 +983,160 @@ ok(str_contains($oddRouter->route('/notes')['body'], 'href="/notes/Release-1.2"'
 unlink($scratch . '/notes/Release-1.2.md');
 rmdir($scratch . '/notes');
 rmdir($scratch);
+
+/* ------------------------------------------------------------ sub-categories */
+echo "\nsub-categories\n";
+
+/* a Sub-category is declared in the shape a Category is, and dropped when it
+   is not one; a Sub-category declares nothing further down */
+$declared = TerminalCms\Site::categories(['categories' => [
+    ['slug' => 'guides', 'label' => 'Guides', 'categories' => [
+        'not-an-array',
+        ['label' => 'no slug'],
+        ['slug' => '../../etc', 'label' => 'climb'],
+        ['slug' => 'Upper'],
+        ['slug' => 'with/slash'],
+        ['slug' => 'php', 'label' => 'PHP', 'listing' => false, 'categories' => [['slug' => 'deeper']]],
+        ['slug' => 'shell'],
+    ]],
+    ['slug' => 'about', 'categories' => 'not a list'],
+]]);
+$want = [
+    ['slug' => 'guides', 'label' => 'Guides', 'listing' => true, 'path' => 'guides', 'categories' => [
+        ['slug' => 'php',   'label' => 'PHP',   'listing' => false, 'path' => 'guides/php',   'categories' => []],
+        ['slug' => 'shell', 'label' => 'shell', 'listing' => true,  'path' => 'guides/shell', 'categories' => []],
+    ]],
+    ['slug' => 'about', 'label' => 'about', 'listing' => true, 'path' => 'about', 'categories' => []],
+];
+ok($declared === $want,
+   'Site::categories() keeps each Category\'s well-formed Sub-categories, drops the rest, and ignores a second level',
+   var_export($declared, true));
+
+$r = $router->route('/guides');
+ok(str_contains($r['body'], '<ul class="sub-categories"><li><a href="/guides/hosting">hosting</a></li></ul>'),
+   'a Category page names its Sub-categories by label', $r['body']);
+ok(strpos($r['body'], 'class="doc intro"') < strpos($r['body'], 'class="sub-categories"')
+   && strpos($r['body'], 'class="sub-categories"') < strpos($r['body'], 'class="listing"'),
+   'between its index.md and its Listing', $r['body']);
+ok(str_contains($r['body'], 'href="/guides/install-in-five-minutes"') && !str_contains($r['body'], 'without-php'),
+   'and lists its own Documents, not its Sub-categories\'', $r['body']);
+$r = $router->route('/guides/hosting');
+ok(str_contains($r['body'], 'href="/guides/hosting/without-php"') && str_contains($r['body'], '<span class="c">guides/hosting</span>')
+   && !str_contains($r['body'], 'sub-categories') && !str_contains($r['body'], 'install-in-five-minutes'),
+   'a Sub-category page lists its own Documents under its path, and names no Sub-categories', $r['body']);
+ok(str_contains($r['body'], 'class="doc intro"') && $r['title'] === 'hosting',
+   'and prints its own index.md', $r['body']);
+$r = $router->route('/');
+ok(str_contains($r['body'], 'href="/guides/hosting/without-php"') && str_contains($r['body'], '<span class="c">guides/hosting</span>'),
+   'the homepage Listing takes a Sub-category\'s Document, and names it by its path', $r['body']);
+$r = $router->route('/guides/hosting/without-php');
+ok(str_contains($r['body'], '<a href="/guides/hosting">← guides/hosting</a>'),
+   'a Sub-category\'s Document leads back to the Sub-category', $r['body']);
+$page = TerminalCms\Page::html($site, $r);
+preg_match('~<nav>(.*?)</nav>~s', $page, $nav);
+ok(isset($nav[1]) && str_contains($nav[1], '<a href="/guides" class="on">guides</a>') && !str_contains($nav[1], 'hosting'),
+   'the navigation names top-level Categories, and the Sub-category\'s parent is the one on', $nav[1] ?? $page);
+preg_match('~<nav>(.*?)</nav>~s', TerminalCms\Page::html($site, $router->route('/guides/hosting')), $nav);
+ok(isset($nav[1]) && str_contains($nav[1], '<a href="/guides" class="on">guides</a>'),
+   'on the Sub-category\'s own page too', $nav[1] ?? '');
+
+/* A Sub-category in content that is built for it: no index.md, its listing
+   off, one declared with no directory, and a directory nobody declared. */
+$subs = sys_get_temp_dir() . '/tcms-subs-' . getmypid();
+foreach (['notes/php', 'notes/shell', 'notes/drafts'] as $d) {
+    mkdir("$subs/$d", 0755, true);
+}
+file_put_contents("$subs/notes/php/arrays.md", "---\ntitle: Arrays\ncategory: notes/php\ndate: 2026-03-01\n---\n\n# Arrays\n");
+file_put_contents("$subs/notes/shell/pipes.md", "---\ntitle: Pipes\ndate: 2026-03-02\n---\n\n# Pipes\n");
+file_put_contents("$subs/notes/drafts/secret.md", "---\ntitle: Secret\n---\n\n# Secret\n");
+file_put_contents("$subs/notes/top.md", "---\ntitle: Top\ndate: 2026-03-03\n---\n\n# Top\n");
+$subSite = ['title' => 'subs', 'categories' => [['slug' => 'notes', 'label' => 'Notes', 'categories' => [
+    ['slug' => 'php',   'label' => 'PHP'],
+    ['slug' => 'shell', 'label' => 'Shell', 'listing' => false],
+    ['slug' => 'ghost', 'label' => 'Ghost'],
+]]]];
+$warnings = [];
+set_error_handler(static function (int $n, string $m) use (&$warnings): bool {
+    $warnings[] = $m;
+    return true;
+});
+$subRouter = new TerminalCms\Router($subSite, $subs);
+$got = [];
+foreach (['/notes', '/notes/php', '/notes/php/arrays', '/notes/shell', '/notes/shell/pipes', '/notes/ghost',
+          '/notes/ghost/x', '/notes/drafts', '/notes/drafts/secret', '/notes/top', '/notes/php/top'] as $uri) {
+    $got[$uri] = $subRouter->route($uri);
+}
+restore_error_handler();
+ok($warnings === [], 'a Sub-category with no directory raises nothing', implode("\n", $warnings));
+$statuses = array_map(static fn (array $r) => $r['status'], $got);
+ok($statuses === ['/notes' => 200, '/notes/php' => 200, '/notes/php/arrays' => 200, '/notes/shell' => 200,
+                  '/notes/shell/pipes' => 200, '/notes/ghost' => 200, '/notes/ghost/x' => 404,
+                  '/notes/drafts' => 404, '/notes/drafts/secret' => 404, '/notes/top' => 200, '/notes/php/top' => 404],
+   'a declared Sub-category routes, an undeclared directory under a Category is a 404, and so is a parent\'s Document under its Sub-category',
+   var_export($statuses, true));
+ok(str_contains($got['/notes/php']['body'], '<h1>PHP</h1>') && $got['/notes/php']['title'] === 'PHP',
+   'a Sub-category with no index.md is headed by its label', $got['/notes/php']['body']);
+ok(!str_contains($got['/notes/shell']['body'], 'class="listing"') && str_contains($got['/notes/shell']['body'], '<h1>Shell</h1>'),
+   'and one with its listing off prints no Listing', $got['/notes/shell']['body']);
+ok(str_contains($got['/notes/ghost']['body'], 'Nothing here yet.'),
+   'and one with no directory is empty, not broken', $got['/notes/ghost']['body']);
+ok(str_contains($got['/notes']['body'], '<ul class="sub-categories"><li><a href="/notes/php">PHP</a></li>'
+                . '<li><a href="/notes/shell">Shell</a></li><li><a href="/notes/ghost">Ghost</a></li></ul>')
+   && str_contains($got['/notes']['body'], '<h1>Notes</h1>') && !str_contains($got['/notes']['body'], 'drafts'),
+   'a Category with no index.md names its Sub-categories in the declared order under its label', $got['/notes']['body']);
+$recent = TerminalCms\Listing::recent($subs, TerminalCms\Site::everyCategory($subSite), ['en'], null);
+ok(array_map(static fn ($e) => $e->url(), $recent) === ['/notes/top', '/notes/shell/pipes', '/notes/php/arrays'],
+   'Listing::recent() takes from every Category and Sub-category, newest first, and from no undeclared directory',
+   implode("\n", array_map(static fn ($e) => $e->url(), $recent)));
+
+/**
+ * The Documents a Sub-category shadows: a file in its parent that answers the
+ * address the Sub-category's page has.
+ *
+ * @param array<string,mixed> $site
+ * @return list<string> each file, from content/
+ */
+function shadowed(array $site, string $contentDir): array
+{
+    $codes = TerminalCms\Site::languages($site);
+    $out = [];
+    foreach (TerminalCms\Site::categories($site) as $c) {
+        foreach ($c['categories'] as $sub) {
+            $variants = TerminalCms\Listing::variants($contentDir . '/' . $c['path'], $sub['slug'], $codes);
+            $file = $variants[''] ?? $variants[$codes[0]] ?? null;
+            if ($file !== null) {
+                $out[] = 'content/' . $c['path'] . '/' . $file;
+            }
+        }
+    }
+    return $out;
+}
+
+/* a Sub-category whose slug is a Document's in its parent answers, and the
+   Document it hides is named */
+file_put_contents("$subs/notes/php.md", "---\ntitle: The PHP Document\n---\n\n# The PHP Document\n");
+file_put_contents("$subs/notes/php-sk.md", "---\ntitle: PHP po slovensky\n---\n\n# PHP po slovensky\n");
+$r = $subRouter->route('/notes/php');
+ok($r['status'] === 200 && str_contains($r['body'], '<h1>PHP</h1>') && !str_contains($r['body'], 'The PHP Document'),
+   'a Sub-category shadowing a Document in its parent answers as the Sub-category', $r['body']);
+ok(shadowed($subSite + ['languages' => ['sk']], $subs) === ['content/notes/php.md'],
+   'and the shadowed file is the one named', implode("\n", shadowed($subSite + ['languages' => ['sk']], $subs)));
+
+foreach (['notes/php/arrays.md', 'notes/php.md', 'notes/php-sk.md', 'notes/shell/pipes.md',
+          'notes/drafts/secret.md', 'notes/top.md'] as $f) {
+    unlink("$subs/$f");
+}
+foreach (['notes/php', 'notes/shell', 'notes/drafts', 'notes', ''] as $d) {
+    rmdir(rtrim("$subs/$d", '/'));
+}
+
+/* the same check over the repository's own content, under every Site Config
+   it is served with: a warning in the suite's output, not a failure */
+foreach (array_filter(['site.php.example', 'site.php'], static fn ($f) => is_file("$root/site/$f")) as $f) {
+    foreach (shadowed(require "$root/site/$f", $root . '/site/content') as $file) {
+        echo "  warn $file is shadowed by a Sub-category of the same name in site/$f\n";
+    }
+}
 
 /* ------------------------------------------------------- the index listings */
 echo "\nlistings\n";
@@ -1948,15 +2116,17 @@ ok(stylesheets($built) === ['/proj/theme.css', '/proj/themes/baseline.css', '/pr
    sample address, the policy's nonce fixed. The sample content or the shell
    changing on purpose is what re-records them. */
 $before = [
-    '/'                                 => '417c39a4d9e1baca6309dd0a57824fd1d83698fc65ede02e5d480a1fd22907b8',
+    '/'                                 => '6f41dc7badb5b2c0766b309cdb9cf450a51e84788f7caa874bb4a14418d2eec9',
     '/about'                            => '2944af89567da8b799ed94f131ba860dda7d7ad8ff4897ef2adbbb5a27f08793',
-    '/guides'                           => '173d37b8801c398e5074e8b662a6d8214ac9177b1d03a0a87a381c779b5cd387',
+    '/guides'                           => 'f3de7cad60fcf77a4a93c1ee76f38545d4c2132df3c02b322325b399d2b44857',
     '/about/everything-is-a-line'       => '00e8b2e0fa78530d9a26c14d9cffd063509dd129d2b390106ac05528050c050d',
     '/about/what-it-is'                 => '9ce93052b5f851515746b2313b28ce6559c0e23cbfd22d1b2bb9bb86b9dd00a2',
     '/about/what-it-is-sk'              => '9ba6d68ff2db62224cbbd6a353979b84f372deccd117cef8b28b4f4035ff7499',
     '/guides/install-in-five-minutes'   => '97738202f85561bdf13d711606d635a594329d9601fe115794cee11e8415b5fe',
     '/guides/publishing-is-a-file-copy' => 'eeeb59c846b0fd2fda15e6620044080f51ae3a8371382729f06a52a78e54ec17',
     '/guides/writing-in-the-editor'     => '68aa2f4aa480b2778d5a0c2a91812836e312539be321c1f010ce9b7c7ea3fdb1',
+    '/guides/hosting'                   => 'a4f8cac52a1712d084f7e99c3ba00b2d264a551bfc5d5c298a39271f83eba946',
+    '/guides/hosting/without-php'       => '82e0ff3aea1eeaffe184ffa2ff5fa685db4392228a998138a961d2168a66c6be',
     '/404.html'                         => '8689fe2c4fde9ccc3367d62e347a7e419c69848005612b19c3e7cdc851fb0b71',
 ];
 foreach ($before as $uri => $hash) {
@@ -2146,6 +2316,7 @@ $expected = [
     'about/everything-is-a-line/index.html', 'about/what-it-is/index.html', 'about/what-it-is-sk/index.html',
     'guides/install-in-five-minutes/index.html', 'guides/publishing-is-a-file-copy/index.html',
     'guides/writing-in-the-editor/index.html',
+    'guides/hosting/index.html', 'guides/hosting/without-php/index.html',
     'theme.css', 'themes/baseline.css', 'site.css', 'favicon.ico', 'mermaid.min.js',
     'media/logo.png', 'media/architecture.svg',
 ];

@@ -700,9 +700,10 @@
     this.name = s === '' ? null : fileName(s);
     return this.fileName();
   };
-  /** The directory the Document belongs in — its Category, or content/ itself. */
+  /** The directory the Document belongs in — its Category, `guides/php` for a
+   *  Sub-category, or content/ itself. */
   Doc.prototype.dir = function () {
-    var c = slug(this.meta('category'));
+    var c = String(this.meta('category') || '').split('/').map(slug).filter(Boolean).join('/');
     return 'content/' + (c ? c + '/' : '');
   };
   Doc.prototype.path = function () { return this.dir() + this.fileName(); };

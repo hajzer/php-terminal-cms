@@ -23,10 +23,11 @@ Canonical form is:
 ## The name, and the language in it
 
 A file name is a slug with `.md` on it — the address the site gives the
-document, under the directory its `category` meta names. A trailing language
-code is part of that name: `what-it-is-sk.md` is the Slovak of `what-it-is.md`,
-and the site reads the two as one document if `site.php` declared `sk`. See
-`docs/config.md`.
+document, under the directory its `category` meta names: `category: guides`
+for a category, `category: guides/php` for a Sub-category declared inside it.
+A trailing language code is part of that name: `what-it-is-sk.md` is the
+Slovak of `what-it-is.md`, and the site reads the two as one document if
+`site.php` declared `sk`. See `docs/config.md`.
 
 Nothing inside the file records the language. There is no `lang:` meta to keep
 in step with the name, and the editor treats the suffix as it treats any other

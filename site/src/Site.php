@@ -99,21 +99,66 @@ final class Site
      * categories. A slug is one segment of a URL and one directory name under
      * content/, so anything else is ignored rather than turned into a path.
      *
+     * A Category may declare Sub-categories under its own `categories`, read
+     * the same way and named by the same rule; each is a directory inside its
+     * parent's. There is one such level: a Sub-category's own `categories` is
+     * not read. A declaration's path is where it is under content/ and under
+     * the site's root — `guides`, or `guides/php`.
+     *
      * @param array<string,mixed> $site
-     * @return list<array{slug:string, label:string, listing:bool}>
+     * @return list<array{slug:string, label:string, listing:bool, path:string,
+     *         categories:list<array{slug:string, label:string, listing:bool, path:string, categories:array{}}>}>
      */
     public static function categories(array $site): array
     {
         $out = [];
-        foreach ((array) ($site['categories'] ?? []) as $c) {
+        foreach (self::declarations($site['categories'] ?? [], '') as $c) {
+            $c['categories'] = array_map(
+                static fn (array $sub): array => array_replace($sub, ['categories' => []]),
+                self::declarations($c['categories'], $c['path'] . '/'),
+            );
+            $out[] = $c;
+        }
+        return $out;
+    }
+
+    /**
+     * Every declared Category and Sub-category in one list, each Category
+     * followed by its own Sub-categories — the directories under content/
+     * that hold Documents.
+     *
+     * @param array<string,mixed> $site
+     * @return list<array{slug:string, label:string, listing:bool, path:string, categories:list<array<string,mixed>>}>
+     */
+    public static function everyCategory(array $site): array
+    {
+        $out = [];
+        foreach (self::categories($site) as $c) {
+            array_push($out, $c, ...$c['categories']);
+        }
+        return $out;
+    }
+
+    /**
+     * One level of declarations, read as categories() describes. The
+     * `categories` each carries is still what the config holds.
+     *
+     * @return list<array{slug:string, label:string, listing:bool, path:string, categories:mixed}>
+     */
+    private static function declarations(mixed $list, string $prefix): array
+    {
+        $out = [];
+        foreach (is_array($list) ? $list : [] as $c) {
             if (!is_array($c) || !isset($c['slug']) || !is_string($c['slug']) || !self::isSlug($c['slug'])) {
                 continue;
             }
             $label = isset($c['label']) && is_scalar($c['label']) ? (string) $c['label'] : $c['slug'];
             $out[] = [
-                'slug'    => $c['slug'],
-                'label'   => $label,
-                'listing' => ($c['listing'] ?? true) !== false,
+                'slug'       => $c['slug'],
+                'label'      => $label,
+                'listing'    => ($c['listing'] ?? true) !== false,
+                'path'       => $prefix . $c['slug'],
+                'categories' => $c['categories'] ?? [],
             ];
         }
         return $out;
