@@ -1,6 +1,6 @@
 # 0.3.0 — Sub-categories, Published, a Document's own Media, Migrations, Bundles, Full View, and a body that takes the Theme's colour
 
-Status: ready-for-agent
+Status: done
 
 ## Problem Statement
 

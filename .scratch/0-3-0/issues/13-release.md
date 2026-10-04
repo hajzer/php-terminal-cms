@@ -1,6 +1,6 @@
 # 13 — Release 0.3.0
 
-Status: ready-for-human
+Status: done
 Spec: ../spec.md
 Blocked by: 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 15, 16
 
@@ -14,7 +14,7 @@ and the probe are green; the archive is built.
 - [x] `VERSION` and `<i class="ver">` both `0.3.0`; `bin/test` agrees
 - [x] `php bin/test` green; the probe green in Chromium and Firefox
 - [x] `bin/package` builds; the archive holds `site/editor/` and no `.scratch/`
-- [ ] Spec `Status: done`
+- [x] Spec `Status: done`
 
 ## Comments
 
@@ -37,3 +37,8 @@ both.
 Choices to look at:
 - The probe was run headless, not in the maintainer's own browser.
 - Nothing is tagged, merged or pushed, and `dist/` is not tracked.
+
+Closed. The maintainer ran 08's two by-hand checks and both pass, so 08's
+boxes are ticked and the spec is `done`. `docs/format.md` gained a paragraph
+on the Editor needing `category:` to find a Document's pictures, so the
+archives were built again from the final tree: 1115 of 1115.

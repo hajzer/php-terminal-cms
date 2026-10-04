@@ -36,9 +36,9 @@ The Page Build (09). An import route. The homepage.
 - [x] `bin/test`: spec Testing §4's Bundle contents and precedence bullets
 - [x] `bin/test`: a hidden Document, a hidden Category and `bundle: false`
   each give a 404 at `.zip` and no control on the page
-- [ ] By hand: a Bundle unzipped, `editor/index.html` opens its `.md` and shows
+- [x] By hand: a Bundle unzipped, `editor/index.html` opens its `.md` and shows
   its picture, in Firefox and Chromium
-- [ ] By hand: `rsync <bundle>/site/` into a scratch Instance shows the Document
+- [x] By hand: `rsync <bundle>/site/` into a scratch Instance shows the Document
 
 ## Comments
 
@@ -78,3 +78,9 @@ with its picture at 200.
 
 For the sixth review (12): `.zip` routing, the Media walk, and
 `Content-Disposition`, which carries `filename*` when the name is not ASCII.
+
+The maintainer ran both by hand on 2026-10-04 and both pass: the unzipped
+Bundle in the Editor, and the `rsync` into a scratch Instance. The first run
+showed no picture, because the test Document's Meta had no `category:` — the
+Editor finds a Document's Media from that Meta, having no other way to know
+the file's directory. Accepted for 0.3.0 and said in `docs/format.md`.

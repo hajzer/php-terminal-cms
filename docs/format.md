@@ -61,6 +61,13 @@ It knows the name and the `category` meta but not the site's languages, so for
 does not load there, under `what-it-is/`. An absolute src is used as written,
 and from an editor opened off the disk it shows the box with the file name.
 
+The site knows which directory a file is in; the editor is handed the file
+and nothing about where it was, so the `category` meta is all it has. A
+document in `content/guides/` whose Meta does not say `category: guides` shows
+its pictures on the site and not in the editor — the editor looks under
+`media/<name>/`, as it would for a file in `content/` itself. That holds for
+a checkout and for an unzipped Bundle alike.
+
 ## The Meta that draws the page
 
 Two Meta keys choose how the site draws a document, and each is a choice only
