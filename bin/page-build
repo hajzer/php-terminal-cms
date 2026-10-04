@@ -126,7 +126,8 @@ function addresses(array $config, string $content): array
     $out = ['/' => 'index.html'];
     foreach (Site::everyCategory($config) as $c) {
         $out['/' . $c['path']] = $c['path'] . '/index.html';
-        foreach (Listing::forCategory($content, $c['path'], Site::languages($config), new BasePath()) as $entry) {
+        $subs = array_column($c['categories'], 'slug');
+        foreach (Listing::forCategory($content, $c['path'], Site::languages($config), new BasePath(), $subs) as $entry) {
             foreach ($entry->languages ?: [$entry->url()] as $url) {
                 /* a file named `.md`, `..md` or `...md` is a Document the
                    request-time site cannot be asked for either — its address

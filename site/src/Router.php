@@ -203,7 +203,8 @@ final class Router
 
         if ($declared['listing']) {
             $body .= $this->listing(
-                Listing::forCategory($this->contentDir, $path, Site::languages($this->site), $this->at)
+                Listing::forCategory($this->contentDir, $path, Site::languages($this->site), $this->at,
+                                     array_column($declared['categories'], 'slug'))
             );
         }
 

@@ -89,13 +89,16 @@ final class Listing
      * Every document in one Category or Sub-category, newest first. index.md is
      * the category's own introduction, not an entry in its own listing — in any
      * language. A Sub-category's directory is not read here: its Documents are
-     * on its own page.
+     * on its own page. Nor is a Document whose address a Sub-category of the
+     * same name answers, since a row for it would lead to that Sub-category.
      *
      * @param string $category the Category's path under content/, as
      *        Site::categories() declares it
      * @param list<string> $codes the declared languages, the site's own first
      * @param BasePath $at where the site begins, which the entries' URLs are
      *        written under
+     * @param list<string> $subCategories the slugs of the Sub-categories the
+     *        Category declares
      * @return list<Entry>
      */
     public static function forCategory(
@@ -103,6 +106,7 @@ final class Listing
         string $category,
         array $codes = [],
         BasePath $at = new BasePath(),
+        array $subCategories = [],
     ): array {
         $dir = $contentDir . '/' . $category;
         if (!is_dir($dir)) {
@@ -121,6 +125,10 @@ final class Listing
             /* printed in the site's own language, and in whatever it was
                written in when that language is not one of them */
             $code = isset($variants['']) ? '' : (isset($variants[$default]) ? $default : array_key_first($variants));
+            $slug = Language::slug($base, (string) $code, $default);
+            if (in_array($slug, $subCategories, true)) {
+                continue;
+            }
             $meta = Document::peekMeta($dir . '/' . $variants[$code]);
 
             $addresses = Language::addresses($base, $variants, $category, $default, $at);
@@ -128,7 +136,7 @@ final class Listing
 
             $entries[] = new Entry(
                 $category,
-                Language::slug($base, (string) $code, $default),
+                $slug,
                 $meta['title'] ?? $base,
                 $meta['date'] ?? '',
                 $one ? '' : Language::code((string) $code, $default),
@@ -145,8 +153,8 @@ final class Listing
     /**
      * Recent documents across every declared Category and Sub-category.
      *
-     * @param list<array{path:string}> $categories as Site::everyCategory()
-     *        returns them — malformed entries are gone
+     * @param list<array{path:string, categories:list<array{slug:string}>}> $categories
+     *        as Site::everyCategory() returns them — malformed entries are gone
      * @param list<string> $codes
      * @param ?int $limit how many to print — null is every one there is, which
      *        is what Site::listingMax() answers for an instance that asked for
@@ -163,7 +171,8 @@ final class Listing
     ): array {
         $all = [];
         foreach ($categories as $c) {
-            foreach (self::forCategory($contentDir, $c['path'], $codes, $at) as $entry) {
+            $subs = array_column($c['categories'], 'slug');
+            foreach (self::forCategory($contentDir, $c['path'], $codes, $at, $subs) as $entry) {
                 $all[] = $entry;
             }
         }

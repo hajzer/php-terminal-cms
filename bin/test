@@ -1119,6 +1119,12 @@ file_put_contents("$subs/notes/php-sk.md", "---\ntitle: PHP po slovensky\n---\n\
 $r = $subRouter->route('/notes/php');
 ok($r['status'] === 200 && str_contains($r['body'], '<h1>PHP</h1>') && !str_contains($r['body'], 'The PHP Document'),
    'a Sub-category shadowing a Document in its parent answers as the Sub-category', $r['body']);
+$r = $subRouter->route('/notes');
+ok(!str_contains($r['body'], 'The PHP Document') && !str_contains($r['body'], 'class="row" href="/notes/php"'),
+   'and no Listing row leads to the shadowed Document\'s address', $r['body']);
+$recent = TerminalCms\Listing::recent($subs, TerminalCms\Site::everyCategory($subSite), ['en'], null);
+ok(!in_array('/notes/php', array_map(static fn ($e) => $e->url(), $recent), true),
+   'on the homepage either', implode("\n", array_map(static fn ($e) => $e->url(), $recent)));
 ok(shadowed($subSite + ['languages' => ['sk']], $subs) === ['content/notes/php.md'],
    'and the shadowed file is the one named', implode("\n", shadowed($subSite + ['languages' => ['sk']], $subs)));
 

@@ -296,7 +296,8 @@ homepage lists from every level, and a row names a Sub-category's document as
 - A directory inside a category that is not declared here is a 404, exactly as
   an undeclared directory under `content/` is.
 - A Sub-category whose slug is also a document's name in its parent **hides
-  that document**: `/guides/php` is the Sub-category's page. `php bin/test`
+  that document**: `/guides/php` is the Sub-category's page, and no listing
+  names the document. `php bin/test`
   prints a `warn` line naming the hidden file, for the configuration in
   `site.php.example` and in `site.php`.
 

@@ -701,9 +701,10 @@
     return this.fileName();
   };
   /** The directory the Document belongs in — its Category, `guides/php` for a
-   *  Sub-category, or content/ itself. */
+   *  Sub-category, or content/ itself. The site has no level below a
+   *  Sub-category, so a part past the second names no directory. */
   Doc.prototype.dir = function () {
-    var c = String(this.meta('category') || '').split('/').map(slug).filter(Boolean).join('/');
+    var c = String(this.meta('category') || '').split('/').map(slug).filter(Boolean).slice(0, 2).join('/');
     return 'content/' + (c ? c + '/' : '');
   };
   Doc.prototype.path = function () { return this.dir() + this.fileName(); };
