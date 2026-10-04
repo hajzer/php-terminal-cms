@@ -146,6 +146,21 @@ public navigation names the top-level Categories; a Category's own page
 names its Sub-categories.
 _Avoid_: subfolder, child category, nested category, subsection
 
+**Series**:
+A Sub-category that is read as one thing — a solution with its chapters, a
+subject with its lessons. A Sub-category is a Series because its parent says
+so in Site Config, for all of its Sub-categories at once; nothing about the
+directory or its Documents differs. A Series has one row in a Listing, which
+is its `index.md`'s — that Document's title, date and Languages — and a
+Series with no Published `index.md` has no row. Its own page lists its Parts.
+_Avoid_: kind, work, book, collection, section, topic
+
+**Part**:
+A Document in a Series. An ordinary Document at its own address, with one
+difference: the only Listing that names it is the one on its Series' page,
+where Parts stand in the order of their Names rather than by date.
+_Avoid_: chapter, lesson, member, article
+
 **Media**:
 The files a Document's Image Lines show, kept in one directory that is the
 Document's own: its path under `content/` repeated under `media/`, so
@@ -251,7 +266,8 @@ The documents an index page prints below its own writing — every Document in a
 Category on that Category's page, the recent ones from every Category and
 Sub-category on the homepage. A Category's page lists its own Documents and
 names its Sub-categories; it does not list theirs, which are on each
-Sub-category's own page. One row is one Document whatever Languages it exists in, printed in
+Sub-category's own page — unless they are Series, each of which is one row
+there and on the homepage, in place of its Parts. One row is one Document whatever Languages it exists in, printed in
 the site's own and carrying `(EN | SK)` — the one being read, and the way to the
 others. Each Listing is a switch in Site Config, on unless an Instance says
 otherwise; switched off, the index page is its `index.md` and nothing else.
