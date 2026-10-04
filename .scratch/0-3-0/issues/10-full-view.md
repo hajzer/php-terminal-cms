@@ -41,7 +41,7 @@ Pinch, wheel or panning. PNG. The Editor's preview.
 
 ## Comments
 
-Done in d4e6340. The Full View part of the script goes only on a page with an
+Done in 76c0025. The Full View part of the script goes only on a page with an
 Image or a Diagram, so a page with neither keeps its pinned shell hash; `/`
 and `/about/everything-is-a-line` were re-recorded. The Diagram is moved into
 the `<dialog>` and back (an empty `<svg>` of its size holds its place), since a

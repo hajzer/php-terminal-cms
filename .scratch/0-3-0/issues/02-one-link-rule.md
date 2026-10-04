@@ -46,7 +46,7 @@ see. `.languages a.on` still rests in `--accent`, as the one being read.
 in both sheets; no rule draws a link (colour, background, border, underline
 colour, opacity, filter, `all`) but the reader sheet's own, the top bar's and a
 Listing's rows; the regions that set `--link` are exactly the two footers and
-the Language indicator. All of it fails on 10d2f60's `site.css`.
+the Language indicator. All of it fails on e33ec9a's `site.css`.
 
 Checked in headless Chromium, every Theme in both Palettes: the site footer's,
 the doc-foot's and both Language links rest underlined and hover with exactly
