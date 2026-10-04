@@ -20,12 +20,15 @@ final class Renderer
      * @param string $linkOpen where a link to another site opens — see inline()
      * @param BasePath $at where the site begins, for an Href and a src written
      *        from its root
+     * @param string $media the Document's Media directory under media/ — see
+     *        mediaUrl()
      */
     public static function render(
         array $lines,
         bool $withMeta = true,
         string $linkOpen = 'here',
         BasePath $at = new BasePath(),
+        string $media = '',
     ): string {
         $html = [];
         $body = array_values(array_filter($lines, static fn (Line $l) => $l->type !== 'meta'));
@@ -63,7 +66,7 @@ final class Renderer
                     break;
                 case 'img':
                     $alt    = $first->sub ?? '';
-                    $html[] = '<figure><img src="' . e($at->local(self::mediaUrl($first->text))) . '" alt="' . e($alt) . '">'
+                    $html[] = '<figure><img src="' . e($at->local(self::mediaUrl($first->text, $media))) . '" alt="' . e($alt) . '">'
                             . ($alt !== '' ? '<figcaption>' . e($alt) . '</figcaption>' : '')
                             . '</figure>';
                     break;
@@ -279,12 +282,13 @@ final class Renderer
     }
 
     /**
-     * Documents reference media absolutely; a relative ./media/x.png is
-     * normalised. The site's own logo is reduced the same way — a picture in
-     * the top bar is a picture like any other, and there is one answer to what
-     * a src may address.
+     * An absolute src names that path; anything else is a file name in the
+     * Document's Media — `about/what-it-is` for content/about/what-it-is.md —
+     * or, with no Document, in media/ itself. The site's own logo is reduced
+     * the same way: a picture in the top bar is a picture like any other, and
+     * there is one answer to what a src may address.
      */
-    public static function mediaUrl(string $src): string
+    public static function mediaUrl(string $src, string $media = ''): string
     {
         /* a query or a fragment is not part of a file name, and ./ is the
            document's own directory — the one prefix that names nowhere else */
@@ -294,7 +298,8 @@ final class Renderer
         /* An absolute path addresses the document root. Everything else — a
            relative path, a protocol-relative URL, a backslash, a control
            character, a climb out of the root — is reduced to the file it
-           names, under media/, which is the only place images live. */
+           names, in the Document's directory under media/ — and the
+           Document, not the src, names that directory. */
         if (str_starts_with($src, '/')
             && !str_starts_with($src, '//')
             && !str_contains($src, '..')
@@ -302,7 +307,7 @@ final class Renderer
         ) {
             return $src;
         }
-        return '/media/' . basename(str_replace('\\', '/', $src));
+        return '/media/' . ($media === '' ? '' : $media . '/') . basename(str_replace('\\', '/', $src));
     }
 
     /**

@@ -553,6 +553,51 @@ d.load(L.parse('---\ntitle: Writing in the editor\ncategory: guides\n---\n\n# Wr
 eq('an opened file keeps its own name and category',
    d.path(), 'content/guides/writing-in-the-editor.md');
 
+/* -------------------------------------------------------------- media
+ *
+ * A bare name in an Image Line is a file in the Document's own Media: its
+ * path under content/, repeated under media/, reached from the Editor's page
+ * in the repository's layout. */
+eq('a Document\'s Media is its Category and its Name without .md', d.media(),
+   'guides/writing-in-the-editor');
+d.setMeta('category', ' /Guides/PHP Tips/arrays ');
+eq('with the Category spelled as the directory is', d.media(), 'guides/php-tips/writing-in-the-editor');
+d.load(L.parse('# Home\n'), 'index.md');
+eq('and content/index.md is index', d.media(), 'index');
+
+function imgOf(src, media) {
+  var html = L.renderDoc(L.parse('![a](' + src + ')\n'), { meta: false, media: media });
+  var m = /<img src="([^"]*)"(?: data-retry="([^"]*)")?/.exec(html);
+  return m ? [m[1], m[2] || null] : html;
+}
+var MEDIA = '../site/public/media/';
+[
+  ['x.png',                       MEDIA + 'guides/intro/x.png'],
+  ['./x.png',                     MEDIA + 'guides/intro/x.png'],
+  ['./media/x.png',               MEDIA + 'guides/intro/x.png'],
+  ['../x.png',                    MEDIA + 'guides/intro/x.png'],
+  ['../../etc/passwd.png?v=1',    MEDIA + 'guides/intro/passwd.png'],
+  ['shots\\x.png',                MEDIA + 'guides/intro/x.png'],
+  ['//evil.example/x.png',        MEDIA + 'guides/intro/x.png'],
+  ['https://evil.example/x.png',  MEDIA + 'guides/intro/x.png'],
+  ['/media/../../x.png',          MEDIA + 'guides/intro/x.png'],
+  ['/media/x.png',                '/media/x.png'],
+  ['/media/architecture.svg#a',   '/media/architecture.svg']
+].forEach(function (c) {
+  eq(c[0] + ' in guides/intro is ' + c[1], imgOf(c[0], 'guides/intro'), [c[1], null]);
+});
+eq('with no Document a bare name is under media/ itself', imgOf('x.png'), [MEDIA + 'x.png', null]);
+
+/* the Editor knows no Language list, so a Name ending in two letters after a
+   hyphen may be a Language: the picture names a second look without it */
+eq('what-it-is-sk looks in what-it-is-sk, and then in what-it-is',
+   imgOf('x.png', 'about/what-it-is-sk'), [MEDIA + 'about/what-it-is-sk/x.png', MEDIA + 'about/what-it-is/x.png']);
+eq('index-sk in a Sub-category, then index',
+   imgOf('x.png', 'guides/php/index-sk'), [MEDIA + 'guides/php/index-sk/x.png', MEDIA + 'guides/php/index/x.png']);
+eq('a Name with a longer last word has no second look', imgOf('x.png', 'guides/intro'),
+   [MEDIA + 'guides/intro/x.png', null]);
+eq('nor has an absolute src', imgOf('/media/x.png', 'about/what-it-is-sk'), ['/media/x.png', null]);
+
 /* ---------------------------------------------------------------- paste
  *
  * Markdown added to a Document rather than replacing it: the Lines it

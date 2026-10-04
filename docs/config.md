@@ -173,12 +173,13 @@ is the same markup with one attribute fewer.
 ```
 
 The file lives in `site/public/media/`, and the src is read the way a document's
-image src is read: a local absolute path is used as it stands, and anything else
-— a relative path, another origin, a climb out of the root — is reduced to the
-file it names under `/media/`. The page's Content-Security-Policy allows images
-from this site and nowhere else, so a logo that named another origin would not
-have loaded even if it had been written out — the reduction is what makes it a
-picture instead of a broken one. See [security.md](security.md#the-renderer).
+image src is read, with no Document to own it: a local absolute path is used as
+it stands, and anything else — a relative path, another origin, a climb out of
+the root — is reduced to the file it names in `/media/` itself. The page's
+Content-Security-Policy allows images from this site and nowhere else, so a logo
+that named another origin would not have loaded even if it had been written out
+— the reduction is what makes it a picture instead of a broken one. See
+[security.md](security.md#the-renderer).
 
 `title` is unchanged and still does everything it did: it fills `<title>`, it is
 the writing in the brand link beside the picture, it is the homepage heading,

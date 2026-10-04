@@ -9,17 +9,24 @@ final class Document
     private function __construct(
         public readonly string $category,
         public readonly string $slug,
+        public readonly string $base,
         public readonly array $meta,
         public readonly array $lines,
     ) {
     }
 
-    public static function load(string $file, string $category, string $slug): self
+    /**
+     * @param string $category the Category path, '' for the content root
+     * @param string $slug the address the Document was asked for
+     * @param string $base the Name without its Language and .md, which every
+     *        Language of the Document shares
+     */
+    public static function load(string $file, string $category, string $slug, string $base): self
     {
         $raw = file_get_contents($file);
         [$meta, $lines] = Markdown::parse($raw === false ? '' : $raw);
 
-        return new self($category, $slug, $meta, $lines);
+        return new self($category, $slug, $base, $meta, $lines);
     }
 
     public function title(): string
@@ -33,12 +40,22 @@ final class Document
     }
 
     /**
+     * Where the Document's pictures are, under media/: its path under
+     * content/ without the Language — `about/what-it-is`, `index` for the
+     * homepage, `about/index` for a Category's page.
+     */
+    public function media(): string
+    {
+        return ltrim($this->category . '/' . $this->base, '/');
+    }
+
+    /**
      * @param string $linkOpen where a link to another site opens — Renderer::inline()
      * @param BasePath $at where the site begins — Renderer::render()
      */
     public function html(string $linkOpen = 'here', BasePath $at = new BasePath()): string
     {
-        return Renderer::render($this->lines, true, $linkOpen, $at);
+        return Renderer::render($this->lines, true, $linkOpen, $at, $this->media());
     }
 
     /**

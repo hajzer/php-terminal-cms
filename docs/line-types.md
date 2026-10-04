@@ -148,11 +148,13 @@ Key `r`. Markdown `---`, renders `<hr>`. Carries no text.
 
 ### `img` — image
 
-Key `f`. Markdown `![alt](/media/name.png)`. The alt text is stored in the
-line's dialect slot. Paths are normalised to `/media/<basename>`, which is
-`site/public/media/` on disk — see [deploy.md](deploy.md). The editor's read pane shows
-the picture itself, fetched from the src as written; a src that does not load falls
-back to a box with the file name in it.
+Key `f`. Markdown `![alt](name.png)`. The alt text is stored in the
+line's dialect slot. A bare file name is a file in the Document's own Media,
+`site/public/media/<category>/<name>/`; any other src that is not an absolute
+path is reduced to its file name there, and an absolute path is used as it
+stands — see [format.md](format.md#media). The editor's read pane shows the
+picture itself, from the same directory beside its own page; a src that does not
+load falls back to a box with the file name in it.
 
 ### `meta` — metadata
 

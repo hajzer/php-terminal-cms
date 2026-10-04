@@ -36,16 +36,16 @@ neither. Once a document holds a Diagram, the page loads its own copy of
 Mermaid — `mermaid.min.js`, the file beside `ui.js`, from wherever the editor
 itself was opened — to draw it in the read pane; a document without a Diagram
 never asks for it. The other is a request on the author's behalf. Previewing
-an image line shows the actual picture, so the browser fetches whatever that
-line names as its src — an author who writes an `https://` src is
-telling their own browser to contact that host, and that host learns a request
-was made from that browser. It learns nothing else the page could have kept
-back: the editor's page names `no-referrer`, so where the editor was opened
-from does not travel with the request. Any other src is resolved against
-wherever the editor page itself was opened from — for a page opened off the
-filesystem, that is the filesystem. An image that does not load falls back to
-the box with the file name in it, silently. The document is no part of any of
-this and still goes nowhere.
+an image line shows the actual picture, so the browser fetches the file that
+line names, resolved as the site resolves it: an absolute local path as it
+stands, and anything else — an `https://` src included — reduced to a file
+name in the Document's Media, `../site/public/media/<category>/<name>/`. Both
+are resolved against wherever the editor page itself was opened from — for a
+page opened off the filesystem, that is the filesystem — so no Image Line makes
+the preview contact another host, and the page names `no-referrer` besides. An
+image that does not load is looked for once more without a trailing language
+in the name, and then falls back to the box with the file name in it,
+silently. The document is no part of any of this and still goes nowhere.
 
 That is checked, not asserted. The `source` section of `bin/test` — the one that
 scans the site's PHP for the calls that reach the system — reads
@@ -100,9 +100,9 @@ What it is not:
 - **The same on every copy.** It is part of `editor/index.html`, not made per
   load; anyone can read it, and nothing about it is secret.
 - **Not a stop on the image request.** `img-src` allows any `http:`, `https:`
-  or `data:` src, because showing the picture an Image Line names is the
-  editor's one deliberate outbound request. Markup injected into the page could
-  make the same kind of request.
+  or `data:` src. An Image Line's src never reaches another origin — the read
+  pane reduces it as the site does — but markup injected into the page could
+  make that kind of request.
 - **Not a stop on leaving the page.** No directive governs where the tab goes.
   The editor's own script keeps the two ordinary ways out from taking the
   document: a link clicked in the preview, the page's or a Diagram's, opens in
@@ -170,13 +170,13 @@ renderer on the origin, not two.
 `javascript:` payloads, and with a footer carrying the same, and fails if any of
 it survives.
 
-Two headings with the same words get two ids, so an in-page link cannot be
-made ambiguous by a document repeating itself. An `img` path is either a local
-absolute path or a name under `/media/`; a protocol-relative URL, a backslash,
-a control character and a path trying to climb out of the document root are all
-reduced to the file they name. The `logo` and the `favicon` in `site.php` are
-two more paths that reach the page, and they take the same reduction before
-they are escaped into the page shell.
+Two headings with the same words get two ids, so an in-page link cannot be made
+ambiguous by a document repeating itself. An `img` path is either a local
+absolute path or a name in its Document's directory under `/media/`; a
+protocol-relative URL, a backslash, a control character and a path trying to
+climb out of the document root are all reduced to the file they name. The `logo`
+and the `favicon` in `site.php` are two more paths that reach the page, and they
+take the same reduction before they are escaped into the page shell.
 
 ## The router
 

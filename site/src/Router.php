@@ -106,7 +106,7 @@ final class Router
      * @param string $category the path of a Category or Sub-category declared in
      *        site.php — `guides` or `guides/php` — or '' for the content root,
      *        which holds the homepage and nothing else
-     * @return array{file:string, lang:string, languages:array<string,string>}|null
+     * @return array{file:string, base:string, lang:string, languages:array<string,string>}|null
      */
     private function resolve(string $category, string $slug): ?array
     {
@@ -146,6 +146,7 @@ final class Router
 
         return [
             'file'  => $dir . '/' . $variants[$code],
+            'base'  => $base,
             'lang'  => Language::code($code, $default),
             'languages' => count($variants) > 1
                 ? Language::addresses($base, $variants, $category, $default, $this->at)
@@ -161,7 +162,7 @@ final class Router
             return $this->notFound();
         }
 
-        $doc  = Document::load($found['file'], $category, $slug);
+        $doc  = Document::load($found['file'], $category, $slug, $found['base']);
         $body = '<article class="doc">' . $doc->html($this->linkOpen(), $this->at) . '</article>'
               . $this->docFooter($doc, $found['lang'], $found['languages']);
 
@@ -186,7 +187,7 @@ final class Router
         $meta = [];
         $intro = $this->resolve($path, 'index');
         if ($intro !== null) {
-            $doc  = Document::load($intro['file'], $path, 'index');
+            $doc  = Document::load($intro['file'], $path, 'index', $intro['base']);
             $meta = $doc->meta;
             $body .= '<article class="doc intro">' . $doc->html($this->linkOpen(), $this->at) . '</article>';
         } else {
@@ -219,7 +220,7 @@ final class Router
         $meta = [];
         $intro = $this->resolve('', 'index');
         if ($intro !== null) {
-            $doc  = Document::load($intro['file'], '', 'index');
+            $doc  = Document::load($intro['file'], '', 'index', $intro['base']);
             $meta = $doc->meta;
             $body .= '<article class="doc intro">' . $doc->html($this->linkOpen(), $this->at) . '</article>';
         } else {

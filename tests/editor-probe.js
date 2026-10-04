@@ -835,8 +835,9 @@
   ok('a committed caption reaches the export',
      md.indexOf('![how it fits together](diagram.png)') > -1, md);
   var fig = document.querySelector('#read figure');
-  ok('and the read pane shows the picture itself',
-     !!document.querySelector('#read figure img[src="diagram.png"]'),
+  var pictured = fig && fig.querySelector('img') && fig.querySelector('img').getAttribute('src');
+  ok('and the read pane shows the picture itself, from the Document\'s Media',
+     !!pictured && pictured.indexOf('../site/public/media/') === 0 && /\/diagram\.png$/.test(pictured),
      fig && fig.innerHTML);
   ok('with the box holding the file name behind it, for an src that will not load',
      !!fig && !!fig.querySelector('.imgbox[hidden]') &&
@@ -1838,7 +1839,34 @@
       ok('an image whose src does not load shows the box with its file name',
          !!b && !b.hidden && b.textContent === 'no-such-picture.png', f && f.innerHTML);
       ok('and the picture is hidden', !!img && img.hidden, f && f.innerHTML);
-      leaving();
+      owned();
+    });
+  }
+
+  /* A bare name is a file in the Document's own Media, which the page finds
+     beside it in the repository's layout: site/public/media/about/editor-probe/
+     holds the fixture. A Name that may end in a Language is looked for under
+     the whole Name, and then without the suffix. */
+  function owned() {
+    document.getElementById('actClear').click();
+    paste('---\ncategory: about\n---\n\n![the fixture](probe.svg)\n');
+    run('name editor-probe.md');
+    function img() { return readEl.querySelector('figure img'); }
+    function settled() { var i = img(); return i && (i.hidden || (i.complete && i.naturalWidth > 0)); }
+    until(settled, function () {
+      var i = img(), src = i && i.getAttribute('src');
+      ok('a bare name under category: about loads from about/editor-probe/',
+         !!i && !i.hidden && i.naturalWidth > 0 &&
+         src === '../site/public/media/about/editor-probe/probe.svg', src);
+      run('name editor-probe-sk.md');
+      until(function () { return settled() && !img().hasAttribute('data-retry'); }, function () {
+        var j = img(), again = j && j.getAttribute('src');
+        ok('and editor-probe-sk.md finds it a second time without the -sk',
+           !!j && !j.hidden && j.naturalWidth > 0 &&
+           again === '../site/public/media/about/editor-probe/probe.svg', again);
+        run('name');
+        leaving();
+      });
     });
   }
 

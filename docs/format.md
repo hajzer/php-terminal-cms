@@ -33,6 +33,34 @@ Nothing inside the file records the language. There is no `lang:` meta to keep
 in step with the name, and the editor treats the suffix as it treats any other
 word in a name: type it, or rename the file.
 
+## Media
+
+An Image Line names its picture by file name — `![the overlay](overlay.png)` —
+and the file is in the Document's own directory under `site/public/media/`:
+its path under `content/` repeated, without the language and the `.md`.
+
+| the Document | its Media |
+| --- | --- |
+| `content/about/what-it-is.md` | `site/public/media/about/what-it-is/` |
+| `content/about/what-it-is-sk.md` | the same: every language shares one |
+| `content/guides/php/intro.md` | `site/public/media/guides/php/intro/` |
+| `content/guides/index.md` | `site/public/media/guides/index/` |
+| `content/index.md` | `site/public/media/index/` |
+
+Every src that is not an absolute path is reduced to its file name and looked
+for there, so `./overlay.png`, `shots/overlay.png` and `../overlay.png` all
+name `overlay.png`. An absolute path — `/media/architecture.svg` — names that
+path, for a picture that belongs to no one Document. There is no fallback: a
+bare name that is not in the Document's directory is a broken picture, and is
+not looked for in `site/public/media/` itself.
+
+The editor's read pane looks in the same place from its own page —
+`../site/public/media/<category>/<name>/`, which is where a checkout keeps it.
+It knows the name and the `category` meta but not the site's languages, so for
+`what-it-is-sk.md` it looks under `what-it-is-sk/` first and, when the picture
+does not load there, under `what-it-is/`. An absolute src is used as written,
+and from an editor opened off the disk it shows the box with the file name.
+
 ## The Meta that draws the page
 
 Two Meta keys choose how the site draws a document, and each is a choice only

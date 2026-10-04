@@ -574,13 +574,18 @@
         case 'rule': html.push('<hr>'); break;
         case 'img': {
           /* The real picture, so the writer can see whether it is the right
-             one. The box with the file name in it is what an src that does not
-             load falls back to, swapped in by the page's own listener — the
-             caption is the alt either way. */
+             one, from where the page would take it. A Name that may end in a
+             Language names a second place to look; the box with the file name
+             in it is what an src that does not load falls back to after that,
+             swapped in by the page's own listener — the caption is the alt
+             either way. */
           var box = '<div class="imgbox"' + (f.text ? ' hidden' : '') + '>' +
             esc(f.text) + '</div>';
+          var src = mediaSrc(f.text, opts.media), again = withoutLanguage(src);
           var pic = f.text
-            ? '<img src="' + esc(f.text) + '" alt="' + esc(f.sub || '') + '">'
+            ? '<img src="' + esc(src) + '"' +
+              (again ? ' data-retry="' + esc(again) + '"' : '') +
+              ' alt="' + esc(f.sub || '') + '">'
             : '';
           html.push('<figure>' + pic + box +
             '<figcaption>' + esc(f.sub || 'figure') + '</figcaption></figure>');
@@ -633,6 +638,33 @@
        where the title would have been */
     if (pending) html.unshift(pending);
     return html.join('\n');
+  }
+
+  /* ----------------------------------------------------------------- media */
+
+  /* Where the site's media/ is from the Editor's own page, in the
+     repository's layout — which a checkout and an unzipped Bundle share. */
+  var MEDIA = '../site/public/media/';
+
+  /* An Image's src, as Renderer::mediaUrl() reads it: an absolute path names
+     that path, and anything else is reduced to the file it names, in the
+     Document's Media — `about/what-it-is` — or in media/ itself when no
+     Document is named. */
+  function mediaSrc(src, media) {
+    src = String(src).replace(/[?#].*$/, '').replace(/^\.\//, '');
+    if (src.charAt(0) === '/' && src.charAt(1) !== '/' && src.indexOf('..') < 0 &&
+        !/[\x00-\x1F\x7F\\]/.test(src)) return src;
+    return MEDIA + (media ? media + '/' : '') +
+      src.replace(/\\/g, '/').replace(/\/+$/, '').split('/').pop();
+  }
+
+  /* The same src in the directory the Name names without a trailing
+     `-<two letters>`, or null. The site knows its Languages and resolves
+     `what-it-is-sk` to `what-it-is` itself; the Editor knows none, so it
+     looks under the whole Name first and here second. */
+  function withoutLanguage(src) {
+    var m = src.indexOf(MEDIA) === 0 && /^(.*)-[a-z]{2}(\/[^\/]*)$/.exec(src);
+    return m ? m[1] + m[2] : null;
   }
 
   /* ---------------------------------------------------------------- naming */
@@ -705,8 +737,17 @@
    *  Sub-category, or content/ itself. The site has no level below a
    *  Sub-category, so a part past the second names no directory. */
   Doc.prototype.dir = function () {
-    var c = String(this.meta('category') || '').split('/').map(slug).filter(Boolean).slice(0, 2).join('/');
+    var c = this.category();
     return 'content/' + (c ? c + '/' : '');
+  };
+  Doc.prototype.category = function () {
+    return String(this.meta('category') || '').split('/').map(slug).filter(Boolean).slice(0, 2).join('/');
+  };
+  /** Where the Document's pictures are under media/: its path under
+   *  content/ without .md — `index` for content/index.md. */
+  Doc.prototype.media = function () {
+    var c = this.category();
+    return (c ? c + '/' : '') + this.fileName().replace(/\.md$/, '');
   };
   Doc.prototype.path = function () { return this.dir() + this.fileName(); };
   /* cur is always a real index — every mutation clamps it, so no caller has to */

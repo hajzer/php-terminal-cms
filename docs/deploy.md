@@ -80,13 +80,19 @@ $ sudo find /var/www/example.com -type f -exec chmod 640 {} +
 
 ### Media
 
-Images live in `site/public/media/`. An `img` line's path is normalised to
-`/media/<basename>`, so the file is reachable by its own name and nothing above
-the document root is reachable at all. Copy images the same way you copy
-documents — the software has no upload path and never writes one.
+A Document's pictures live in its own directory under `site/public/media/`:
+its path under `content/`, without the language and the `.md` —
+`content/guides/php/intro.md` keeps its pictures in
+`site/public/media/guides/php/intro/`, and `content/index.md` in
+`site/public/media/index/`. An `img` line's bare file name is a file there; an
+absolute path such as `/media/logo.png` names that path, and the site's logo
+is one. Any src is reduced to a file name in a directory the site chose, so
+nothing above the document root is reachable at all. See
+[format.md](format.md#media). Copy pictures the same way you copy documents —
+the software has no upload path and never writes one.
 
 ```console
-$ rsync -az images/ deploy@example.com:/var/www/example.com/public/media/
+$ rsync -az site/public/media/ deploy@example.com:/var/www/example.com/public/media/
 ```
 
 ## The editor
@@ -270,6 +276,32 @@ $ rsync -az --exclude site.php php-terminal-cms-*/site/ deploy@example.com:/var/
 
 `site.php` and `content/` are yours; everything else is replaceable. Excluding
 `site.php` on the way up is the only thing to remember.
+
+### From 0.2.0: each Document's own Media
+
+Until 0.3.0 a bare file name in an Image Line — `![x](shot.png)`, or
+`./shot.png`, or anything else that is not an absolute path — named a file in
+`site/public/media/` itself. It now names a file in the Document's own
+directory, and the site does not look in the old place. An Image Line that
+writes an absolute path, `/media/shot.png`, is unchanged and needs nothing.
+
+For each Document whose Image Lines write a bare name, make its directory and
+move each picture it names there. For `content/guides/php/intro.md` showing
+`shot.png`:
+
+```console
+$ mkdir -p site/public/media/guides/php/intro
+$ git mv site/public/media/shot.png site/public/media/guides/php/intro/
+```
+
+The directory is the Document's path under `content/` without `.md`, and
+without a language: `intro-sk.md` shares `intro/`. A Category's `index.md` is
+`<category>/index`, the homepage's `index`. A picture two Documents both name
+is copied into each. To find the lines that need it:
+
+```console
+$ grep -rnE '^!\[[^]]*\]\([^/)][^)]*\)$' site/content
+```
 
 ## Two instances
 

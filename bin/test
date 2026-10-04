@@ -2183,6 +2183,92 @@ foreach ($relative as $src => $want) {
        sprintf('%-16s -> %s', $src, $want), Renderer::mediaUrl($src));
 }
 
+/* A Document's Media: the same reduction, and the name placed in the
+   Document's own directory rather than in media/ itself */
+$owned = [
+    'x.png'                     => '/media/about/what-it-is/x.png',
+    './x.png'                   => '/media/about/what-it-is/x.png',
+    './media/x.png'             => '/media/about/what-it-is/x.png',
+    '../x.png'                  => '/media/about/what-it-is/x.png',
+    '../../etc/passwd.png?v=1'  => '/media/about/what-it-is/passwd.png',
+    'shots\\x.png'              => '/media/about/what-it-is/x.png',
+    '\\\\evil.example\\x.png'   => '/media/about/what-it-is/x.png',
+    '//evil.example/x.png'      => '/media/about/what-it-is/x.png',
+    'https://evil.example/x.png' => '/media/about/what-it-is/x.png',
+    '/media/../../x.png'        => '/media/about/what-it-is/x.png',
+    '/media/x.png'              => '/media/x.png',
+    '/media/architecture.svg#a' => '/media/architecture.svg',
+];
+foreach ($owned as $src => $want) {
+    ok(Renderer::mediaUrl($src, 'about/what-it-is') === $want,
+       sprintf('%-26s in about/what-it-is -> %s', $src, $want), Renderer::mediaUrl($src, 'about/what-it-is'));
+}
+ok(Renderer::mediaUrl('x.png', '') === '/media/x.png',
+   'and with no Document a bare name is under media/ itself, as the logo is');
+
+/* the Document a page renders is the directory its pictures are in: its
+   Category path and its Name without the Language, an index.md its own */
+$mediaBox = sys_get_temp_dir() . '/tcms-media-' . getmypid();
+mkdir($mediaBox . '/guides/php', 0755, true);
+foreach (['index.md', 'guides/index.md', 'guides/intro.md', 'guides/intro-sk.md', 'guides/php/index.md', 'guides/php/deep.md'] as $rel) {
+    file_put_contents($mediaBox . '/' . $rel, "---\ntitle: t\n---\n\n# t\n\n![a](shot.png)\n\n![b](/media/logo.png)\n");
+}
+$mediaSite = [
+    'title' => 'media', 'lang' => 'en', 'languages' => ['sk'],
+    'categories' => [['slug' => 'guides', 'label' => 'guides', 'categories' => [['slug' => 'php', 'label' => 'php']]]],
+];
+$mediaRouter = new TerminalCms\Router($mediaSite, $mediaBox);
+foreach ([
+    '/'                => '/media/index/shot.png',
+    '/guides'          => '/media/guides/index/shot.png',
+    '/guides/intro'    => '/media/guides/intro/shot.png',
+    '/guides/intro-sk' => '/media/guides/intro/shot.png',
+    '/guides/php'      => '/media/guides/php/index/shot.png',
+    '/guides/php/deep' => '/media/guides/php/deep/shot.png',
+] as $uri => $want) {
+    $body = $mediaRouter->route($uri)['body'];
+    ok(str_contains($body, 'src="' . $want . '"') && str_contains($body, 'src="/media/logo.png"'),
+       sprintf('%-18s keeps shot.png in %s, and an absolute src where it says', $uri, $want), $body);
+}
+removeTree($mediaBox);
+ok(TerminalCms\Site::logo(['logo' => 'logo.png']) === '/media/logo.png',
+   'and the logo belongs to no Document, and stays under media/ itself');
+
+/* The Editor resolves the same Image Line from its own page, under
+   ../site/public/media/; past that prefix the two halves name the same file */
+if ($node === '') {
+    echo "  -- node not installed, skipping the editor's copy\n";
+} else {
+    $srcs  = array_keys($owned);
+    $cases = [];
+    foreach (['about/what-it-is', ''] as $media) {
+        foreach ($srcs as $src) {
+            $cases[] = ['line' => "![a]($src)", 'media' => $media];
+        }
+    }
+    $tmp = sys_get_temp_dir() . '/tcms-media-' . getmypid() . '.json';
+    file_put_contents($tmp, json_encode($cases));
+    $raw = shell_exec($node . ' ' . escapeshellarg($root . '/tests/js-media.js') . ' ' . escapeshellarg($tmp));
+    unlink($tmp);
+    $js = json_decode((string) $raw, true);
+    if (!is_array($js)) {
+        ok(false, 'the editor media dump ran', (string) $raw);
+    } else {
+        $drift = [];
+        foreach ($cases as $k => $case) {
+            [, $one] = Markdown::parse($case['line'] . "\n");
+            preg_match('~<img src="([^"]*)"~', Renderer::render($one, false, 'here', new BasePath(), $case['media']), $m);
+            $php = html_entity_decode($m[1] ?? '', ENT_QUOTES | ENT_HTML5);
+            $own = preg_replace('~^\.\./site/public/media/~', '/media/', (string) ($js[$k] ?? ''));
+            if ($own !== $php) {
+                $drift[] = "{$case['line']} in '{$case['media']}'\n  php: $php\n  js : " . var_export($js[$k] ?? null, true);
+            }
+        }
+        ok($drift === [], 'the editor and the site resolve every src to the same file',
+           implode("\n", array_slice($drift, 0, 4)));
+    }
+}
+
 /* ------------------------------------------------------------ the base path */
 echo "\nbase path\n";
 

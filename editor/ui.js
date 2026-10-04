@@ -381,7 +381,7 @@
   function draw() {
     drawSheet();
     drawLegend();
-    read.innerHTML = L.renderDoc(doc.lines);
+    read.innerHTML = L.renderDoc(doc.lines, { media: doc.media() });
     dressPane();
     drawDiagrams();
     rawPre.textContent = L.toMarkdown(doc.lines);
@@ -415,12 +415,19 @@
     draw();
   }
 
-  /* An Image Line's picture whose src does not load gives way to the box
-     with the file name that renderDoc put after it. An error does not
-     bubble, so the pane hears it on the way down. */
+  /* An Image Line's picture whose src does not load is looked for once more
+     where renderDoc said, and then gives way to the box with the file name
+     that renderDoc put after it. An error does not bubble, so the pane hears
+     it on the way down. */
   read.addEventListener('error', function (e) {
     var img = e.target;
     if (img.nodeName !== 'IMG' || !img.parentNode || img.parentNode.nodeName !== 'FIGURE') return;
+    var again = img.getAttribute('data-retry');
+    if (again) {
+      img.removeAttribute('data-retry');
+      img.setAttribute('src', again);
+      return;
+    }
     var box = img.nextElementSibling;
     if (!box || !box.classList.contains('imgbox')) return;
     img.hidden = true;
