@@ -535,11 +535,12 @@
 
   /* The document's own metadata, printed under its title. title: is left out:
      it is the title, and the title is already there. So is palette: — it is
-     how the page opens, and the reader may have flipped it since. */
+     how the page opens, and the reader may have flipped it since — and so is
+     published:, since a reader only ever meets a Document that is Published. */
   function metaBar(lines) {
     var parts = lines.filter(function (l) {
       return l.type === 'meta' && l.text.indexOf('title:') !== 0 &&
-        l.text.indexOf('palette:') !== 0;
+        l.text.indexOf('palette:') !== 0 && l.text.indexOf('published:') !== 0;
     }).map(function (l) { return esc(l.text); });
     return parts.length ? '<div class="doc-meta">' + parts.join(' · ') + '</div>' : '';
   }

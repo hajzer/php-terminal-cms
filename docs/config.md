@@ -301,6 +301,36 @@ homepage lists from every level, and a row names a Sub-category's document as
   prints a `warn` line naming the hidden file, for the configuration in
   `site.php.example` and in `site.php`.
 
+### Published
+
+A category entry, or a Sub-category's, may say `'published' => false`:
+
+```php
+['slug' => 'guides', 'label' => 'guides', 'categories' => [
+    ['slug' => 'php', 'label' => 'PHP', 'published' => false],
+]],
+```
+
+A category that is not Published is as if it were not declared: its page and
+every document in it are a 404, the navigation and the listings leave it out,
+its parent does not name it, and a Page Build does not write it. A top-level
+category takes its Sub-categories with it, whatever they say.
+
+Only no `published` at all, or exactly `true`, publishes. **Every other value
+does not** — `false`, `0`, `null`, and the strings `'no'` and `'true'` alike.
+It is the one setting here that fails closed, where every other key falls
+back to its default: a mistake should keep a section off the site, not
+release it.
+
+A Sub-category that is not Published no longer takes its address from its
+parent: a document in the parent with the same name, which the Sub-category
+had shadowed, is read there again and listed.
+
+Not Published is not secret: the files are still under `content/` on the
+server and in the repository, and anyone who can read either reads them. A
+single document says it is not Published in its own `published:` Meta — see
+[format.md](format.md#published).
+
 A fresh installation ships with `about` and `guides`, and `hosting` inside
 `guides`, each holding example documents about the software itself. Delete them
 once you have your own — they are content, not code.

@@ -105,6 +105,10 @@ final class Site
      * not read. A declaration's path is where it is under content/ and under
      * the site's root — `guides`, or `guides/php`.
      *
+     * A declaration that is not Published is not here, so to every reader a
+     * Category that is not Published is an undeclared one, and its
+     * Sub-categories with it.
+     *
      * @param array<string,mixed> $site
      * @return list<array{slug:string, label:string, listing:bool, path:string,
      *         categories:list<array{slug:string, label:string, listing:bool, path:string, categories:array{}}>}>
@@ -149,7 +153,8 @@ final class Site
     {
         $out = [];
         foreach (is_array($list) ? $list : [] as $c) {
-            if (!is_array($c) || !isset($c['slug']) || !is_string($c['slug']) || !self::isSlug($c['slug'])) {
+            if (!is_array($c) || !isset($c['slug']) || !is_string($c['slug']) || !self::isSlug($c['slug'])
+                || !self::published($c)) {
                 continue;
             }
             $label = isset($c['label']) && is_scalar($c['label']) ? (string) $c['label'] : $c['slug'];
@@ -162,6 +167,18 @@ final class Site
             ];
         }
         return $out;
+    }
+
+    /**
+     * Whether a Category's or Sub-category's declaration is Published: it
+     * names no `published`, or names exactly true. This is the one setting
+     * that fails closed: any other value, a misspelling included, is not.
+     *
+     * @param array<mixed> $declaration
+     */
+    private static function published(array $declaration): bool
+    {
+        return !array_key_exists('published', $declaration) || $declaration['published'] === true;
     }
 
     /**

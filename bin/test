@@ -1144,6 +1144,138 @@ foreach (array_filter(['site.php.example', 'site.php'], static fn ($f) => is_fil
     }
 }
 
+/* --------------------------------------------------------------- published */
+echo "\npublished\n";
+
+/**
+ * Content with one hidden thing of each kind — a Document, a Language
+ * variant, a Category and a Sub-category — beside what is Published, and
+ * the Site Config it is served with. Every hidden title starts HIDDEN, so a
+ * page that names one says so.
+ *
+ * @return array<string,mixed> the Site Config
+ */
+function unpublishedFixture(string $dir): array
+{
+    $files = [
+        'index.md'                => "---\ntitle: Home\n---\n\n# Home\n",
+        'notes/index.md'          => "---\ntitle: Notes\n---\n\n# Notes\n",
+        'notes/shown.md'          => "---\ntitle: Shown\ndate: 2026-02-01\n---\n\n# Shown\n",
+        'notes/yes.md'            => "---\ntitle: Yes\npublished: true\ndate: 2026-02-02\n---\n\n# Yes\n",
+        'notes/hidden.md'         => "---\ntitle: HIDDEN Document\npublished: false\ndate: 2026-02-03\n---\n\n# x\n",
+        'notes/both.md'           => "---\ntitle: Both\ndate: 2026-02-04\n---\n\n# Both\n",
+        'notes/both-sk.md'        => "---\ntitle: HIDDEN variant\npublished: false\n---\n\n# x\n",
+        'notes/sk-only-sk.md'     => "---\ntitle: Len po slovensky\ndate: 2026-02-05\n---\n\n# x\n",
+        'notes/sk-only.md'        => "---\ntitle: HIDDEN original\npublished: no\n---\n\n# x\n",
+        'notes/php/index.md'      => "---\ntitle: HIDDEN intro\npublished: false\n---\n\n# x\n",
+        'notes/php/arrays.md'     => "---\ntitle: Arrays\ndate: 2026-02-06\n---\n\n# Arrays\n",
+        'notes/wip/secret.md'     => "---\ntitle: HIDDEN in a Sub-category\ndate: 2026-02-07\n---\n\n# x\n",
+        'drafts/index.md'         => "---\ntitle: HIDDEN Category intro\n---\n\n# x\n",
+        'drafts/plan.md'          => "---\ntitle: HIDDEN in a Category\ndate: 2026-02-08\n---\n\n# x\n",
+        'drafts/inner/deep.md'    => "---\ntitle: HIDDEN under a Category\ndate: 2026-02-09\n---\n\n# x\n",
+    ];
+    foreach ($files as $rel => $md) {
+        if (!is_dir(dirname("$dir/$rel"))) {
+            mkdir(dirname("$dir/$rel"), 0755, true);
+        }
+        file_put_contents("$dir/$rel", $md);
+    }
+    return ['title' => 'hidden', 'languages' => ['sk'], 'categories' => [
+        ['slug' => 'notes', 'label' => 'Notes', 'published' => true, 'categories' => [
+            ['slug' => 'php', 'label' => 'PHP'],
+            ['slug' => 'wip', 'label' => 'HIDDEN Sub-category', 'published' => false],
+        ]],
+        ['slug' => 'drafts', 'label' => 'HIDDEN Category', 'published' => false, 'categories' => [
+            ['slug' => 'inner', 'label' => 'HIDDEN inner'],
+        ]],
+    ]];
+}
+
+$pub = sys_get_temp_dir() . '/tcms-published-' . getmypid();
+$pubSite = unpublishedFixture($pub);
+$pubRouter = new TerminalCms\Router($pubSite, $pub);
+
+$want = [
+    '/' => 200, '/notes' => 200, '/notes/shown' => 200, '/notes/yes' => 200, '/notes/both' => 200,
+    '/notes/sk-only-sk' => 200, '/notes/php' => 200, '/notes/php/arrays' => 200,
+    '/notes/hidden' => 404, '/notes/both-sk' => 404, '/notes/sk-only' => 404, '/notes/php/index' => 404,
+    '/notes/wip' => 404, '/notes/wip/secret' => 404,
+    '/drafts' => 404, '/drafts/index' => 404, '/drafts/plan' => 404, '/drafts/inner' => 404, '/drafts/inner/deep' => 404,
+];
+$got = [];
+foreach (array_keys($want) as $uri) {
+    $got[$uri] = $pubRouter->route($uri);
+}
+$statuses = array_map(static fn (array $r) => $r['status'], $got);
+ok($statuses === $want, 'what is not Published is a 404 at its address, and what is beside it is served',
+   var_export(array_diff_assoc($statuses, $want), true));
+
+$named = [];
+foreach ($got as $uri => $r) {
+    $html = TerminalCms\Page::html($pubSite, $r);
+    if ($r['status'] === 200 && preg_match_all('~HIDDEN[^<]*|href="[^"]*(?:hidden|both-sk|/sk-only"|wip|drafts)[^"]*"~', $html, $m)) {
+        $named[] = "$uri: " . implode(', ', $m[0]);
+    }
+}
+ok($named === [], 'and no page names it — no Listing, navigation, Sub-category list or Language indicator',
+   implode("\n", $named));
+
+ok(str_contains($got['/notes']['body'], '<ul class="sub-categories"><li><a href="/notes/php">PHP</a></li></ul>'),
+   'a Category page names its Published Sub-categories', $got['/notes']['body']);
+preg_match('~<nav>(.*?)</nav>~s', TerminalCms\Page::html($pubSite, $got['/']), $nav);
+ok(($nav[1] ?? '') === '<a href="/notes">Notes</a>', 'the navigation names the Published Category alone', $nav[1] ?? '');
+ok(!str_contains($got['/notes/both']['body'], 'class="languages"'),
+   'a Document whose other Language is hidden has no Language indicator', $got['/notes/both']['body']);
+ok(str_contains($got['/notes/php']['body'], '<h1>PHP</h1>') && str_contains($got['/notes/php']['body'], 'href="/notes/php/arrays"'),
+   'a Category whose index.md is hidden is headed by its label, and still lists its Documents', $got['/notes/php']['body']);
+ok(str_contains($got['/notes']['body'], 'href="/notes/sk-only-sk"') && $got['/notes/sk-only-sk']['lang'] === 'sk',
+   'a Document whose original is hidden is listed and read in the Language that is Published', $got['/notes']['body']);
+$recent = array_map(static fn ($e) => $e->url(),
+    TerminalCms\Listing::recent($pub, TerminalCms\Site::everyCategory($pubSite), TerminalCms\Site::languages($pubSite), null));
+ok($recent === ['/notes/php/arrays', '/notes/sk-only-sk', '/notes/both', '/notes/yes', '/notes/shown'],
+   'Listing::recent() takes only what is Published', implode("\n", $recent));
+ok(array_column(TerminalCms\Site::everyCategory($pubSite), 'path') === ['notes', 'notes/php'],
+   'a hidden Category is not declared, and takes its Sub-categories with it',
+   implode(' ', array_column(TerminalCms\Site::everyCategory($pubSite), 'path')));
+
+/* Only an absent value or exactly true publishes; every other word hides.
+   A Document's is a Meta value, a declaration's a PHP value. */
+$words = ['(absent)' => true, 'true' => true, 'false' => false, 'flase' => false, 'no' => false,
+          '0' => false, 'False' => false, 'TRUE' => false, 'yes' => false, '(empty)' => false];
+foreach ($words as $word => $shown) {
+    $meta = match ($word) {
+        '(absent)' => '',
+        '(empty)'  => "published:\n",
+        default    => "published: $word\n",
+    };
+    file_put_contents("$pub/notes/word.md", "---\ntitle: Word\n{$meta}---\n\n# Word\n");
+    $status = $pubRouter->route('/notes/word')['status'];
+    $listed = str_contains($pubRouter->route('/notes')['body'], 'href="/notes/word"');
+    ok($status === ($shown ? 200 : 404) && $listed === $shown,
+       sprintf('published: %-9s -> %s', $word, $shown ? 'Published' : 'hidden'), "status $status");
+}
+$values = [['(absent)', [], true], ['true', [true], true], ['false', [false], false],
+           ["'flase'", ['flase'], false], ["'no'", ['no'], false], ['0', [0], false],
+           ["'False'", ['False'], false], ["'true'", ['true'], false], ['1', [1], false], ['null', [null], false]];
+foreach ($values as [$value, $set, $shown]) {
+    $decl = ['slug' => 'notes'] + ($set === [] ? [] : ['published' => $set[0]]);
+    $routes = (new TerminalCms\Router(['categories' => [$decl]], $pub))->route('/notes/shown')['status'];
+    ok($routes === ($shown ? 200 : 404),
+       sprintf("'published' => %-8s -> %s", $value, $shown ? 'Published' : 'hidden'), "status $routes");
+}
+unlink("$pub/notes/word.md");
+
+/* the predicate reads the Meta the page reads: a file written with
+   carriage returns alone, and a long frontmatter, still say so */
+file_put_contents("$pub/notes/cr.md", "---\rtitle: HIDDEN cr\rpublished: false\r---\r\r# x\r");
+file_put_contents("$pub/notes/long.md", "---\n" . str_repeat("tag: x\r\n", 2000) . "published: false\n---\n\n# x\n");
+ok($pubRouter->route('/notes/cr')['status'] === 404 && $pubRouter->route('/notes/long')['status'] === 404,
+   'a hidden file written with \r, or with a long frontmatter, is hidden too');
+unlink("$pub/notes/cr.md");
+unlink("$pub/notes/long.md");
+
+removeTree($pub);
+
 /* ------------------------------------------------------- the index listings */
 echo "\nlistings\n";
 
@@ -1520,19 +1652,26 @@ $looksHtml = Renderer::render($looks);
 ok(str_contains($looksHtml, '<div class="doc-meta">theme: things · date: 2026-01-02</div>'),
    'the meta prints theme: and leaves out palette:', $looksHtml);
 
+/* published: is the third: a reader only meets what is Published, so the
+   bar could only ever say true */
+[, $shown] = Markdown::parse("---\ntitle: A title\npublished: true\ndate: 2026-01-02\n---\n\n# A title\n");
+$shownHtml = Renderer::render($shown);
+ok(str_contains($shownHtml, '<div class="doc-meta">date: 2026-01-02</div>'),
+   'the meta leaves out published:', $shownHtml);
+
 /* The agreement test: the editor's meta bar is the page's, byte for byte,
-   over a sample with both keys the two leave out and theme:, which they print. */
+   over a sample with the three keys the two leave out and theme:, which they print. */
 if ($node !== '') {
     $sample = (string) tempnam(sys_get_temp_dir(), 'tcms-meta');
-    file_put_contents($sample, "---\ntitle: A title\ncategory: about\ntheme: things\npalette: dark\ndate: 2026-01-02\n---\n\n# A title\n");
+    file_put_contents($sample, "---\ntitle: A title\ncategory: about\ntheme: things\npalette: dark\npublished: true\ndate: 2026-01-02\n---\n\n# A title\n");
     $js = json_decode((string) shell_exec($node . ' ' . escapeshellarg($root . '/tests/js-dump.js') . ' ' . escapeshellarg($sample)), true);
     [, $sampleLines] = Markdown::parse((string) file_get_contents($sample));
     unlink($sample);
     preg_match('~<div class="doc-meta">.*?</div>~', Renderer::render($sampleLines), $phpMeta);
     ok(is_array($js) && $js['meta'] === ($phpMeta[0] ?? null)
        && str_contains($js['meta'], 'theme: things') && !str_contains($js['meta'], 'title:')
-       && !str_contains($js['meta'], 'palette:'),
-       'php and js print the same meta bar, theme: in it and title: and palette: not',
+       && !str_contains($js['meta'], 'palette:') && !str_contains($js['meta'], 'published:'),
+       'php and js print the same meta bar, theme: in it and title:, palette: and published: not',
        'php: ' . ($phpMeta[0] ?? '') . "\njs : " . (is_array($js) ? $js['meta'] : ''));
 
     /* And they read the same value from it. The page reads Meta into a map:
@@ -2574,6 +2713,27 @@ $before = snapshot($box);
 [$status, $said] = pageBuild($instance, ['--output=' . $out, '--base-url=https://example.gitlab.io/proj']);
 ok($status !== 0 && str_contains($said, 'guides/index.html') && snapshot($box) === $before,
    'a build that fails part-way leaves the previous build in place, and nothing beside it', "exit $status: $said");
+removeTree($instance . '/site/public/guides');
+
+/* what is not Published is not written, and no built page names it */
+removeTree($instance . '/site/content');
+$hiddenSite = unpublishedFixture($instance . '/site/content');
+file_put_contents($instance . '/site/site.php', '<?php return ' . var_export($hiddenSite, true) . ";\n");
+[$status, $said] = pageBuild($instance, ['--output=' . $box . '/hidden']);
+$built = array_values(array_filter(array_keys(snapshot($box . '/hidden')),
+    static fn (string $f) => str_ends_with($f, '.html')));
+sort($built);
+$wantBuilt = ['404.html', 'index.html', 'notes/both/index.html', 'notes/index.html', 'notes/php/arrays/index.html',
+              'notes/php/index.html', 'notes/shown/index.html', 'notes/sk-only-sk/index.html', 'notes/yes/index.html'];
+ok($status === 0 && $built === $wantBuilt, 'a Page Build writes what is Published and nothing else',
+   $said . implode("\n", array_diff($built, $wantBuilt)) . implode("\n", array_diff($wantBuilt, $built)));
+$named = [];
+foreach ($built as $page) {
+    if (preg_match('~HIDDEN|href="[^"]*(?:hidden|both-sk|/sk-only/"|wip|drafts)~', (string) file_get_contents("$box/hidden/$page"), $m)) {
+        $named[] = "$page: $m[0]";
+    }
+}
+ok($named === [], 'and no built page names what it left out', implode("\n", $named));
 
 removeTree($box);
 

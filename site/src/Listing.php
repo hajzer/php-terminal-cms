@@ -43,9 +43,9 @@ final class Entry
 final class Listing
 {
     /**
-     * Every language one document exists in, in the order the site declares
-     * them. The key is the code, or '' for a file with no suffix; the value is
-     * the file name. A base with no file at all is an empty array.
+     * Every language one document is Published in, in the order the site
+     * declares them. The key is the code, or '' for a file with no suffix;
+     * the value is the file name. A base with no such file is an empty array.
      *
      * @param list<string> $codes
      * @return array<string,string>
@@ -56,7 +56,9 @@ final class Listing
     }
 
     /**
-     * Every document in a directory, by the document it is a version of.
+     * Every Published document in a directory, by the document it is a
+     * version of. A file that is not Published is not here, so it is in no
+     * Listing, at no address, and no other Language of it names it.
      *
      * @param list<string> $codes
      * @return array<string, array<string,string>> base => code => file name,
@@ -67,7 +69,7 @@ final class Listing
     {
         $found = [];
         foreach (scandir($dir) ?: [] as $name) {
-            if (!str_ends_with($name, '.md')) {
+            if (!str_ends_with($name, '.md') || !Document::published($dir . '/' . $name)) {
                 continue;
             }
             [$base, $code] = Language::split(substr($name, 0, -3), $codes);

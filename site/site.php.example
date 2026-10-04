@@ -109,6 +109,13 @@ return [
      * listing. There is one such level, and the navigation names only the
      * top one. A Sub-category with the name of a Document in its parent
      * hides that Document, and bin/test says so.
+     *
+     * 'published' => false takes a category or a Sub-category off the site:
+     * its page and its Documents are a 404 and nothing names them, as if it
+     * were not declared, and a category takes its Sub-categories with it.
+     * Only no 'published' or exactly true publishes; every other value does
+     * not. It is not secret — the files are still on the server. A Document
+     * says the same with `published: false` in its own Meta.
      */
     'categories' => [
         ['slug' => 'about',  'label' => 'about',  'listing' => true],

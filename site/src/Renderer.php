@@ -112,7 +112,9 @@ final class Renderer
      * The document's own metadata, printed under its title. `title:` is left
      * out: it is the title, and the title is already there. So is `palette:`:
      * it is how the page opens, and the reader may have flipped it since, so
-     * printing it would print something the page may not be doing.
+     * printing it would print something the page may not be doing. And so is
+     * `published:`: a reader only ever meets a Document that is Published, so
+     * it could only ever say true.
      *
      * @param list<Line> $lines
      */
@@ -121,7 +123,7 @@ final class Renderer
         $parts = [];
         foreach ($lines as $line) {
             if ($line->type !== 'meta' || str_starts_with($line->text, 'title:')
-                || str_starts_with($line->text, 'palette:')) {
+                || str_starts_with($line->text, 'palette:') || str_starts_with($line->text, 'published:')) {
                 continue;
             }
             $parts[] = e($line->text);

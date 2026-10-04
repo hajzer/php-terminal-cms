@@ -58,6 +58,43 @@ colon and the value what stands after, each without the spaces around it, so
 one twice, the last line counts — on the page and in the editor alike, which
 `bin/test` compares.
 
+## Published
+
+`published` is the one Meta key that decides whether a reader can see the
+document at all:
+
+```
+---
+title: Not yet
+published: false
+---
+```
+
+Only a file with no `published` line, or with exactly `published: true`, is
+Published. **Any other word hides it** — `false`, `no`, `0`, `False`, and a
+misspelt `flase` alike — because a typo in a draft's Meta should keep it a
+draft, not release it. It is the one setting that fails closed. Only the
+value is held to that: the key is `published`, in lower case, and a line with
+any other key — `Published:`, `pubished:` — is just another meta line, which
+leaves the document Published.
+
+A document that is not Published is a 404 at its address, no listing names it,
+no language indicator links to it, and a Page Build does not write it. A
+category's `index.md` that is not Published leaves the category's page headed
+by its label. Each language is its own file with its own Meta, so a
+translation can be held back while the original is read: the original then
+shows no language indicator until the translation is Published.
+
+Not Published is not secret. The file is on the server and in the
+repository, and anyone who can read `content/` or the git history reads it;
+it is only unreachable through the site. A Category says it is not Published
+in `site.php` instead — see `docs/config.md`.
+
+`published` is not printed under the title, on the page or in the editor: a
+reader only ever meets a Published document, so the line could only ever say
+`true`. The editor has no draft mark — its preview shows the document as it
+would read if it were Published.
+
 ## Round trip
 
 ```
