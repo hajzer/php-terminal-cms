@@ -1,6 +1,6 @@
 # 06 — A Document's own Media, on the page and in the preview
 
-Status: ready-for-agent
+Status: done
 Spec: ../spec.md
 Blocked by: 04
 
@@ -34,10 +34,33 @@ A fallback to flat `media/` on the site. Any upload of Media.
 
 ## Acceptance
 
-- [ ] `bin/test`: spec Testing §3, both halves, including `./`, `../`,
+- [x] `bin/test`: spec Testing §3, both halves, including `./`, `../`,
   backslash and absolute srcs, and the logo unchanged
-- [ ] `tests/js-model.js`: the Editor's resolution table
-- [ ] Probe green in Chromium and Firefox with the new case
-- [ ] `docs/deploy.md` carries the migration
+- [x] `tests/js-model.js`: the Editor's resolution table
+- [x] Probe green in Chromium and Firefox with the new case
+- [x] `docs/deploy.md` carries the migration
 
 ## Comments
+
+The Editor applies the Renderer's whole reduction, not only the bare-name
+part: an `https://` or `//host` src is a file name in the Media in the
+preview as it is on the page, so the preview no longer shows a remote picture
+the page never would. `docs/security.md` says so; the release notes (13)
+need a line for it. The Editor's `img-src https: http: data:` is now wider
+than anything an Image Line reaches — for the sixth review (12).
+
+For the sixth review too: a src of `..` (or `x/..`) reduces to the "file"
+`..` and comes out as `/media/<path>/..` — inside `media/`, but not a file
+in the Document's directory. It was `/media/..` before this issue.
+
+The second look strips exactly `-[a-z]{2}`, as the spec says; a Language
+with three letters or a region (`-ast`, `-pt-br`) gets no second look in
+the preview.
+
+The probe's fixture is `site/public/media/about/editor-probe/probe.svg`.
+The Editor resolves from `../site/public/media/`, so it can live nowhere
+else, and it ships with `site/` in a release; the probe in a release needs
+it.
+
+`Document::load()` takes the base Name the Router resolved, which
+`Document::media()` joins to the Category path.
