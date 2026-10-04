@@ -78,7 +78,11 @@ $targets = [
 foreach ($targets as $rel => $content) {
     $path = $root . $rel;
     @mkdir(dirname($path), 0755, true);
-    file_put_contents($path, $content);
+    /* an unchanged file is not rewritten, so its mtime — the time a Bundle
+       stamps it with — moves only when its bytes do */
+    if (!is_file($path) || file_get_contents($path) !== (string) $content) {
+        file_put_contents($path, $content);
+    }
     printf("  %-28s %6d bytes\n", ltrim($rel, '/'), strlen((string) $content));
 }
 

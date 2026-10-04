@@ -9,8 +9,10 @@ namespace TerminalCms;
  * Every entry is stored (method 0): the bytes go in as they are, so nothing is
  * needed beyond PHP itself, and a file is read through once to take its CRC and
  * once more to copy it, never held whole. Names are flagged UTF-8. An entry's
- * time is the DOS time of its file's mtime in UTC, and the archive carries no
- * other time, so the same files give the same bytes on any host.
+ * time is its file's mtime, twice: as a DOS time in UTC, and as the Unix time
+ * in an extended-timestamp field, which an unzip that reads it restores
+ * exactly instead of taking the DOS time as local. Neither depends on the
+ * host's timezone, so the same files give the same bytes on any host.
  *
  * No ZIP64: an entry of 4 GiB or more, an archive whose central directory
  * would start or end there, or 65535 entries or more, is refused rather than
@@ -138,11 +140,14 @@ final class Zip
         [$time, $date] = self::dos($mtime);
         /* needs 1.0, UTF-8 name, stored: the same in both records */
         $common = pack('vvvvvVVVv', 10, 0x0800, 0, $time, $date, $crc, $size, $size, strlen($name));
+        /* extended timestamp ('UT'): the modification time alone, the same field
+           in both records; a signed 32-bit Unix time, so it holds 1970 to 2038 */
+        $extra = pack('vvCV', 0x5455, 5, 1, min(max($mtime, 0), 0x7FFFFFFF));
         $this->central[] = pack('Vv', 0x02014b50, 0x0314)   // made by: Unix, 2.0
             . $common
-            . pack('vvvvVV', 0, 0, 0, 0, 0100644 << 16, $this->written)  // a plain rw-r--r-- file
-            . $name;
-        $this->put(pack('V', 0x04034b50) . $common . pack('v', 0) . $name);
+            . pack('vvvvVV', strlen($extra), 0, 0, 0, 0100644 << 16, $this->written)  // a plain rw-r--r-- file
+            . $name . $extra;
+        $this->put(pack('V', 0x04034b50) . $common . pack('v', strlen($extra)) . $name . $extra);
     }
 
     /** @return array{0:int, 1:int} the DOS time and date, UTC, from 1980 to 2107 */

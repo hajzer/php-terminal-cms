@@ -2853,9 +2853,11 @@ function zipEntries(string $zip): array
         $c = unpack('Vsig/vmade/vneed/vflags/vmethod/vtime/vdate/Vcrc/Vcsize/Vsize/vnlen/vxlen/vclen/vdisk/vin/Vex/Voffset',
                     substr($zip, $at, 46));
         $c['name'] = substr($zip, $at + 46, $c['nlen']);
+        $c['extra'] = substr($zip, $at + 46 + $c['nlen'], $c['xlen']);
         $l = unpack('Vsig/vneed/vflags/vmethod/vtime/vdate/Vcrc/Vcsize/Vsize/vnlen/vxlen', substr($zip, $c['offset'], 30));
         $c['local'] = $l['sig'] === 0x04034b50
             && substr($zip, $c['offset'] + 30, $l['nlen']) === $c['name']
+            && substr($zip, $c['offset'] + 30 + $l['nlen'], $l['xlen']) === $c['extra']
             && [$l['flags'], $l['method'], $l['time'], $l['date'], $l['crc'], $l['csize'], $l['size']]
                === [$c['flags'], $c['method'], $c['time'], $c['date'], $c['crc'], $c['csize'], $c['size']];
         $c['data'] = substr($zip, $c['offset'] + 30 + $l['nlen'] + $l['xlen'], $c['csize']);
@@ -2901,7 +2903,7 @@ ok(array_column($entries, 'name') === array_keys($want), 'the central directory 
    implode("\n", array_column($entries, 'name')));
 $bad = [];
 foreach ($entries as $c) {
-    [, $bytes, , $dos] = $want[$c['name']] ?? [null, null, 0, []];
+    [, $bytes, $mtime, $dos] = $want[$c['name']] ?? [null, null, 0, []];
     if ($c['method'] !== 0 || $c['csize'] !== $c['size'] || $c['need'] !== 10) {
         $bad[] = "{$c['name']}: method {$c['method']}, need {$c['need']}, {$c['csize']}/{$c['size']}";
     }
@@ -2918,11 +2920,16 @@ foreach ($entries as $c) {
     if ([$c['time'], $c['date']] !== $dos) {
         $bad[] = "{$c['name']}: time/date {$c['time']}/{$c['date']}, want " . implode('/', $dos);
     }
+    /* the extended timestamp: id 'UT', five bytes, the mtime flag, the mtime */
+    if ($c['extra'] !== pack('vvCV', 0x5455, 5, 1, $mtime)) {
+        $bad[] = "{$c['name']}: extra field " . bin2hex($c['extra']) . ", want the UT timestamp $mtime";
+    }
 }
-ok($entries !== [] && $bad === [], 'each entry is stored, flagged UTF-8, with its own bytes, CRC and the time its file was last changed',
+ok($entries !== [] && $bad === [], 'each entry is stored, flagged UTF-8, with its own bytes, CRC, and the time its file was last changed as DOS time and Unix time',
    implode("\n", $bad));
 
 /* the archive read back by a reader that is not this suite */
+$unzip = trim((string) shell_exec('command -v unzip 2>/dev/null')) !== '';
 if (class_exists('ZipArchive')) {
     $za = new ZipArchive();
     $read = [];
@@ -2934,7 +2941,7 @@ if (class_exists('ZipArchive')) {
         $za->close();
     }
     $reader = 'ZipArchive';
-} elseif (trim((string) shell_exec('command -v unzip 2>/dev/null')) !== '') {
+} elseif ($unzip) {
     $read = [];
     $q = escapeshellarg("$zbox/a.zip");
     exec("unzip -tqq $q 2>&1", $said, $status);
@@ -2957,6 +2964,22 @@ if ($read === null) {
     $expect = array_map(static fn (array $w) => [strlen($w[1]), hash('crc32b', $w[1]), $w[1]], $want);
     ok($read === $expect, "and $reader reads back every name, size, CRC and byte exactly",
        implode("\n", array_keys($read)));
+}
+
+/* unpacked, each file has its source's mtime: the DOS time alone would be
+   read as local time and land off by the unpacking host's offset */
+if ($unzip) {
+    exec('TZ=Asia/Kathmandu LC_ALL=C.UTF-8 unzip -qo ' . escapeshellarg("$zbox/a.zip") . ' -d ' . escapeshellarg("$zbox/out") . ' 2>&1',
+         $said, $status);
+    $off = [];
+    foreach ($want as $name => [, , $mtime]) {
+        clearstatcache();
+        if (@filemtime("$zbox/out/$name") !== $mtime) {
+            $off[] = "$name: " . var_export(@filemtime("$zbox/out/$name"), true) . ", want $mtime";
+        }
+    }
+    ok($status === 0 && $off === [], 'and unzip, in a timezone far from UTC, gives each file it unpacks its source\'s mtime',
+       implode("\n", $off));
 }
 
 ok($writeZip("$zbox/b.zip") === $zipped, 'two runs over the same files write the same bytes');
@@ -3015,7 +3038,9 @@ $found = array_merge(
     scan($siteSource,
         ['eval(', 'exec(', 'shell_exec', 'system(', 'passthru', 'popen',
          'unserialize(', 'extract(', 'assert(', '$_GET', '$_POST', '$_COOKIE',
-         'file_put_contents', 'unlink', 'session_start'])
+         'file_put_contents', 'fputs', 'fputcsv', 'ftruncate', 'SplFileObject', 'SplTempFileObject',
+         'tmpfile', 'tempnam', 'copy(', 'rename(', 'mkdir(', 'rmdir(', 'touch(', 'symlink(', 'chmod(',
+         'unlink', 'session_start'])
 );
 ok($found === [], 'the site reads, and does nothing else', implode("\n", $found));
 

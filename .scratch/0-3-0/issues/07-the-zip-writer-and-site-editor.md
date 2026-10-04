@@ -39,24 +39,29 @@ it with the file's mtime, and `data($name, $bytes, $mtime)` takes bytes that are
 not a file, such as 08's `README.txt`. `finish()` writes the central directory
 and leaves the stream open.
 
-The DOS time is the mtime in UTC, so the bytes do not depend on the host's
-timezone. `unzip` reads a DOS time as local time, so an unpacked file's mtime
-is off by the reader's UTC offset. An extended-timestamp extra field (0x5455)
-would fix that and would not change determinism. It is not written.
+Each entry carries its mtime twice: as a DOS time in UTC, and as the Unix
+time in an extended-timestamp (`UT`, 0x5455) field. Neither depends on the
+host's timezone. `unzip` restores the field exactly, and the suite checks this
+by unpacking under `TZ=Asia/Kathmandu`. The field is a signed 32-bit time, so
+it is clamped to 1970–2038.
 
-A Bundle's bytes follow the mtimes of `site/editor/`. `bin/build` keeps each
-copy's mtime equal to its source's, but git does not record mtimes. A fresh
-checkout, or a deploy that does not keep them (`rsync -a` does), stamps
-Bundles with checkout times. They are stable from then on, but two Instances
-deployed from the same release are not byte-identical. That matters for 09's
-"same bytes as the request-time route" only if the two are compared across
-hosts.
+`bin/build` rewrites a target only when its bytes change, and gives each
+`site/editor/` copy its source's mtime. A rebuild leaves every mtime alone, so
+it does not change a Bundle's bytes. Git does not record mtimes: a fresh
+checkout stamps Bundles with the checkout's times, and they are stable from
+then on. A release archive and `rsync -a` carry mtimes, so Instances deployed
+from the same release write the same bytes. That holds for `site/content/` and
+`media/` as much as for `site/editor/`. It follows from taking the time from
+the mtime, as the spec says.
 
 The suite forbade `fwrite` anywhere in `site/src/`. It now allows `fwrite` in
-`Zip.php` alone and requires every `fopen()` there to be `'rb'`. `fputs`,
-`SplFileObject` and a mode held in a variable are not scanned anywhere in the
-site. This is for the sixth review (12).
+`Zip.php` alone and requires every `fopen()` there to be `'rb'`. The scan of
+the whole site also covers `fputs`, `fputcsv`, `ftruncate`,
+`SplFileObject`, `tmpfile`, `tempnam`, `copy(`, `rename(`, `mkdir(`, `rmdir(`,
+`touch(`, `symlink(` and `chmod(`. A file mode held in a variable is not
+caught. This is for the sixth review (12).
 
-On this host only the `unzip` branch of the read-back ran: PHP here has no
-`ZipArchive`. The `ZipArchive` branch has not been run yet. Python's `zipfile`
-read a 22-file archive cleanly as a one-off check.
+Both read-back branches have run. The `unzip` branch runs on this host. The
+`ZipArchive` branch ran in a throwaway `php:8.3-cli` container with
+`docker-php-ext-install zip`. The `unzip` mtime check runs wherever `unzip`
+exists, whichever reader did the read-back.
