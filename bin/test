@@ -349,6 +349,207 @@ ok($quiet === ['.doc-foot', '.languages', '.languages a.on', '.site-foot'],
    'and the footers and the Language indicator are the regions that ask for it',
    implode(' | ', $quiet));
 
+/* -------------------------------------------------------- the body's colours */
+echo "\nthe body's colours\n";
+
+/* The structural sheet tints the body from each Theme's own colours: every
+   derived colour is declared once, in the block a Theme recomputes, as a
+   color-mix() of tokens. The suite reads those declarations, works each one
+   out in every Theme and both Palettes, and holds every piece of body text
+   that would read at 4.5:1 on the plain ground — the page, or the untinted
+   block it is drawn on — to 4.5:1 on the tinted one. */
+/** @return array{0:float,1:float,2:float} sRGB, 0..1 */
+function hexRgb(string $hex): array
+{
+    $h = ltrim($hex, '#');
+    return [hexdec(substr($h, 0, 2)) / 255, hexdec(substr($h, 2, 2)) / 255, hexdec(substr($h, 4, 2)) / 255];
+}
+function toLinear(float $v): float
+{
+    return $v <= 0.04045 ? $v / 12.92 : (($v + 0.055) / 1.055) ** 2.4;
+}
+function toGamma(float $v): float
+{
+    $v = max(0.0, min(1.0, $v));
+    return $v <= 0.0031308 ? 12.92 * $v : 1.055 * $v ** (1 / 2.4) - 0.055;
+}
+/** @param array{0:float,1:float,2:float} $c @return array{0:float,1:float,2:float} */
+function toOklab(array $c): array
+{
+    [$r, $g, $b] = array_map('toLinear', $c);
+    $l = (0.4122214708 * $r + 0.5363325363 * $g + 0.0514459929 * $b) ** (1 / 3);
+    $m = (0.2119034982 * $r + 0.6806995451 * $g + 0.1073969566 * $b) ** (1 / 3);
+    $s = (0.0883024619 * $r + 0.2817188376 * $g + 0.6299787005 * $b) ** (1 / 3);
+    return [
+        0.2104542553 * $l + 0.7936177850 * $m - 0.0040720468 * $s,
+        1.9779984951 * $l - 2.4285922050 * $m + 0.4505937099 * $s,
+        0.0259040371 * $l + 0.7827717662 * $m - 0.8086757660 * $s,
+    ];
+}
+/** @param array{0:float,1:float,2:float} $lab @return array{0:float,1:float,2:float} */
+function fromOklab(array $lab): array
+{
+    [$L, $a, $b] = $lab;
+    $l = ($L + 0.3963377774 * $a + 0.2158037573 * $b) ** 3;
+    $m = ($L - 0.1055613458 * $a - 0.0638541728 * $b) ** 3;
+    $s = ($L - 0.0894841775 * $a - 1.2914855480 * $b) ** 3;
+    return array_map('toGamma', [
+        4.0767416621 * $l - 3.3077115913 * $m + 0.2309699292 * $s,
+        -1.2684380046 * $l + 2.6097574011 * $m - 0.3413193965 * $s,
+        -0.0041960863 * $l - 0.7034186147 * $m + 1.7076147010 * $s,
+    ]);
+}
+/** @return array{0:float,1:float,2:float} $p of $a and the rest of $b, channel by channel */
+function lerp(array $a, array $b, float $p): array
+{
+    return [$a[0] * $p + $b[0] * (1 - $p), $a[1] * $p + $b[1] * (1 - $p), $a[2] * $p + $b[2] * (1 - $p)];
+}
+/** WCAG contrast of two sRGB colours, each taken to the eight bits a screen is drawn in. */
+function contrast(array $x, array $y): float
+{
+    $lum = static function (array $c): float {
+        $c = array_map(static fn (float $v): float => round($v * 255) / 255, $c);
+        return 0.2126 * toLinear($c[0]) + 0.7152 * toLinear($c[1]) + 0.0722 * toLinear($c[2]);
+    };
+    [$a, $b] = [$lum($x), $lum($y)];
+    return (max($a, $b) + 0.05) / (min($a, $b) + 0.05);
+}
+/**
+ * One colour the sheet writes, worked out in one Palette of one Theme: a
+ * token, a derived colour, color-mix() of two of them in srgb or oklab, or the
+ * far end from a colour — black from a light one, white from a dark one.
+ * Anything else is null: a colour the suite cannot read is not one it passes.
+ *
+ * @param array<string,string> $tokens  the Palette's token => #rrggbb
+ * @param array<string,string> $derived the sheet's own name => its expression
+ * @return array{0:float,1:float,2:float}|null
+ */
+function colour(string $expr, array $tokens, array $derived, int $depth = 0): ?array
+{
+    $expr = trim($expr);
+    if ($depth > 8) {
+        return null;
+    }
+    if (preg_match('~^var\((--[a-z][a-z0-9-]*)\)$~', $expr, $m) === 1) {
+        if (isset($tokens[$m[1]])) {
+            return hexRgb($tokens[$m[1]]);
+        }
+        return isset($derived[$m[1]]) ? colour($derived[$m[1]], $tokens, $derived, $depth + 1) : null;
+    }
+    if (preg_match('~^color-mix\(in (srgb|oklab), (var\(--[a-z0-9-]+\)) ([\d.]+)%, (var\(--[a-z0-9-]+\))\)$~', $expr, $m) === 1) {
+        $a = colour($m[2], $tokens, $derived, $depth + 1);
+        $b = colour($m[4], $tokens, $derived, $depth + 1);
+        if ($a === null || $b === null) {
+            return null;
+        }
+        $p = (float) $m[3] / 100;
+        return $m[1] === 'srgb' ? lerp($a, $b, $p) : fromOklab(lerp(toOklab($a), toOklab($b), $p));
+    }
+    if (preg_match('~^oklch\(from (var\(--[a-z0-9-]+\)) calc\(1 - round\(l\)\) 0 0\)$~', $expr, $m) === 1) {
+        $from = colour($m[1], $tokens, $derived, $depth + 1);
+        return $from === null ? null : (toOklab($from)[0] >= 0.5 ? [0.0, 0.0, 0.0] : [1.0, 1.0, 1.0]);
+    }
+    return null;
+}
+/** The one var() a property of a selector is drawn with in a sheet — the last rule that sets it. */
+function drawnWith(array $rules, string $selector, string $property): ?string
+{
+    $found = null;
+    foreach ($rules as [$selectors, $body]) {
+        if (in_array($selector, $selectors, true)
+            && preg_match('~(?<![-\w])' . preg_quote($property, '~') . '\s*:\s*([^;]+)~', $body, $m) === 1) {
+            $found = trim($m[1]);
+        }
+    }
+    return $found;
+}
+
+$structureRules = cssRules($structure);
+preg_match_all('~(--[a-z][a-z0-9-]*)\s*:\s*([^;]+);~', $structure, $decl, PREG_SET_ORDER);
+$derived = [];
+foreach ($decl as $d) {
+    $derived[$d[1]] = trim(preg_replace('~\s+~', ' ', $d[2]) ?? $d[2]);
+}
+
+/* every colour a derived one is made of is a token or another derived one, in
+   a form the suite works out; and a rule draws with a derived colour's name,
+   never a mix of its own */
+$baselineLight = (json_decode((string) file_get_contents($root . '/shared/themes/baseline.json'), true))['light'] ?? [];
+$unreadable    = [];
+foreach ($derived as $name => $expr) {
+    if (preg_match('~color-mix|oklch~', $expr) !== 1) {
+        continue;
+    }
+    $words = trim((string) preg_replace(
+        ['~var\(--[a-z0-9-]+\)~', '~[\d.]+%?~', '~\b(?:color-mix|in|srgb|oklab|oklch|from|calc|round|l)\b~', '~[(),\s-]~'],
+        '', $expr));
+    if ($words !== '' || colour("var($name)", $baselineLight, $derived) === null) {
+        $unreadable[] = "$name: $expr";
+    }
+}
+foreach ($structureRules as [$selectors, $body]) {
+    $own = (string) preg_replace('~--[a-z][a-z0-9-]*\s*:[^;]*;?~', '', $body);
+    if (preg_match('~color-mix|oklch|rgb\(|hsl\(~', $own) === 1) {
+        $unreadable[] = implode(', ', $selectors) . ' mixes a colour of its own';
+    }
+}
+ok($unreadable === [], 'every colour the body derives is made of tokens, and declared once by name', implode("\n", $unreadable));
+
+/* [what, ink, ground, plain ink, plain ground]: an ink or a ground is a token,
+   or the selector and property the sheet draws it with */
+$syntax = array_values(array_filter($perPalette, static fn (string $t): bool => str_starts_with($t, '--tk-')));
+$pairs = [
+    ['h1',              ['.reader h1', 'color'],      '--bg',                                     '--fg-strong', '--bg'],
+    ['h2',              ['.reader h2', 'color'],      '--bg',                                     '--fg-strong', '--bg'],
+    ['h3',              ['.reader h3', 'color'],      '--bg',                                     '--secondary', '--bg'],
+    ['bold',            ['.reader strong', 'color'],  '--bg',                                     '--fg-strong', '--bg'],
+    ['a list\'s dash',  ['.reader li::before', 'color'], '--bg',                                  '--secondary', '--bg'],
+    ['a Note',          '--fg',                       ['.reader .note', 'background'],            '--fg',        '--block-bg'],
+    ['a Note\'s tag',   ['.reader .note-tag', 'color'], ['.reader .note', 'background'],          '--accent',    '--block-bg'],
+    ['a table head',    ['.reader th', 'color'],      ['.reader th', 'background'],               '--fg-strong', '--block-bg'],
+    ['a cell',          ['.reader td', 'color'],      '--bg',                                     '--fg',        '--bg'],
+    ['an even row',     ['.reader td', 'color'],      ['.reader tbody tr:nth-child(even)', 'background'], '--fg', '--bg'],
+    ['a row under the pointer', ['.reader td', 'color'], ['.reader tbody tr:hover', 'background'], '--fg',        '--block-bg'],
+    ['code',            '--fg',                       ['.reader pre', 'background'],              '--fg',        '--code-bg'],
+    ['a CLI line',      '--fg',                       ['.reader pre', 'background'],              '--fg',        '--block-bg'],
+    ['a CLI prompt',    ['.reader pre.cli .pr', 'color'], ['.reader pre', 'background'],          '--accent',    '--block-bg'],
+    ['an Output',       ['.reader .outsec .outp', 'color'], ['.reader .outsec', 'background'],    '--secondary', '--block-bg'],
+    ['an Output\'s fold', ['.reader .outsec > summary', 'color'], ['.reader .outsec', 'background'], '--secondary', '--block-bg'],
+    ['a block\'s language', ['.reader .block-bar .lang', 'color'], ['.reader .block-bar', 'background'], '--faint', '--block-bg'],
+];
+foreach ($syntax as $t) {
+    $in = ['.reader pre .' . substr($t, 2), 'color'];
+    $pairs[] = ["code's $t",  $in, ['.reader pre', 'background'], $t, '--code-bg'];
+    $pairs[] = ["a CLI's $t", $in, ['.reader pre', 'background'], $t, '--block-bg'];
+}
+$drawn = static function (string|array $what) use ($structureRules): ?string {
+    return is_string($what) ? "var($what)" : drawnWith($structureRules, $what[0], $what[1]);
+};
+$faded   = [];
+$unknown = [];
+foreach ($themeFiles as $f) {
+    $t = json_decode((string) file_get_contents($f), true);
+    foreach (['light', 'dark'] as $p) {
+        $tokens = $t[$p];
+        foreach ($pairs as [$what, $ink, $ground, $inkPlain, $groundPlain]) {
+            $plain     = contrast(hexRgb($tokens[$inkPlain]), hexRgb($tokens[$groundPlain]));
+            $inkNow    = colour((string) $drawn($ink), $tokens, $derived);
+            $groundNow = colour((string) $drawn($ground), $tokens, $derived);
+            if ($inkNow === null || $groundNow === null) {
+                $unknown[$what] = "$what: " . $drawn($ink) . ' on ' . $drawn($ground);
+                continue;
+            }
+            $tinted = contrast($inkNow, $groundNow);
+            if ($plain >= 4.5 && $tinted < 4.5) {
+                $faded[] = sprintf('%s %s, %s: %.2f, %.2f on the plain ground', $t['name'], $p, $what, $tinted, $plain);
+            }
+        }
+    }
+}
+ok($unknown === [], 'every piece of body text is drawn in colours the suite can work out', implode("\n", $unknown));
+ok($faded === [], 'and none that would read at 4.5:1 on the plain ground reads below it on the tinted one, in any Theme or Palette',
+   implode("\n", $faded));
+
 /* ---------------------------------------------------- the vendored library
  *
  * The one third-party file. What its first line says about itself is checked

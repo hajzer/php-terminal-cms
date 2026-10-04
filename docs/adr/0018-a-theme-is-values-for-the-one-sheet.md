@@ -1,6 +1,6 @@
 # ADR-0018 — A Theme is values for the one sheet
 
-**Status**: accepted · 2026-10-01
+**Status**: accepted · 2026-10-01 · amended by ADR-0026
 
 ## Context
 

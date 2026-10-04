@@ -12,6 +12,19 @@ Each Theme is one file, `shared/themes/<name>.json`; `php bin/build` writes it
 into `editor/themes/` and `site/public/themes/`. The sources' licence notices
 are kept, verbatim, in `shared/themes/LICENSE`.
 
+The body takes each Theme's colour without the Theme saying anything about it.
+`shared/theme.css` mixes a Theme's own `--accent` and `--primary` into the
+page at strengths of its own, the same in every Theme: headings and bold
+leaning toward the accent, a Note on a wash of it with a bar of it, a table
+head and every other row tinted toward the link colour, a code block's bar in
+the Theme's hue and its code, CLI and output on a lighter wash. Text that sits
+on a tinted ground leans a little toward black on a light page or white on a
+dark one, as far as keeps it at least as readable as it was on the plain
+ground, and keeps its hue. A Theme file holds the seventeen colours and
+nothing for the body; a new Theme is tinted the moment it exists, and
+`php bin/test` works out every piece of body text in it, in both Palettes, and
+fails one that the tints would take below 4.5:1.
+
 | Theme | Source | Author | What it looks like |
 | --- | --- | --- | --- |
 | `baseline` | [svnaxis/obsidian-baseline](https://github.com/svnaxis/obsidian-baseline) | Alexis C | Plain white and charcoal in Inter, with a violet link and accent shared by both Palettes, serif headings and generous rounding. |
