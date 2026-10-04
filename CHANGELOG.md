@@ -119,9 +119,12 @@ What is new:
   (`docs/adr/0024-a-document-owns-its-media.md`).
 - The editor's read pane shows an Image Line's picture from the same place,
   `../site/public/media/<category>/<name>/` beside its own page, which is
-  where a checkout and an unzipped Bundle keep it. It does not know the
-  site's languages, so a picture that does not load is looked for once more
-  with a trailing two-letter suffix taken off the name. It reduces a src
+  where a checkout and an unzipped Bundle keep it. The `category` Meta is all
+  it has to find the directory by, so a Document in a category whose Meta
+  does not name it shows its pictures on the site and not in the editor. It
+  does not know the site's languages, so a picture that does not load is
+  looked for once more with a trailing two-letter suffix taken off the name.
+  It reduces a src
   exactly as the site does: an `https://` src used to be fetched from where it
   pointed, which the page never did, and is now a file name in the Media like
   any other. `bin/test` renders the same Image Lines through both halves and
