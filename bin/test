@@ -2012,6 +2012,16 @@ ok(substr_count($viewer, 'createObjectURL(') > 0
    && substr_count($viewer, 'createObjectURL(') === substr_count($viewer, 'revokeObjectURL('),
    'and each Blob URL made for a save is revoked', $viewer);
 
+/* a saved drawing is a file, opened under no policy: before it is written
+   it loses what the page's policy refused the drawing — what would run, and
+   every address but a link's, in an attribute, a declaration and the
+   stylesheet */
+ok(preg_match('~function drawing\(svg\) \{.*?drop\.call\(el\).*?quiet\(el\.style\).*?FETCHES\.test\(value\)'
+              . '.*?removeAttributeNode\(attr\).*?quietRules\(sheet\).*?serializeToString\(copy\)~s', $viewer) === 1
+   && str_contains($viewer, 'script|iframe|object|embed') && str_contains($viewer, '|set|animate')
+   && str_contains($viewer, 'image-set'),
+   'a drawing is saved without anything that would run or fetch when the file is opened', $viewer);
+
 /* and it asks for nothing and writes nothing the policy refuses */
 preg_match_all('~["\']((?:[a-z][a-z0-9+.-]*:|/)[^"\'\s]*|[^"\'\s]*\.js)["\']~i', $viewer, $named);
 ok($named[1] === [], 'the Full View names no address', implode("\n", $named[1]));
@@ -2422,10 +2432,10 @@ ok(stylesheets($built) === ['/proj/theme.css', '/proj/themes/baseline.css', '/pr
    sample address, the policy's nonce fixed. The sample content or the shell
    changing on purpose is what re-records them. */
 $before = [
-    '/'                                 => '50afc7888c5b0e4efd6f393f433f6267a35968ead8d719c1c245428abd58b3ac',
+    '/'                                 => 'c25cdc39959f35a64c72a27c72e2116b98161189f25dda18550f7cc7f708480c',
     '/about'                            => '1a37d2383edd68fc82ac9b3a589a285303d2124ae00d45c70479837dc85232b1',
     '/guides'                           => '321af1c987b4471da66b12af2052092e002219f0889c6f5ef5b93781d931b822',
-    '/about/everything-is-a-line'       => 'f2d9b79db6ab631a9107a2968415d2464752a269c27b16f18c7cefc28d372809',
+    '/about/everything-is-a-line'       => '979bd71a9615d95fedf98adec18708b8e02d4eeaaf263b50a6b64826a8df5206',
     '/about/what-it-is'                 => 'd6473b55bb6d8292d3ae89b731423bac4c2aa3ddc69fe16449e59848974829f7',
     '/about/what-it-is-sk'              => '4290801138512e53d58a9fcdd92ea40dcae68d8cf9546788f2ece2e9fc30c655',
     '/guides/install-in-five-minutes'   => 'd26b69b770e91e44569d630543b75509c96f06d4273bfc6f6c2aa6ce4112c77d',
@@ -2517,6 +2527,12 @@ if (!$up) {
        && str_contains($head, 'content-security-policy: '),
        'a Bundle is sent as a ZIP attachment, under the policy header', $head);
     ok(@file_get_contents($base . '/about/nope.zip') === false, 'and an address with no Bundle is a 404');
+
+    /* an address the filesystem cannot be asked about is one more 404, and
+       not an error for the server to print */
+    $nul = @file_get_contents($base . '/about%00', false, stream_context_create(['http' => ['ignore_errors' => true]]));
+    ok(str_contains($http_response_header[0] ?? '', ' 404') && is_string($nul) && str_contains($nul, 'No document at that address'),
+       'an address with a NUL in it is a 404', $http_response_header[0] ?? '');
 }
 
 if (is_resource($proc)) {
@@ -3100,6 +3116,51 @@ ok($status === 1 && str_contains($said, 'public/media/index/wide.svg')
    && file_get_contents("$instance/site.php") === file_get_contents("$fixture/site.php"),
    'a failed write stops --apply at that step, exiting 1, with what came before it done and nothing after', "exit $status: $said");
 
+/* a copy is written inside the directory its two paths share — media/, for
+   every one 0.3.0 makes — or the run is refused before it does anything: a
+   link below media/ does not lead a file out of it */
+$away = $box . '/away';
+foreach (['public/media/guides' => 'a Category\'s directory under media/',
+          'public/media/about/remote' => 'a Document\'s Media'] as $rel => $what) {
+    fresh($instance);
+    removeTree($away);
+    mkdir($away);
+    symlink($away, "$instance/$rel");
+    $before = snapshot($instance);
+    foreach ([[], ['--apply']] as $flags) {
+        [$status, $said] = migrate([...$flags, $instance]);
+        ok($status === 1 && str_contains($said, 'a link') && str_contains($said, $rel)
+           && (scandir($away) ?: []) === ['.', '..'] && snapshot($instance) === $before,
+           "$what that is a link out of media/ is refused" . ($flags === [] ? ' by a report' : ' by --apply')
+           . ', and nothing is written through it', "exit $status: $said\n" . implode(' ', scandir($away) ?: []));
+    }
+}
+/* an Instance whose media/ is itself a link — storage kept beside the
+   releases — is migrated where the link leads */
+fresh($instance);
+removeTree($away);
+mkdir($away);
+rename("$instance/public/media", "$away/media");
+symlink("$away/media", "$instance/public/media");
+[$status, $said] = migrate(['--apply', $instance]);
+ok($status === 0 && is_link("$instance/public/media") && is_file("$away/media/guides/install/shot.svg")
+   && migrate([$instance])[0] === 0,
+   'an Instance whose media/ is itself a link is migrated where it leads', "exit $status: $said");
+
+/* and a site.php that is a link stays one: the block goes into the file it names */
+fresh($instance);
+removeTree($away);
+mkdir($away);
+rename("$instance/site.php", "$away/site.php");
+symlink("$away/site.php", "$instance/site.php");
+$was = require "$instance/site.php";
+[$status, $said] = migrate(['--apply', $instance]);
+ok($status === 0 && is_link("$instance/site.php") && str_contains((string) file_get_contents("$away/site.php"), "// 'theme'")
+   && (require "$instance/site.php") === $was && lints("$away/site.php")
+   && (scandir($away) ?: []) === ['.', '..', 'site.php'],
+   'a site.php that is a link is inserted into where it leads, and is still a link', "exit $status: $said");
+removeTree($away);
+
 /* a src that reduces to no file name is named, not copied */
 fresh($instance);
 file_put_contents("$instance/content/about/odd.md", "# odd\n\n![x](..)\n\n![y](.env)\n\n![z](?only=a-query)\n");
@@ -3601,6 +3662,69 @@ ok(bundled($brouter->route('/notes/shown.zip')) === $shownWant,
    'a Media file whose name holds a backslash, and a link, are not in the Bundle',
    implode("\n", bundled($brouter->route('/notes/shown.zip'))));
 
+/* A Document named as a directory beside it is: the directories in its Media
+   are the Media of that directory's Documents — a hidden Sub-category's
+   here, and an undeclared directory's — and are no part of its own. */
+foreach (['wip', 'loose'] as $name) {
+    file_put_contents("$bb/content/notes/$name.md", "---\ntitle: $name, the Document\n---\n\n# $name\n");
+    @mkdir("$bb/public/media/notes/$name/stray", 0755, true);
+    file_put_contents("$bb/public/media/notes/$name/own.png", "\x89PNG own");
+    file_put_contents("$bb/public/media/notes/$name/stray/s.png", "\x89PNG s");
+}
+$got = [bundled($brouter->route('/notes/wip.zip')), bundled($brouter->route('/notes/loose.zip'))];
+ok($got === [[...$editorPart, 'site/content/notes/wip.md', 'site/public/media/notes/wip/own.png'],
+             [...$editorPart, 'site/content/notes/loose.md', 'site/public/media/notes/loose/own.png']],
+   'a Document named as a hidden Sub-category, or as an undeclared directory, takes its own pictures and none of theirs',
+   implode("\n", array_merge(...$got)));
+$inside = array_filter(bundled($brouter->route('/notes.zip')),
+                       static fn (string $n) => preg_match('~/media/notes/(wip|loose)/[^/]+/~', $n) === 1);
+ok($inside === [], 'and nor does its Category\'s Bundle', implode("\n", $inside));
+foreach (['wip', 'loose'] as $name) {
+    unlink("$bb/content/notes/$name.md");
+    unlink("$bb/public/media/notes/$name/own.png");
+}
+
+/* No link leads a Bundle out of content/ or media/: not a Document that is
+   one, not a directory on the way to a Document, not one on the way to its
+   Media. An Instance whose content/ or media/ is itself a link is read
+   where the link leads. */
+$away = $bb . '-away';
+@mkdir("$away/arrays", 0755, true);
+@mkdir("$away/linked", 0755, true);
+file_put_contents("$away/out.md", "---\ntitle: OUTSIDE\n---\n\n# x\n");
+file_put_contents("$away/linked/far.md", "---\ntitle: OUTSIDE too\n---\n\n# x\n");
+file_put_contents("$away/arrays/far.png", "\x89PNG far");
+@symlink("$away/out.md", "$bb/content/notes/out.md");
+@symlink("$away/out.md", "$bb/content/notes/shown-de.md");
+rename("$bb/public/media/notes/php", "$bb/public/media/notes/php-real");
+@symlink($away, "$bb/public/media/notes/php");
+$linked = new TerminalCms\Router(['languages' => ['sk', 'de'], 'categories' => [
+    ['slug' => 'notes', 'categories' => [['slug' => 'php'], ['slug' => 'far']]],
+]], "$bb/content");
+@symlink("$away/linked", "$bb/content/notes/far");
+$taken = array_merge(bundled($linked->route('/notes.zip')), bundled($linked->route('/notes/out.zip')),
+                     bundled($linked->route('/notes/shown.zip')), bundled($linked->route('/notes/php/arrays.zip')),
+                     bundled($linked->route('/notes/far.zip')), bundled($linked->route('/notes/far/far.zip')));
+$led = array_values(array_unique(array_filter($taken,
+    static fn (string $n) => preg_match('~/(out|shown-de|far)\.md$|/far\.png$~', $n) === 1)));
+ok($linked->route('/notes/out')['status'] === 200 && $linked->route('/notes/far/far')['status'] === 200
+   && in_array('site/content/notes/shown.md', $taken, true) && $led === [],
+   'a Document that is a link, a directory that is one, and Media a link leads to, are read by the page and are in no Bundle',
+   implode("\n", $led));
+unlink("$bb/content/notes/out.md");
+unlink("$bb/content/notes/shown-de.md");
+unlink("$bb/content/notes/far");
+unlink("$bb/public/media/notes/php");
+rename("$bb/public/media/notes/php-real", "$bb/public/media/notes/php");
+rename("$bb/content", "$away/content");
+rename("$bb/public/media", "$away/media");
+@symlink("$away/content", "$bb/content");
+@symlink("$away/media", "$bb/public/media");
+$got = bundled((new TerminalCms\Router($bsite, "$bb/content"))->route('/notes/php/arrays.zip'));
+ok($got === [...$editorPart, 'site/content/notes/php/arrays.md', 'site/public/media/notes/php/arrays/a.png'],
+   'an Instance whose content/ and media/ are links is bundled from where they lead', implode("\n", $got));
+removeTree($away);
+
 removeTree($bb);
 
 /* the repository's own: every file of site/editor/, and both Languages */
@@ -3656,12 +3780,33 @@ $found = array_merge(
 );
 ok($found === [], 'the site reads, and does nothing else', implode("\n", $found));
 
+/* content/ is listed in one place, and that place asks whether each file is
+   Published: the Router, the Listings, a Bundle and a Page Build all get a
+   Document's file name from Listing::documents(), so a reader that listed
+   content/ for itself would be a second call here. The one other directory
+   the site lists is a Bundle's walk of media/ and editor/. */
+$uncommented = static fn (string $file): string => implode('', array_map(
+    static fn ($t) => is_array($t) ? (in_array($t[0], [T_COMMENT, T_DOC_COMMENT], true) ? '' : $t[1]) : $t,
+    token_get_all((string) file_get_contents($file))
+));
+$lists = [];
+foreach ($siteSource as $f) {
+    $n = preg_match_all('~\b(?:scandir|opendir|readdir|glob|dir)\s*\(|\b\w*(?:Directory|Filesystem|Glob)Iterator\b~',
+                        $uncommented($f));
+    if ($n > 0) {
+        $lists[basename($f)] = $n;
+    }
+}
+ok($lists === ['Bundle.php' => 1, 'Listing.php' => 1],
+   'the site lists a directory in two places: content/ in Listing, and a Bundle\'s Media and Editor', var_export($lists, true));
+ok(preg_match('~function documents\(.*?scandir\(\$dir\).*?!Document::published\(\$dir \. \'/\' \. \$name\).*?continue;~s',
+              $uncommented($root . '/site/src/Listing.php')) === 1
+   && preg_match('~function tree\(.*?scandir\(\$dir\)~s', $uncommented($root . '/site/src/Bundle.php')) === 1,
+   'and the one that lists content/ passes over every file that is not Published');
+
 /* The ZIP writer writes: to the stream it is handed, which at request time is
    the response. Every file it opens itself it opens to read. */
-$zipCode = implode('', array_map(
-    static fn ($t) => is_array($t) ? (in_array($t[0], [T_COMMENT, T_DOC_COMMENT], true) ? '' : $t[1]) : $t,
-    token_get_all((string) @file_get_contents($zipSource))
-));
+$zipCode = $uncommented($zipSource);
 preg_match_all('~fopen\([^;]*~', $zipCode, $opens);
 $writable = array_filter($opens[0], static fn (string $call) => !preg_match("~,\s*'rb'\)$~", $call));
 ok($opens[0] !== [] && $writable === [], 'and Zip.php writes only to the stream it is given: every fopen() it makes is read-only',

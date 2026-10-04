@@ -669,6 +669,229 @@ was made before the release: the Editor reads Meta as the page does, and
   the only 12, and OSV still answers nothing for 11.17.2 on the day of this
   review. The vendored file's hash is the one its first line names.
 
+## 0.3.0 — sixth review
+
+A review of what 0.3.0 adds, before it is released: the third segment of an
+address and the `.zip` on the end of one; what a Bundle reads; the Published
+predicate and who asks it; a Document's own Media, in both halves; the Full
+View and what it saves; the Editor's copy inside an Instance; and
+`site/migrate`, the first program in the project that writes into one. The
+five reviews before it are not repeated: the Renderer, the policy and the
+Diagram placement were re-read only where the new code touches them.
+
+It was run as much as read. Where a line below says *tried*, it was tried on
+this tree: the PHP against scratch Instances built for the purpose, the page's
+script in headless Chromium 153 and headless Firefox 155 against a site served
+by `php -S` with its header.
+
+No remote code execution, injection, request-forgery or origin-escape issue
+was found. Three things were, all low, and all three are fixed here.
+
+- **A Bundle could carry the pictures of a Sub-category that is not Published.** A Document's
+  Media is its directory under `media/`, taken whole. A Document named as a
+  directory beside it — `notes/wip.md` next to `notes/wip/` — therefore has a
+  Media directory that holds the Media of every Document in that directory.
+  When Site Config declares the directory as a Sub-category the Document is
+  shadowed and no Bundle is made of it. When the Sub-category is not
+  Published, or the directory is not declared at all, the Document is
+  served, and its Bundle and its Category's carried those pictures, under
+  paths that name Documents no page names. *Tried*: `/notes/wip.zip` held
+  `media/notes/wip/secret/s.png`. The pictures were never secret — they are
+  files in the document root — but their names were not on any page, and the
+  names of those Documents were not either. A Document with a directory of
+  its own name beside it now takes the files in its Media and none of the
+  directories.
+- **A link under `media/` led the runner's copies out of the Instance.**
+  Every copy the 0.3.0 Migration lists goes from `public/media/<name>` to
+  `public/media/<path>/<name>`, and the runner refused a target written with
+  `..` or from the root. It did not ask where the directories on the way
+  lead. *Tried*: with `public/media/guides` a link to a directory elsewhere,
+  `--apply` wrote four pictures there and exited 0. The runner adds and never
+  overwrites, so nothing was lost, and the link is the operator's own; but
+  "inside the site" was true of the spelling and not of the disk. A copy must
+  now land inside the directory its two paths share — `public/media/`, for
+  every copy 0.3.0 makes — with every link followed, or the run is refused
+  before it writes anything, the report included. An Instance whose `media/`
+  is itself a link, storage kept beside the releases, is migrated where the
+  link leads: that is the directory the two paths share.
+- **A Diagram saved from the Full View asked other hosts for pictures when
+  the file was opened.** On the page, `img-src 'self'` and `default-src
+  'none'` refuse every picture, video and sound a Diagram names. The saved
+  SVG is a file, and a file is read under no policy. *Tried*, with fifteen
+  hostile sources: no saved file held a `<script>`, a handler attribute or a
+  `javascript:` address, and none ran anything when opened in either browser
+  — Mermaid's sanitiser had removed all of it before the page saw the
+  drawing, which is the question this review was asked. But the files saved
+  from four of the sources made requests as they opened: for a label's
+  `<img>`, for a label's `<video>`, its poster and an `<audio>`, and for a
+  `url()` in a label's `style` and in the CSS an `init` directive carries.
+  Whoever wrote the Diagram would learn that the file was opened, from where
+  and when, each time. The copy that is serialised now loses what the page's
+  policy refused the drawing: the elements that run or load something, an
+  animation that could set an address among them, every handler attribute,
+  every attribute that names an address other than a link's `http`, `https`
+  or `mailto` Href, and every attribute, declaration and rule whose value
+  holds a `url()` that is not a `#…` reference into the drawing, or an
+  `image-set()` — `fill`, `mask`, `clip-path`, `filter`, `cursor` and the
+  markers are attributes that take one. The stylesheet is
+  read by the browser's own parser into a sheet no document adopts and
+  written back from its rules, so an address is judged as the browser
+  understood it — `u\72l(…)` is `url(…)` by then — and a custom property,
+  which is spelled back as written, goes if it holds an escape. *Tried
+  again*, with those sources and two more written against the fix: fourteen
+  drawings saved in each browser and each file opened in both, fifty-six
+  openings, and not one request; `filter: url("#…")` kept; and the sample
+  site's own Diagram saved before and after the change opens to the same
+  pixels in both browsers. The first version of the fix read addresses out
+  of `src`, `href` and their like and out of declarations, and not out of
+  presentation attributes; the read of this change found that, with an
+  animation that sets an `href` and an `@namespace` rule that stopped the
+  save. No Diagram source was found that gets any of the three past
+  Mermaid's sanitiser, so they were put into a drawn Diagram by hand and
+  saved: nothing left in the file, nothing asked for on opening it, in
+  either browser.
+
+Also changed, as hardening rather than as findings:
+
+- **A Bundle followed a link everywhere but in the last directory.** It
+  passed over a link among a Document's pictures and among the Editor's
+  files, and its header said no link was followed. A Document that was itself
+  a link, a Category directory that was one, and a directory on the way to a
+  Document's Media were all read through. None of that gave a reader anything
+  new — the page renders a linked Document, and the web server serves a
+  linked picture — so it is not a finding; it is a sentence that was wider
+  than the code. A Bundle now takes a Document only from a directory that is
+  really below `content/`, never one that is a link, and Media only from a
+  directory really below `media/`. Either of the two may itself be a link.
+  The page still serves a linked Document; its Bundle is the Editor and a
+  README.
+- **A `site.php` that was a link stopped being one.** The runner writes the
+  file whole, into a new file that takes its name, and so replaced the link
+  with a copy and left the file the link named as it was — the one thing the
+  runner removed. It now writes beside the file the link leads to.
+- **An address with a NUL in it was an uncaught error on the built-in
+  server.** `/about%00` reached `realpath()`, which throws on a NUL, in the
+  branch of the entry point that only `php -S` runs. A 500, and with
+  `display_errors` on a stack trace. Older than 0.3.0, and never reachable
+  behind Apache or nginx, which hand the Router the address undecoded. It is
+  a 404 now.
+- **The suite did not say that `content/` is listed in one place.** Every
+  reader of `content/` gets its file names from `Listing::documents()`, which
+  passes over what is not Published — that is the whole of how Published is
+  enforced for a Document. Nothing would have noticed a new reader that
+  listed a directory for itself. `bin/test` now fails if the site's source
+  lists a directory anywhere but there and in the Bundle's walk of `media/`
+  and `editor/`, and if the one in `Listing` stops asking.
+
+### Looked at and left alone
+
+- **Three segments.** Only the first two can become a directory name, and
+  each does so by being identical to a slug Site Config declared, which
+  `Site` has already held to `[a-z0-9][a-z0-9_-]*`. The last is looked up
+  among the names `scandir()` gave. *Tried*: `..`, `...`, an empty segment,
+  percent-encoded dots and slashes, a fourth segment, a segment of an
+  undeclared directory or of one not Published. All 404. The Router never decodes an
+  address, so `%2e%2e` is four characters that match no file.
+- **The `.zip`.** It is taken off the whole address once, before the address
+  is split or compared with anything, and nothing looks for it again.
+  *Tried*: `/notes.zip/php`, `/notes/php.zip/arrays`, `/x.zip.zip`, `.ZIP`,
+  `/.zip`, `/index.zip`, a `.zip` in a query string. Each is the page's own
+  answer or a 404, and a Bundle is answered only where its page is. One
+  consequence is not exposure: a Document whose Name ends in `.zip` has no
+  page, because its address is another Document's Bundle or nothing.
+- **What a Bundle reads.** `content/<a declared path>/<a name scandir gave>`,
+  `public/media/<that path>/<that name>/` and `editor/`, all beside each
+  other, and nothing else: `site.php` and `src/` have no path that leads to
+  them, since no segment of a path is `..` and no link is followed. A
+  Document that is not Published is not in `Listing::documents()`, so it is
+  in no Bundle; nor is one in a directory that is undeclared or not Published, which is
+  never walked. A file with `bundle: false` is left out of its Category's.
+  A dot file is not taken. The `bin/test` fixture holds one of each.
+- **The ZIP.** A name is refused unless it is a relative path of UTF-8
+  segments with no `.`, `..`, backslash or control character, so an
+  unpacker is given nothing that climbs — and a Document whose file is named
+  so is left out rather than refused half-way. `Content-Disposition` spells
+  the name in `[A-Za-z0-9._-]` and, when that loses anything, percent-encoded
+  beside it; *tried* with a quote, a semicolon and a letter outside ASCII in
+  a file name, and a name with a newline in it is offered no Bundle.
+  The response carries the page's four headers. A file that changes between
+  being measured and being copied ends the response short: a ZIP that does
+  not open, not one that lies.
+- **Published.** Two predicates, `Site::published()` for a declaration and
+  `Document::published()` for a file, and each fails closed. *Tried*, by
+  breaking each in a copy of the tree and running the suite: the listing no
+  longer asking fails 21 assertions, `Site` no longer asking fails 19, and a
+  predicate that withholds only the word `false` fails 13. The Router, both
+  Listings, the Language indicator, the Bundle and the Page Build have no
+  second way to a file name.
+- **Media, on the page.** A src that is not an absolute local path is
+  reduced to its last segment and placed in a directory the Document names;
+  the src never chooses the directory. *Tried*, 42 srcs through both halves
+  — climbs written with dots, backslashes and percent-encoding, other
+  origins, schemes, queries, a right-to-left override: the two halves agree
+  on every one, and none names another origin. The furthest a src reaches
+  is `..` alone, which is the Category's directory under `media/`, a
+  directory and no picture. A Document's own file name is the other half of
+  the path, and it is the operator's.
+- **The Editor's second look.** An image that does not load is asked for
+  once more, at the same src without a trailing `-xx` on the Document's
+  directory. The second src is computed from the first, only when the first
+  is under `../site/public/media/`, is written through `esc()` and
+  `setAttribute`, and is tried once: the attribute is removed before the src
+  is set. It can name nothing the first could not.
+- **The Full View's saves.** An Image is saved from the address its `<img>`
+  already loaded, which the reduction keeps on the site's own origin. A
+  Diagram's source is saved as text. The Blob URLs are made from strings the
+  page holds, and revoked. A browser that opened the SVG's Blob instead of
+  saving it would open a document of the page's origin under the page's
+  policy, holding no script, on an origin with no cookie and two
+  `localStorage` strings. The `tcms-drawn` event that tells the Full View a
+  drawing was placed can only be sent by script, and a Diagram has none.
+- **`site/editor/`.** A generated copy, held to `editor/` by `bin/test`,
+  above the document root: no address reaches it, and the entry point's
+  static branch for `php -S` resolves a path and requires it under
+  `public/`. *Tried*: `/editor/index.html`, `/../editor/index.html` and
+  their encodings are 404. It is read only into a Bundle, without its dot
+  files or links. A file an operator adds to it is in every Bundle.
+- **Where a copy comes from.** Always `public/media/<one name>`: the src is
+  reduced to its last segment by 0.2.0's own rule before it is looked for,
+  so `../../../site.php` is `site.php` in `media/` or nothing. A name that
+  is empty, `.`, `..` or begins with a dot is a note and never a copy.
+- **Where a copy goes.** `public/media/` and then the Document's path as
+  `scandir()` gave it, declared in Site Config or not, Published or not. A
+  file named `...md` gives a path with `..` in it, and one with a newline in
+  its name a path with a control character; the runner refuses either
+  action, and the run with it. A directory under `content/` that is a link
+  is read through, and its Documents' pictures still go under `media/`. A
+  target that exists is never written — a dangling link counts as existing.
+  The check and the write are not one step, and two runs at once could both
+  pass it; the tree is the operator's and so are the runs.
+- **The insert.** `site.php` is read as tokens and never run by the standing
+  step. The block goes before the bracket that closes the first array
+  returned outside every other bracket, and only when a `;` follows it; the
+  result is read again and must show the same live keys, or nothing is
+  written. A block is refused unless every line of it is a `//` comment and
+  none holds `?>`. *Tried*, 28 files an operator might have: one line, a
+  closing `?>` with text after it, a heredoc and a nowdoc holding `];`, `];`
+  in strings and comments, code before and after the `return`, two returns,
+  closures, `match`, an attribute, a spread, CRLF, no final newline. In 23
+  the block was inserted, the file passed `php -l` and `require` gave the
+  array it gave before. Four that do not end in `return [ … ];` were named
+  and left alone, and one whose own code warned stopped the run.
+- **Who can run it.** `PHP_SAPI !== 'cli'` is the first statement. As a
+  router script under `php -S` it answers 403 and does nothing, which
+  `bin/test` holds, and under `php-cgi` the same 403. Asked for by name from
+  a `php -S` whose document root was wrongly set to `site/`, a copy named
+  `migrate.php` did not compile — that server does not pass over the `#!`
+  line, and `declare(strict_types=1)` is then not first — and the file under
+  its own name, which no handler takes for PHP, was sent as text. Nothing in
+  `public/` names it: the
+  entry point requires `bootstrap.php` and `site.php` by fixed paths, the
+  autoloader loads only `TerminalCms\…` from `src/`, and no class name comes
+  from a request. `bin/page-build` runs it as a report, through an argument
+  array and no shell. The 0.3.0 Migration does run `site.php`, to learn the
+  languages: the operator's code, with the operator's permissions.
+
 ## Residual risks
 
 - This is not impenetrable and does not claim to be. It is a small surface.
@@ -719,6 +942,21 @@ was made before the release: the Editor reads Meta as the page does, and
   leaves both under hidden names beside the output, and nothing at the output,
   until the next build or a hand removes them. `site/public/` is copied
   following symlinks, as a web server serves them.
+- Published keeps a Document off the site and its pictures on it. The Media of a
+  Document that is not Published is under the document root, served to whoever names the
+  file, and copied by a Page Build with the rest of `site/public/`. Nothing
+  the site writes names it.
+- A Bundle is made again for every request: each file is read twice, once
+  for its checksum and once to send it, and nothing is kept. Every one
+  carries the Editor, about 4 MB. A host that minds the traffic says
+  `'bundle' => false`, caches the address, or publishes by a Page Build,
+  which writes each Bundle once.
+- A Diagram saved from the Full View keeps its links, to `http`, `https` and
+  `mailto` addresses, as the page did. It keeps nothing that runs or fetches;
+  a link is followed by whoever clicks it.
+- `site/migrate` writes with the permissions of whoever runs it, and the
+  0.3.0 Migration runs the Instance's `site.php` to learn its languages. Run
+  it over an Instance you would serve.
 - The editor holds the document in the browser tab and nowhere else. Anything
   that navigates the tab away loses it. A link clicked in the preview and a
   URL dropped on the page did, until 0.2.0: the one opens in a tab of its own
@@ -733,7 +971,8 @@ was made before the release: the Editor reads Meta as the page does, and
 721 when the fourth review was written, 835 once the Themes and the Editor's
 policy had landed after it, 838 with the fifth, and the rest from the two
 issues closed after that: the Editor's reading of Meta, and the preview
-keeping the tab.
+keeping the tab. At 0.3.0 it is 1091: 1077 when the sixth review began, and
+fourteen from it.
 
 `tests/editor-probe.html` drives the editor's DOM half through a real browser
 and is the one check the suite cannot run. At 0.1.9 it was 172 assertions, run
@@ -748,4 +987,7 @@ way in both — beside a scripted re-run of the by-hand checks
 of issues 05 to 08 — the Editor from `file://`, the site with its header, and
 a Page Build under `/proj` and at the root with the `<meta>` — 31 checks, all
 green; the maintainer's own run in a real browser is what the release waits
-for.
+for. At 0.3.0 the probe is 301, run green in headless Chromium 153 and
+headless Firefox 155 for the sixth review, whose own checks in a browser —
+the hostile Diagrams saved from the Full View and opened as files — were
+scripted runs in the same two.

@@ -219,7 +219,9 @@ is not ([ADR-0023](adr/0023-published-fails-closed.md)).
 
 It keeps a document off the site and is **not a secret**. The file is on the
 server, in the repository and in its history, and anyone who can read those
-reads it. Do not put in a draft what must not be read.
+reads it. Do not put in a draft what must not be read. Its pictures are not
+kept back at all: a document's Media is under the document root, and the web
+server hands a file there to whoever names it.
 
 ## The Bundle
 
@@ -234,11 +236,20 @@ What a Bundle reads is what the site could already show. Every path is a
 category path from `site.php` or a name `scandir()` gave, under three
 directories: `content/`, `public/media/` and `site/editor/`. It carries no
 document that is not Published and none whose Meta says `bundle: false`.
-Walking a document's pictures and the Editor it follows no symbolic link and
-takes no dot file. `site.php` and
+It follows no symbolic link inside the three: a document that is a link, or
+is in a directory a link leads to, is left out with its pictures, and so are
+pictures a link leads to. `content/` or `media/` may itself be a link, and is
+read where it leads. It takes no dot file. `site.php` and
 `src/` are in none. A reader of a Bundle gets the markdown source, where a
 reader of the page gets the HTML — the same writing, and a Meta line the
 page does not print is in the file.
+
+A document's pictures are its directory under `media/` and everything in it,
+with one exception. When a directory of the document's own name is beside it
+under `content/` — `notes/wip.md` next to `notes/wip/` — the directories
+inside its Media belong to that directory's documents, which `site.php` may
+not publish or not declare. The Bundle then takes the files and none of the
+directories.
 
 The ZIP is written to the response as its files are read. Nothing is written
 to disk and no extension is used; the response carries the same headers and
@@ -258,7 +269,11 @@ needs to write nowhere.
 
 It copies a file to a path that does not exist and inserts commented-out lines
 into `site.php`, and can do nothing else: it removes nothing and overwrites
-nothing, and a bare run only reports. It finds the keys of `site.php` by
+nothing, and a bare run only reports. A copy lands inside the directory its
+source and its target share — `public/media/`, for every copy 0.3.0 makes —
+once every symbolic link on the way is followed, or the whole run is refused
+before anything is written. A `site.php` that is a link is inserted into
+where it leads. It finds the keys of `site.php` by
 reading the file as text; the 0.3.0 Migration also runs `site.php`, as every
 request does, to learn the instance's languages.
 
@@ -299,7 +314,7 @@ same in an inert document, and the policy blocks both. Each report is the
 boundary holding. The picture is right because placement carries the styles.
 
 A page with an Image or a Diagram also gets the Full View, about a hundred and
-fifty lines more: a button on each picture that opens it alone in a `<dialog>`,
+ninety lines more: a button on each picture that opens it alone in a `<dialog>`,
 from which it can be saved. The saves ask for nothing the policy governs.
 An Image is saved from its own address, the one its `<img>` already loaded, through an `<a download>` the script clicks. A Diagram is saved as a
 Blob made from the page's own content, either the SVG on the screen or the
@@ -312,6 +327,20 @@ nobody else should have it. Opening a Diagram moves the drawing into the
 dialog and back again rather than copying it, so the styles placement set
 through the CSSOM go with it, and the Full View adds no console report of its
 own.
+
+A saved SVG is a file, and a file is opened under no policy. What the page's
+policy refused the drawing would be asked for the moment the file was opened:
+a picture a label names on another host, a `url()` in the CSS the Diagram
+carries. So the copy is written without it. The elements that run or load
+something are removed — `script`, `iframe`, `object`, `embed`, `video`,
+`audio`, `form`, an animation and the like — with every `on…` attribute and
+every attribute that names an address, except a link's `http`, `https` or
+`mailto` Href. The stylesheet and each element's own declarations are read
+back from the browser's parser, and a declaration or a presentation attribute
+whose value holds a `url()` that is not a `#…` reference into the drawing, or
+an `image-set()`, is dropped. What is
+left draws the picture the reader was looking at, since the page never loaded
+any of the rest.
 
 The copy is Mermaid 11.17.2, the npm package's own `dist/mermaid.min.js`
 with one line added at the top that names the version, the licence beside it in

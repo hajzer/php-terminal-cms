@@ -17,12 +17,16 @@
  * prints the list; --apply performs it in order and stops at the first write
  * that fails. The actions are these, and nothing else is accepted:
  *
- *   copy <from> <to>   a file, to a path that does not exist yet
+ *   copy <from> <to>   a file, to a path that does not exist yet, inside the
+ *                      directory the two paths share
  *   insert <block>     into site.php, before its closing ];, every line a comment
  *   note <line>        printed, and never acted on
  *
  * All of them add. Nothing is removed and nothing is overwritten, so a second
- * run finds only the notes: what the operator has to decide.
+ * run finds only the notes: what the operator has to decide. A copy that a
+ * symbolic link would lead out of the directory its two paths share is
+ * refused, and the run with it, before anything is written. A site.php that
+ * is a link is inserted into where it leads.
  *
  * Exit status: 0 when nothing is left to do or --apply did it, 2 when a bare
  * run lists something to do, 1 when the run was refused or a write failed.
@@ -234,6 +238,32 @@ function malformed(mixed $action): string
     };
 }
 
+/**
+ * Why a copy would not be written inside the directory its two paths share —
+ * public/media/ for a picture moved deeper into it — or '' when it would: the
+ * nearest directory on the way to its target that exists is, with every link
+ * followed, that directory or below it.
+ */
+function strays(string $site, string $from, string $to): string
+{
+    $a = explode('/', dirname($from));
+    $b = explode('/', dirname($to));
+    $shared = [];
+    for ($i = 0; isset($a[$i], $b[$i]) && $a[$i] === $b[$i]; $i++) {
+        $shared[] = $a[$i];
+    }
+    $within = implode('/', $shared);
+    $root   = realpath($within === '' ? $site : "$site/$within");
+    $dir    = dirname("$site/$to");
+    while (!file_exists($dir) && !is_link($dir)) {
+        $dir = dirname($dir);
+    }
+    $real = realpath($dir);
+    return $root !== false && $real !== false && ($real === $root || str_starts_with($real, $root . '/'))
+        ? ''
+        : "would be written outside $within/ — a link on the way to $to leads out of it";
+}
+
 /** The action as the report lists it, an insert's block under it. */
 function describe(array $action): string
 {
@@ -273,6 +303,9 @@ function perform(string $site, array $action): void
         if (!is_file($from)) {
             throw new RuntimeException("$action[1] is not a file");
         }
+        if (($why = strays($site, $action[1], $action[2])) !== '') {
+            throw new RuntimeException("$action[1] $why");
+        }
         if (!is_dir(dirname($to))) {
             mkdir(dirname($to), 0755, true);
         }
@@ -291,7 +324,8 @@ function perform(string $site, array $action): void
         return;
     }
 
-    $file = "$site/site.php";
+    /* the file itself, so that a site.php that is a link is still one after */
+    $file = (string) realpath("$site/site.php");
     $php  = (string) file_get_contents($file);
     $was  = topLevel($php);
     if ($was === null) {
@@ -373,6 +407,9 @@ foreach ($steps as $name => $actions) {
     foreach ($actions as $action) {
         if (($why = malformed($action)) !== '') {
             refuse("$name returns an action that $why: " . shown(var_export($action, true)));
+        }
+        if ($action[0] === 'copy' && ($why = strays($site, $action[1], $action[2])) !== '') {
+            refuse("$name: " . shown("$action[1] $why") . ' — nothing is done until the link is gone');
         }
     }
 }

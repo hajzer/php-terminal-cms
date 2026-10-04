@@ -25,8 +25,9 @@ use TerminalCms\Site;
  * Dev-only path, but still resolved and contained rather than trusted.
  */
 if (PHP_SAPI === 'cli-server') {
-    $path = (string) (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/');
-    $real = realpath(__DIR__ . '/' . ltrim(rawurldecode($path), '/'));
+    $path = rawurldecode((string) (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/'));
+    /* a NUL names no file, and realpath() throws on one */
+    $real = str_contains($path, "\0") ? false : realpath(__DIR__ . '/' . ltrim($path, '/'));
     if ($real !== false
         && is_file($real)
         && str_starts_with($real, __DIR__ . DIRECTORY_SEPARATOR)

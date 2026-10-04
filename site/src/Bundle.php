@@ -15,9 +15,16 @@ namespace TerminalCms;
  *
  * It reads an Instance as one is laid out — content/, public/media/ and
  * editor/ side by side — and every path it reads is a Category path from Site
- * Config or a name scandir() gave. A symbolic link found on the way is not
- * followed, a dot file is not taken, and a name a ZIP cannot hold is left out
- * rather than refused half-way through a download.
+ * Config or a name scandir() gave. No symbolic link inside those three is
+ * followed: a Document that is one, or that is reached through one, is left
+ * out with its Media, and so is Media reached through one. A dot file is not
+ * taken, and a name a ZIP cannot hold is left out rather than refused
+ * half-way through a download.
+ *
+ * A Document's Media is its directory under media/ and everything in it —
+ * unless a directory of the Document's name is beside it under content/. The
+ * directories in its Media are then the Media of that directory's Documents,
+ * which may not be declared or Published, and only the files are its.
  *
  *     $bundle = Bundle::document($contentDir, $codes, 'guides', 'install');
  *     $bundle->write(fopen('php://output', 'wb'));
@@ -153,20 +160,33 @@ final class Bundle
      */
     private static function take(array &$parts, string $contentDir, string $path, string $base, array $variants): void
     {
+        $dir = $contentDir . '/' . $path;
+        if (!self::inside($dir, $contentDir)) {
+            return;
+        }
         $taken = false;
         foreach ($variants as $file) {
-            $source = $contentDir . '/' . $path . '/' . $file;
+            $source = $dir . '/' . $file;
             $name = 'site/content/' . $path . '/' . $file;
-            if ((Document::peekMeta($source)['bundle'] ?? '') === 'false' || !Zip::isName($name)) {
+            if (is_link($source) || (Document::peekMeta($source)['bundle'] ?? '') === 'false' || !Zip::isName($name)) {
                 continue;
             }
             $parts['content'][$name] = $source;
             $taken = true;
         }
-        if ($taken) {
-            $media = $path . '/' . $base;
-            self::tree(dirname($contentDir) . '/public/media/' . $media, 'site/public/media/' . $media, $parts['media']);
+        $root = dirname($contentDir) . '/public/media';
+        $media = $path . '/' . $base;
+        if ($taken && self::inside($root . '/' . $media, $root)) {
+            self::tree($root . '/' . $media, 'site/public/media/' . $media, $parts['media'], !is_dir($dir . '/' . $base));
         }
+    }
+
+    /** Whether a directory is, once every link on the way to it is followed, below another. */
+    private static function inside(string $dir, string $root): bool
+    {
+        $dir = realpath($dir);
+        $root = realpath($root);
+        return $dir !== false && $root !== false && str_starts_with($dir, $root . '/');
     }
 
     /** @param array{content:array<string,string>, media:array<string,string>} $parts */
@@ -190,11 +210,12 @@ final class Bundle
 
     /**
      * Every file under a directory, named under a path below the top, in the
-     * order scandir() gives them.
+     * order scandir() gives them — or, without $deep, the files in the
+     * directory itself.
      *
      * @param array<string,string> $into name => file
      */
-    private static function tree(string $dir, string $as, array &$into): void
+    private static function tree(string $dir, string $as, array &$into, bool $deep = true): void
     {
         if (is_link($dir) || !is_dir($dir)) {
             return;
@@ -205,7 +226,9 @@ final class Bundle
                 continue;
             }
             if (is_dir($path)) {
-                self::tree($path, $as . '/' . $name, $into);
+                if ($deep) {
+                    self::tree($path, $as . '/' . $name, $into);
+                }
             } elseif (is_file($path) && is_readable($path) && Zip::isName($as . '/' . $name)) {
                 $into[$as . '/' . $name] = $path;
             }

@@ -166,6 +166,21 @@ What is new:
   a Bundle*: how an edited Bundle goes back onto an instance.
 - CONTEXT.md gains **Sub-category**, **Published**, **Media**, **Bundle**,
   **Full View** and **Migration**.
+- A sixth security review, of the surface this release adds: the third
+  segment and the `.zip` address, what a Bundle reads, Published, Media in
+  both halves, the Full View's saves and `site/migrate`. It found three
+  things, all low, and fixed them before the release. A Document named as a
+  directory beside it that is not Published or not declared took that directory's Documents'
+  pictures into its Bundle; it now takes its own files alone. A symbolic link
+  under `media/` led the Migration's copies out of the instance; a copy now
+  stays inside `media/` with every link followed, or the run is refused
+  before it writes. And a Diagram saved as SVG, opened as a file, asked other
+  hosts for the pictures its source named, which the page's policy had
+  refused; the saved file now holds nothing that runs or fetches. A Bundle
+  also follows no link inside `content/` or `media/`, a `site.php` that is a
+  link stays one, and an address with a NUL in it is a 404 on the built-in
+  server. `docs/security-audit.md` carries the scope, what was tried and
+  what was left alone.
 
 ## 0.2.0
 

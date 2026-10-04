@@ -53,6 +53,13 @@ repository's own.
   Bundle is the site's, not the Editor's; ADR-0001's boundary is where it was.
 - `site/editor/` is one more generated copy for `bin/test` to hold to its
   source.
+- A Document's Media is taken whole, sub-directories included, unless a
+  directory of the Document's name is beside it under `content/`. The
+  directories in its Media are then the Media of that directory's Documents —
+  a Sub-category's, which may not be Published or declared — and the
+  Bundle takes the files alone.
+- A Bundle follows no symbolic link inside `content/`, `media/` or `editor/`.
+  A Document that is a link is on its page and not in its Bundle.
 
 ## Rejected
 

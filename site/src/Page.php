@@ -287,7 +287,9 @@ HTML
      * copy would lose the styles placed on it through the CSSOM; while it is
      * away an empty <svg> of its size keeps its place. It saves as the SVG
      * being looked at, its stylesheet inside it without the nonce, and as its
-     * source, each a Blob URL let go of once the download has it.
+     * source, each a Blob URL let go of once the download has it. The saved
+     * SVG is a file read under no policy, so it is written without anything
+     * that would run or fetch when it is opened.
      *
      * The drawing announces each picture it places with a tcms-drawn event on
      * the Diagram's block, the first time and after every redraw, carrying the
@@ -430,12 +432,57 @@ HTML
   /* the drawing as the reader sees it: on the ground it is shown on, which
      its colours were chosen for, its own stylesheet inside it, and without
      the nonce, which belongs to this page and to no other. The copy is never
-     in the page, so nothing in it is read as a stylesheet. */
+     in the page, so nothing in it is read as a stylesheet.
+
+     The file is opened under no policy, so the copy loses what the page's
+     policy refused the drawing: every element and attribute that could run
+     or load something, and every address but a link's — in an attribute,
+     a presentation attribute included, in a declaration and in the
+     stylesheet. A reference into the drawing itself, #…, stays. */
+  var GONE = /^(script|iframe|object|embed|video|audio|source|track|link|meta|base|form|set|animate|animatemotion|animatetransform)$/;
+  var ASKS = /^(src|srcset|poster|data|action|formaction|background|ping|href)$/;
+  var FETCHES = /(?:url|src)\(\s*(?!["']?#)|image-set\(/i;
+  var drop = Element.prototype.remove;
   function drawing(svg) {
     var copy = svg.cloneNode(true);
-    copy.querySelectorAll('style').forEach(function (el) { el.removeAttribute('nonce'); });
+    copy.querySelectorAll('*').forEach(function (el) {
+      if (el instanceof HTMLFormElement || GONE.test(el.localName.toLowerCase())) { drop.call(el); return; }
+      if (el.style) quiet(el.style);
+      var anchor = el.localName === 'a';
+      [].slice.call(el.attributes).forEach(function (attr) {
+        var name = attr.localName.toLowerCase(), value = attr.value.trim();
+        var link = anchor && name === 'href' && /^(https?:|mailto:)/i.test(value);
+        if (/^on/.test(name) || (ASKS.test(name) && !link && value.charAt(0) !== '#')
+            || FETCHES.test(value) || /\\.*\(/.test(value)) el.removeAttributeNode(attr);
+      });
+    });
+    var sheet = new CSSStyleSheet();
+    copy.querySelectorAll('style').forEach(function (el) {
+      el.removeAttribute('nonce');
+      sheet.replaceSync(el.textContent);
+      quietRules(sheet);
+      el.textContent = [].map.call(sheet.cssRules, function (rule) { return rule.cssText; }).join('\n');
+    });
     copy.style.setProperty('background-color', getComputedStyle(view).backgroundColor);
     return new XMLSerializer().serializeToString(copy);
+  }
+
+  /* the browser's own reading of each declaration, so an address is judged
+     as it is spelled back and not as it was written; a custom property is
+     spelled back as written, and one with an escape in it goes */
+  function quiet(style) {
+    for (var i = style.length - 1; i >= 0; i--) {
+      var name = style[i], value = style.getPropertyValue(name);
+      if (FETCHES.test(value) || (name.indexOf('--') === 0 && value.indexOf('\\') >= 0)) style.removeProperty(name);
+    }
+  }
+  function quietRules(sheet) {
+    for (var i = sheet.cssRules.length - 1; i >= 0; i--) {
+      var rule = sheet.cssRules[i];
+      if (rule.style) quiet(rule.style);
+      if (rule.cssRules) quietRules(rule);
+      if (!rule.style && !rule.cssRules && !/^@namespace/i.test(rule.cssText) && FETCHES.test(rule.cssText)) sheet.deleteRule(i);
+    }
   }
 })();
 

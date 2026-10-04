@@ -62,6 +62,10 @@ release reads them in, and it adds and never removes.**
   release moves files without a Migration, that test fails.
 - A future release that has to change a file in place — rewrite an Image Line,
   rename a key — adds an action to the runner, deliberately.
+- A copy stays in the directory its source and its target share, with every
+  symbolic link followed, and a run that would leave it is refused whole. An
+  Instance whose `media/` is a link is migrated where the link leads, and a
+  `site.php` that is a link is inserted into where it leads.
 
 ## Rejected
 
